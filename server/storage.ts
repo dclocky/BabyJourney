@@ -20,6 +20,9 @@ const MemoryStore = createMemoryStore(session);
 const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
+  // Session store
+  sessionStore: session.Store;
+  
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -81,9 +84,6 @@ export interface IStorage {
   getVaccinations(childId: number): Promise<Vaccination[]>;
   createVaccination(vaccination: InsertVaccination): Promise<Vaccination>;
   deleteVaccination(id: number): Promise<boolean>;
-
-  // Session store
-  sessionStore: any; // Express session store type
 }
 
 export class MemStorage implements IStorage {
@@ -97,7 +97,7 @@ export class MemStorage implements IStorage {
   private appointments: Map<number, Appointment>;
   private photos: Map<number, Photo>;
   private vaccinations: Map<number, Vaccination>;
-  public sessionStore: any; // Express session store type
+  public sessionStore: session.Store;
 
   private userIdCounter: number = 1;
   private familyMemberIdCounter: number = 1;
@@ -460,12 +460,14 @@ export class MemStorage implements IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  public sessionStore: any; // Express session store type
+  public sessionStore: session.Store;
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({ 
       pool, 
-      createTableIfMissing: true 
+      tableName: 'session',
+      createTableIfMissing: true,
+      pruneSessionInterval: 60 * 15 // prune expired sessions every 15 minutes
     });
   }
 
