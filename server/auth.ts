@@ -1,11 +1,12 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
+import { log } from "./vite";
 
 declare global {
   namespace Express {
@@ -49,6 +50,22 @@ export function setupAuth(app: Express) {
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
+
+  // Debug middleware for session tracking
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    // Only track API requests for session debugging
+    if (req.path.startsWith('/api')) {
+      log(`Request ${req.method} ${req.path} - SessionID: ${req.sessionID}`);
+      
+      // Track session changes
+      const originalEnd = res.end;
+      res.end = function(...args: any[]) {
+        log(`Response ${req.method} ${req.path} - Status: ${res.statusCode} - SessionID: ${req.sessionID}`);
+        return originalEnd.apply(res, args);
+      };
+    }
+    next();
+  });
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
