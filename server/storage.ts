@@ -97,7 +97,7 @@ export class MemStorage implements IStorage {
   private appointments: Map<number, Appointment>;
   private photos: Map<number, Photo>;
   private vaccinations: Map<number, Vaccination>;
-  public sessionStore: session.SessionStore;
+  public sessionStore: any; // Express session store type
 
   private userIdCounter: number = 1;
   private familyMemberIdCounter: number = 1;
