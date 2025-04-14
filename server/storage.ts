@@ -464,10 +464,11 @@ export class DatabaseStorage implements IStorage {
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({ 
-      pool, 
-      tableName: 'session',
-      createTableIfMissing: true,
-      pruneSessionInterval: 60 * 15 // prune expired sessions every 15 minutes
+      pool,
+      tableName: 'session', // Use the default table name for consistency
+      createTableIfMissing: false, // Don't try to create the table since it already exists
+      pruneSessionInterval: 60 * 15, // prune expired sessions every 15 minutes
+      errorLog: console.error, // Add error logging
     });
   }
 

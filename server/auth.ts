@@ -35,15 +35,16 @@ export function setupAuth(app: Express) {
     resave: true,
     saveUninitialized: true,
     rolling: true, // Resets cookie expiration on each request
-    name: "babyjourney.sid", // Custom name for the session cookie
+    name: "babyjourney_sid", // Custom name for the session cookie (no dots due to potential issues)
     store: storage.sessionStore,
     cookie: {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      secure: false, // Set to true in production
+      secure: process.env.NODE_ENV === 'production', // Only secure in production
       sameSite: "lax",
       httpOnly: true,
       path: "/"
-    }
+    },
+    proxy: true // Trust first proxy - important in Replit environment
   };
 
   app.set("trust proxy", 1);

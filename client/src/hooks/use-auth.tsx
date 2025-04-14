@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useCallback } from "react";
 import {
   useQuery,
   useMutation,
@@ -7,6 +7,7 @@ import {
 import { User as SelectUser, InsertUser, LoginData } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 type AuthContextType = {
   user: SelectUser | null;
@@ -22,13 +23,18 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const {
     data: user,
     error,
     isLoading,
+    refetch
   } = useQuery<SelectUser | undefined, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    staleTime: 30000, // 30 seconds
+    refetchOnWindowFocus: true,
+    retry: false,
   });
 
   const loginMutation = useMutation({
@@ -36,14 +42,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/login", credentials);
       return await res.json();
     },
-    onSuccess: (user: SelectUser) => {
+    onSuccess: async (user: SelectUser) => {
+      // Set the data directly in the cache
       queryClient.setQueryData(["/api/user"], user);
+      
+      // Then try to refetch to ensure we have the latest session data
+      await refetch();
+      
       toast({
         title: "Welcome back!",
         description: `You're now logged in as ${user.fullName}.`,
       });
-      // Navigate to homepage after successful login
-      window.location.href = "/";
+      
+      // Use setTimeout to ensure session is fully established
+      setTimeout(() => {
+        setLocation("/");
+      }, 300);
     },
     onError: (error: Error) => {
       toast({
@@ -59,14 +73,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/register", userData);
       return await res.json();
     },
-    onSuccess: (user: SelectUser) => {
+    onSuccess: async (user: SelectUser) => {
+      // Set the data directly in the cache
       queryClient.setQueryData(["/api/user"], user);
+      
+      // Then try to refetch to ensure we have the latest session data
+      await refetch();
+      
       toast({
         title: "Account created!",
         description: "Your account has been successfully created.",
       });
-      // Navigate to homepage after successful registration
-      window.location.href = "/";
+      
+      // Use setTimeout to ensure session is fully established
+      setTimeout(() => {
+        setLocation("/");
+      }, 300);
     },
     onError: (error: Error) => {
       toast({
@@ -88,6 +110,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Logged out",
         description: "You have been successfully logged out.",
       });
+      
+      // Navigate to auth page
+      setLocation("/auth");
     },
     onError: (error: Error) => {
       toast({
