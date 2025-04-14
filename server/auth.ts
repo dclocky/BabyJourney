@@ -39,7 +39,7 @@ export function setupAuth(app: Express) {
     store: storage.sessionStore,
     cookie: {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      secure: process.env.NODE_ENV === 'production', // Only secure in production
+      secure: false, // Allow both HTTP and HTTPS in all environments for Replit
       sameSite: "lax",
       httpOnly: true,
       path: "/"

@@ -8,12 +8,26 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser(process.env.SESSION_SECRET || "babyjourney_dev_secret"));
 
-// Configure CORS for development environment
+// Configure CORS for Replit environment
 app.use((req, res, next) => {
-  // Allow all origins in development (restrict this in production)
-  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  // Allow Replit domains and localhost
+  const origin = req.headers.origin || "";
+  const allowedOrigins = [
+    "http://localhost:5000",
+    "https://localhost:5000",
+    "http://0.0.0.0:5000",
+    "https://0.0.0.0:5000"
+  ];
+  
+  // If the origin contains "replit.dev", allow it too
+  if (origin.includes("replit.dev") || allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+  } else {
+    res.header("Access-Control-Allow-Origin", "*");
+  }
+  
   res.header("Access-Control-Allow-Credentials", "true");
-  res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE");
+  res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
   
   // Handle preflight requests
@@ -74,10 +88,9 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
+  // Use the environment port if available or default to 5000
+  // The Replit proxy needs this to properly route traffic
+  const port = process.env.PORT || 5000;
   server.listen({
     port,
     host: "0.0.0.0",
