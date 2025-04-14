@@ -1,0 +1,458 @@
+import { 
+  users, type User, type InsertUser, 
+  familyMembers, type FamilyMember, type InsertFamilyMember,
+  children, type Child, type InsertChild,
+  pregnancyJournal, type PregnancyJournal, type InsertPregnancyJournal,
+  symptoms, type Symptom, type InsertSymptom, 
+  milestones, type Milestone, type InsertMilestone,
+  growthRecords, type GrowthRecord, type InsertGrowthRecord,
+  appointments, type Appointment, type InsertAppointment,
+  photos, type Photo, type InsertPhoto,
+  vaccinations, type Vaccination, type InsertVaccination
+} from "@shared/schema";
+import session from "express-session";
+import createMemoryStore from "memorystore";
+
+const MemoryStore = createMemoryStore(session);
+
+export interface IStorage {
+  // User methods
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUserPremiumStatus(id: number, isPremium: boolean): Promise<User | undefined>;
+
+  // Family member methods
+  getFamilyMembers(userId: number): Promise<FamilyMember[]>;
+  getFamilyMemberCount(userId: number): Promise<number>;
+  createFamilyMember(member: InsertFamilyMember): Promise<FamilyMember>;
+  deleteFamilyMember(id: number): Promise<boolean>;
+
+  // Child methods
+  getChildren(userId: number): Promise<Child[]>;
+  getChild(id: number): Promise<Child | undefined>;
+  getChildCount(userId: number): Promise<number>;
+  createChild(child: InsertChild): Promise<Child>;
+  updateChild(id: number, child: Partial<Child>): Promise<Child | undefined>;
+  deleteChild(id: number): Promise<boolean>;
+
+  // Pregnancy journal methods
+  getPregnancyJournals(childId: number): Promise<PregnancyJournal[]>;
+  getPregnancyJournalByWeek(childId: number, week: number): Promise<PregnancyJournal | undefined>;
+  createPregnancyJournal(journal: InsertPregnancyJournal): Promise<PregnancyJournal>;
+  updatePregnancyJournal(id: number, journal: Partial<PregnancyJournal>): Promise<PregnancyJournal | undefined>;
+
+  // Symptom methods
+  getSymptoms(childId: number): Promise<Symptom[]>;
+  createSymptom(symptom: InsertSymptom): Promise<Symptom>;
+  deleteSymptom(id: number): Promise<boolean>;
+
+  // Milestone methods
+  getMilestones(childId: number): Promise<Milestone[]>;
+  getRecentMilestones(childId: number, limit: number): Promise<Milestone[]>;
+  createMilestone(milestone: InsertMilestone): Promise<Milestone>;
+  updateMilestone(id: number, milestone: Partial<Milestone>): Promise<Milestone | undefined>;
+  deleteMilestone(id: number): Promise<boolean>;
+
+  // Growth record methods
+  getGrowthRecords(childId: number): Promise<GrowthRecord[]>;
+  createGrowthRecord(record: InsertGrowthRecord): Promise<GrowthRecord>;
+  updateGrowthRecord(id: number, record: Partial<GrowthRecord>): Promise<GrowthRecord | undefined>;
+
+  // Appointment methods
+  getAppointments(childId: number): Promise<Appointment[]>;
+  getUpcomingAppointments(childId: number, limit: number): Promise<Appointment[]>;
+  createAppointment(appointment: InsertAppointment): Promise<Appointment>;
+  updateAppointment(id: number, appointment: Partial<Appointment>): Promise<Appointment | undefined>;
+  deleteAppointment(id: number): Promise<boolean>;
+
+  // Photo methods
+  getPhotos(childId: number): Promise<Photo[]>;
+  getPhotoCount(childId: number): Promise<number>;
+  createPhoto(photo: InsertPhoto): Promise<Photo>;
+  deletePhoto(id: number): Promise<boolean>;
+
+  // Vaccination methods
+  getVaccinations(childId: number): Promise<Vaccination[]>;
+  createVaccination(vaccination: InsertVaccination): Promise<Vaccination>;
+  deleteVaccination(id: number): Promise<boolean>;
+
+  // Session store
+  sessionStore: session.SessionStore;
+}
+
+export class MemStorage implements IStorage {
+  private users: Map<number, User>;
+  private familyMembers: Map<number, FamilyMember>;
+  private children: Map<number, Child>;
+  private pregnancyJournals: Map<number, PregnancyJournal>;
+  private symptoms: Map<number, Symptom>;
+  private milestones: Map<number, Milestone>;
+  private growthRecords: Map<number, GrowthRecord>;
+  private appointments: Map<number, Appointment>;
+  private photos: Map<number, Photo>;
+  private vaccinations: Map<number, Vaccination>;
+  public sessionStore: session.SessionStore;
+
+  private userIdCounter: number = 1;
+  private familyMemberIdCounter: number = 1;
+  private childIdCounter: number = 1;
+  private pregnancyJournalIdCounter: number = 1;
+  private symptomIdCounter: number = 1;
+  private milestoneIdCounter: number = 1;
+  private growthRecordIdCounter: number = 1;
+  private appointmentIdCounter: number = 1;
+  private photoIdCounter: number = 1;
+  private vaccinationIdCounter: number = 1;
+
+  constructor() {
+    this.users = new Map();
+    this.familyMembers = new Map();
+    this.children = new Map();
+    this.pregnancyJournals = new Map();
+    this.symptoms = new Map();
+    this.milestones = new Map();
+    this.growthRecords = new Map();
+    this.appointments = new Map();
+    this.photos = new Map();
+    this.vaccinations = new Map();
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // 24 hours
+    });
+  }
+
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.username.toLowerCase() === username.toLowerCase()
+    );
+  }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.email.toLowerCase() === email.toLowerCase()
+    );
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const id = this.userIdCounter++;
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      role: "user", 
+      isPremium: false, 
+      createdAt: new Date() 
+    };
+    this.users.set(id, user);
+    return user;
+  }
+
+  async updateUserPremiumStatus(id: number, isPremium: boolean): Promise<User | undefined> {
+    const user = await this.getUser(id);
+    if (!user) return undefined;
+    
+    const updatedUser: User = {
+      ...user,
+      isPremium
+    };
+    
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+
+  // Family member methods
+  async getFamilyMembers(userId: number): Promise<FamilyMember[]> {
+    return Array.from(this.familyMembers.values()).filter(
+      (member) => member.userId === userId
+    );
+  }
+
+  async getFamilyMemberCount(userId: number): Promise<number> {
+    return (await this.getFamilyMembers(userId)).length;
+  }
+
+  async createFamilyMember(member: InsertFamilyMember): Promise<FamilyMember> {
+    const id = this.familyMemberIdCounter++;
+    const familyMember: FamilyMember = {
+      ...member,
+      id,
+      createdAt: new Date()
+    };
+    this.familyMembers.set(id, familyMember);
+    return familyMember;
+  }
+
+  async deleteFamilyMember(id: number): Promise<boolean> {
+    return this.familyMembers.delete(id);
+  }
+
+  // Child methods
+  async getChildren(userId: number): Promise<Child[]> {
+    return Array.from(this.children.values()).filter(
+      (child) => child.userId === userId
+    );
+  }
+
+  async getChild(id: number): Promise<Child | undefined> {
+    return this.children.get(id);
+  }
+
+  async getChildCount(userId: number): Promise<number> {
+    return (await this.getChildren(userId)).length;
+  }
+
+  async createChild(insertChild: InsertChild): Promise<Child> {
+    const id = this.childIdCounter++;
+    const child: Child = {
+      ...insertChild,
+      id,
+      createdAt: new Date()
+    };
+    this.children.set(id, child);
+    return child;
+  }
+
+  async updateChild(id: number, updates: Partial<Child>): Promise<Child | undefined> {
+    const child = await this.getChild(id);
+    if (!child) return undefined;
+    
+    const updatedChild: Child = {
+      ...child,
+      ...updates
+    };
+    
+    this.children.set(id, updatedChild);
+    return updatedChild;
+  }
+
+  async deleteChild(id: number): Promise<boolean> {
+    return this.children.delete(id);
+  }
+
+  // Pregnancy journal methods
+  async getPregnancyJournals(childId: number): Promise<PregnancyJournal[]> {
+    return Array.from(this.pregnancyJournals.values()).filter(
+      (journal) => journal.childId === childId
+    ).sort((a, b) => a.week - b.week);
+  }
+
+  async getPregnancyJournalByWeek(childId: number, week: number): Promise<PregnancyJournal | undefined> {
+    return Array.from(this.pregnancyJournals.values()).find(
+      (journal) => journal.childId === childId && journal.week === week
+    );
+  }
+
+  async createPregnancyJournal(journal: InsertPregnancyJournal): Promise<PregnancyJournal> {
+    const id = this.pregnancyJournalIdCounter++;
+    const pregnancyJournal: PregnancyJournal = {
+      ...journal,
+      id,
+      createdAt: new Date()
+    };
+    this.pregnancyJournals.set(id, pregnancyJournal);
+    return pregnancyJournal;
+  }
+
+  async updatePregnancyJournal(id: number, updates: Partial<PregnancyJournal>): Promise<PregnancyJournal | undefined> {
+    const journal = this.pregnancyJournals.get(id);
+    if (!journal) return undefined;
+    
+    const updatedJournal: PregnancyJournal = {
+      ...journal,
+      ...updates
+    };
+    
+    this.pregnancyJournals.set(id, updatedJournal);
+    return updatedJournal;
+  }
+
+  // Symptom methods
+  async getSymptoms(childId: number): Promise<Symptom[]> {
+    return Array.from(this.symptoms.values()).filter(
+      (symptom) => symptom.childId === childId
+    ).sort((a, b) => b.date.getTime() - a.date.getTime());
+  }
+
+  async createSymptom(symptom: InsertSymptom): Promise<Symptom> {
+    const id = this.symptomIdCounter++;
+    const newSymptom: Symptom = {
+      ...symptom,
+      id,
+      createdAt: new Date()
+    };
+    this.symptoms.set(id, newSymptom);
+    return newSymptom;
+  }
+
+  async deleteSymptom(id: number): Promise<boolean> {
+    return this.symptoms.delete(id);
+  }
+
+  // Milestone methods
+  async getMilestones(childId: number): Promise<Milestone[]> {
+    return Array.from(this.milestones.values()).filter(
+      (milestone) => milestone.childId === childId
+    ).sort((a, b) => b.date.getTime() - a.date.getTime());
+  }
+
+  async getRecentMilestones(childId: number, limit: number): Promise<Milestone[]> {
+    return (await this.getMilestones(childId)).slice(0, limit);
+  }
+
+  async createMilestone(milestone: InsertMilestone): Promise<Milestone> {
+    const id = this.milestoneIdCounter++;
+    const newMilestone: Milestone = {
+      ...milestone,
+      id,
+      createdAt: new Date()
+    };
+    this.milestones.set(id, newMilestone);
+    return newMilestone;
+  }
+
+  async updateMilestone(id: number, updates: Partial<Milestone>): Promise<Milestone | undefined> {
+    const milestone = this.milestones.get(id);
+    if (!milestone) return undefined;
+    
+    const updatedMilestone: Milestone = {
+      ...milestone,
+      ...updates
+    };
+    
+    this.milestones.set(id, updatedMilestone);
+    return updatedMilestone;
+  }
+
+  async deleteMilestone(id: number): Promise<boolean> {
+    return this.milestones.delete(id);
+  }
+
+  // Growth record methods
+  async getGrowthRecords(childId: number): Promise<GrowthRecord[]> {
+    return Array.from(this.growthRecords.values()).filter(
+      (record) => record.childId === childId
+    ).sort((a, b) => b.date.getTime() - a.date.getTime());
+  }
+
+  async createGrowthRecord(record: InsertGrowthRecord): Promise<GrowthRecord> {
+    const id = this.growthRecordIdCounter++;
+    const newRecord: GrowthRecord = {
+      ...record,
+      id,
+      createdAt: new Date()
+    };
+    this.growthRecords.set(id, newRecord);
+    return newRecord;
+  }
+
+  async updateGrowthRecord(id: number, updates: Partial<GrowthRecord>): Promise<GrowthRecord | undefined> {
+    const record = this.growthRecords.get(id);
+    if (!record) return undefined;
+    
+    const updatedRecord: GrowthRecord = {
+      ...record,
+      ...updates
+    };
+    
+    this.growthRecords.set(id, updatedRecord);
+    return updatedRecord;
+  }
+
+  // Appointment methods
+  async getAppointments(childId: number): Promise<Appointment[]> {
+    return Array.from(this.appointments.values()).filter(
+      (appointment) => appointment.childId === childId
+    ).sort((a, b) => a.date.getTime() - b.date.getTime());
+  }
+
+  async getUpcomingAppointments(childId: number, limit: number): Promise<Appointment[]> {
+    const now = new Date();
+    return Array.from(this.appointments.values())
+      .filter(appointment => appointment.childId === childId && appointment.date >= now)
+      .sort((a, b) => a.date.getTime() - b.date.getTime())
+      .slice(0, limit);
+  }
+
+  async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
+    const id = this.appointmentIdCounter++;
+    const newAppointment: Appointment = {
+      ...appointment,
+      id,
+      createdAt: new Date()
+    };
+    this.appointments.set(id, newAppointment);
+    return newAppointment;
+  }
+
+  async updateAppointment(id: number, updates: Partial<Appointment>): Promise<Appointment | undefined> {
+    const appointment = this.appointments.get(id);
+    if (!appointment) return undefined;
+    
+    const updatedAppointment: Appointment = {
+      ...appointment,
+      ...updates
+    };
+    
+    this.appointments.set(id, updatedAppointment);
+    return updatedAppointment;
+  }
+
+  async deleteAppointment(id: number): Promise<boolean> {
+    return this.appointments.delete(id);
+  }
+
+  // Photo methods
+  async getPhotos(childId: number): Promise<Photo[]> {
+    return Array.from(this.photos.values()).filter(
+      (photo) => photo.childId === childId
+    ).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getPhotoCount(childId: number): Promise<number> {
+    return (await this.getPhotos(childId)).length;
+  }
+
+  async createPhoto(photo: InsertPhoto): Promise<Photo> {
+    const id = this.photoIdCounter++;
+    const newPhoto: Photo = {
+      ...photo,
+      id,
+      createdAt: new Date()
+    };
+    this.photos.set(id, newPhoto);
+    return newPhoto;
+  }
+
+  async deletePhoto(id: number): Promise<boolean> {
+    return this.photos.delete(id);
+  }
+
+  // Vaccination methods
+  async getVaccinations(childId: number): Promise<Vaccination[]> {
+    return Array.from(this.vaccinations.values()).filter(
+      (vaccination) => vaccination.childId === childId
+    ).sort((a, b) => b.date.getTime() - a.date.getTime());
+  }
+
+  async createVaccination(vaccination: InsertVaccination): Promise<Vaccination> {
+    const id = this.vaccinationIdCounter++;
+    const newVaccination: Vaccination = {
+      ...vaccination,
+      id,
+      createdAt: new Date()
+    };
+    this.vaccinations.set(id, newVaccination);
+    return newVaccination;
+  }
+
+  async deleteVaccination(id: number): Promise<boolean> {
+    return this.vaccinations.delete(id);
+  }
+}
+
+export const storage = new MemStorage();
