@@ -14,9 +14,12 @@ export async function apiRequest(
 ): Promise<Response> {
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers: {
+      ...(data ? { "Content-Type": "application/json" } : {}),
+      "X-Requested-With": "XMLHttpRequest" // Helps with CSRF protection
+    },
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
+    credentials: "include", // Includes cookies in the request
   });
 
   await throwIfResNotOk(res);
@@ -31,6 +34,9 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
+      headers: {
+        "X-Requested-With": "XMLHttpRequest" // Helps with CSRF protection
+      }
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {

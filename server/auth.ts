@@ -33,12 +33,15 @@ export function setupAuth(app: Express) {
     secret: process.env.SESSION_SECRET || "babyjourney_dev_secret",
     resave: true,
     saveUninitialized: true,
+    rolling: true, // Resets cookie expiration on each request
+    name: "babyjourney.sid", // Custom name for the session cookie
     store: storage.sessionStore,
     cookie: {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      secure: false,
+      secure: false, // Set to true in production
       sameSite: "lax",
-      httpOnly: true
+      httpOnly: true,
+      path: "/"
     }
   };
 
@@ -105,7 +108,16 @@ export function setupAuth(app: Express) {
 
       req.login(user, (err) => {
         if (err) return next(err);
-        res.status(201).json(user);
+        
+        // Force session save before responding
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error("Session save error during registration:", saveErr);
+            return res.status(500).json({ error: "Failed to save session" });
+          }
+          console.log("Registration successful, session saved:", req.sessionID);
+          res.status(201).json(user);
+        });
       });
     } catch (err) {
       next(err);
@@ -113,7 +125,15 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json(req.user);
+    // Force session save before responding
+    req.session.save((err) => {
+      if (err) {
+        console.error("Session save error:", err);
+        return res.status(500).json({ error: "Failed to save session" });
+      }
+      console.log("Login successful, session saved:", req.sessionID);
+      res.status(200).json(req.user);
+    });
   });
 
   app.post("/api/logout", (req, res, next) => {
@@ -124,7 +144,16 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    console.log("GET /api/user - Session ID:", req.sessionID);
+    console.log("GET /api/user - isAuthenticated:", req.isAuthenticated());
+    console.log("GET /api/user - Session:", req.session);
+    
+    if (!req.isAuthenticated()) {
+      console.log("GET /api/user - Not authenticated");
+      return res.sendStatus(401);
+    }
+    
+    console.log("GET /api/user - User:", req.user);
     res.json(req.user);
   });
 
