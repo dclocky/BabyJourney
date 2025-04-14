@@ -1,0 +1,111 @@
+I want you to build a SaaS web application designed for pregnant women and new mothers to track and log their pregnancy journey and the first 5 years of their baby's life. The app must be fully functional with a freemium business model, secure user authentication, and data storage that is GDPR compliant. The app should be polished enough to serve as a solid MVP and be scalable in future.
+
+Project Overview:
+Target users: Pregnant women and mothers of babies/toddlers (0–5 years).
+
+Purpose: Track and store key data and memories from pregnancy and early childhood.
+
+Business model: Freemium, with premium features locked behind a one-time payment.
+
+Core Features (Free Tier):
+Secure Signup/Login
+
+Email + password authentication
+
+Up to 4 users per account (e.g., mother, partner, grandparents)
+
+GDPR-compliant data handling
+
+Pregnancy & Baby Tracker
+
+Pregnancy journal by week
+
+Symptom tracking
+
+Ultrasound/milestone photo uploads (up to 5 in free tier)
+
+Baby profile (name, birthday, weight, etc.)
+
+Track baby’s:
+
+First words
+
+First steps
+
+First teeth
+
+Height/weight over time
+
+Medical appointments
+
+Vaccination history
+
+Sleeping, feeding, and growth milestones
+
+Appointments & Milestones
+
+Calendar integration (internal calendar is fine for MVP)
+
+Create/edit/delete appointments and reminders
+
+Upcoming milestone alerts
+
+Premium Features (One-Time Payment Unlock):
+Memory Logging
+
+Upload unlimited photos with titles and comments
+
+Tag entries by event/theme (e.g., Christmas, Summer, Birthday)
+
+Monthly "Highlight Reel"
+
+Auto-generated summary of the month’s positive logs, photos, and events
+
+User option to enable/disable
+
+Multi-Child Support
+
+Add and manage profiles for multiple children (only one child allowed in free tier)
+
+Downloadable Baby Book / Timeline
+
+Export baby’s journey and memories into a beautiful, printable PDF
+
+Priority Support & Early Access
+
+Faster help and testing of new features
+
+Additional Technical Requirements:
+GDPR compliance: Store data securely with user consent management.
+
+Encryption: Encrypt sensitive user and baby data in storage and transit.
+
+Database: Use PostgreSQL (or Firebase if easier) to store user data and media references.
+
+Frontend: Clean, modern UI with mobile responsiveness (React or Next.js preferred).
+
+Backend: Node.js or Python Flask preferred (but use what’s most compatible with Replit).
+
+File storage: Use cloud-based storage (e.g., Firebase Storage or Supabase) for secure image upload.
+
+UX Design:
+Clean dashboard with sections: Pregnancy, Baby, Milestones, Appointments
+
+Onboarding flow explaining how to use each section
+
+Settings toggle to enable/disable features like the monthly highlight
+
+Role-based access for 4 users per account (all can contribute)
+
+Deliverables:
+Fully functional MVP hosted on Replit with secure auth
+
+Freemium and premium functionality clearly separated
+
+Placeholder UI for payment modal (no payment integration needed yet)
+
+README with setup instructions and user guide
+
+Clean, well-documented code for easy future development
+
+Start by scaffolding the project structure, creating the authentication system, and building out the pregnancy tracker module. Then implement the appointment tracking feature, followed by the premium memory logging and highlight reel.
