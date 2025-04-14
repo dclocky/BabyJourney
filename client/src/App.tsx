@@ -20,7 +20,7 @@ function Router() {
       <ProtectedRoute path="/milestones" component={MilestonesPage} />
       <ProtectedRoute path="/appointments" component={AppointmentsPage} />
       <ProtectedRoute path="/memories" component={MemoriesPage} />
-      <Route component={NotFound} />
+      <Route path="*" component={NotFound} />
     </Switch>
   );
 }
