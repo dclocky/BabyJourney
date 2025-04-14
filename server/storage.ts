@@ -12,8 +12,12 @@ import {
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import { db, pool } from "./db";
+import { eq, and, desc, sql } from "drizzle-orm";
+import connectPg from "connect-pg-simple";
 
 const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   // User methods
@@ -79,7 +83,7 @@ export interface IStorage {
   deleteVaccination(id: number): Promise<boolean>;
 
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Express session store type
 }
 
 export class MemStorage implements IStorage {
@@ -455,4 +459,382 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  public sessionStore: any; // Express session store type
+
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({ 
+      pool, 
+      createTableIfMissing: true 
+    });
+  }
+
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...insertUser,
+        role: "user",
+        isPremium: false,
+        createdAt: new Date()
+      })
+      .returning();
+    return user;
+  }
+
+  async updateUserPremiumStatus(id: number, isPremium: boolean): Promise<User | undefined> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ isPremium })
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser;
+  }
+
+  // Family member methods
+  async getFamilyMembers(userId: number): Promise<FamilyMember[]> {
+    return db.select().from(familyMembers).where(eq(familyMembers.userId, userId));
+  }
+
+  async getFamilyMemberCount(userId: number): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(familyMembers)
+      .where(eq(familyMembers.userId, userId));
+    return result[0]?.count || 0;
+  }
+
+  async createFamilyMember(member: InsertFamilyMember): Promise<FamilyMember> {
+    const [familyMember] = await db
+      .insert(familyMembers)
+      .values({
+        ...member,
+        createdAt: new Date()
+      })
+      .returning();
+    return familyMember;
+  }
+
+  async deleteFamilyMember(id: number): Promise<boolean> {
+    const result = await db
+      .delete(familyMembers)
+      .where(eq(familyMembers.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Child methods
+  async getChildren(userId: number): Promise<Child[]> {
+    return db.select().from(children).where(eq(children.userId, userId));
+  }
+
+  async getChild(id: number): Promise<Child | undefined> {
+    const [child] = await db.select().from(children).where(eq(children.id, id));
+    return child;
+  }
+
+  async getChildCount(userId: number): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(children)
+      .where(eq(children.userId, userId));
+    return result[0]?.count || 0;
+  }
+
+  async createChild(child: InsertChild): Promise<Child> {
+    const [newChild] = await db
+      .insert(children)
+      .values({
+        ...child,
+        createdAt: new Date()
+      })
+      .returning();
+    return newChild;
+  }
+
+  async updateChild(id: number, updates: Partial<Child>): Promise<Child | undefined> {
+    const [updatedChild] = await db
+      .update(children)
+      .set(updates)
+      .where(eq(children.id, id))
+      .returning();
+    return updatedChild;
+  }
+
+  async deleteChild(id: number): Promise<boolean> {
+    const result = await db
+      .delete(children)
+      .where(eq(children.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Pregnancy journal methods
+  async getPregnancyJournals(childId: number): Promise<PregnancyJournal[]> {
+    return db
+      .select()
+      .from(pregnancyJournal)
+      .where(eq(pregnancyJournal.childId, childId))
+      .orderBy(pregnancyJournal.week);
+  }
+
+  async getPregnancyJournalByWeek(childId: number, week: number): Promise<PregnancyJournal | undefined> {
+    const [journal] = await db
+      .select()
+      .from(pregnancyJournal)
+      .where(and(
+        eq(pregnancyJournal.childId, childId),
+        eq(pregnancyJournal.week, week)
+      ));
+    return journal;
+  }
+
+  async createPregnancyJournal(journal: InsertPregnancyJournal): Promise<PregnancyJournal> {
+    const [newJournal] = await db
+      .insert(pregnancyJournal)
+      .values({
+        ...journal,
+        createdAt: new Date()
+      })
+      .returning();
+    return newJournal;
+  }
+
+  async updatePregnancyJournal(id: number, updates: Partial<PregnancyJournal>): Promise<PregnancyJournal | undefined> {
+    const [updatedJournal] = await db
+      .update(pregnancyJournal)
+      .set(updates)
+      .where(eq(pregnancyJournal.id, id))
+      .returning();
+    return updatedJournal;
+  }
+
+  // Symptom methods
+  async getSymptoms(childId: number): Promise<Symptom[]> {
+    return db
+      .select()
+      .from(symptoms)
+      .where(eq(symptoms.childId, childId))
+      .orderBy(desc(symptoms.date));
+  }
+
+  async createSymptom(symptom: InsertSymptom): Promise<Symptom> {
+    const [newSymptom] = await db
+      .insert(symptoms)
+      .values({
+        ...symptom,
+        createdAt: new Date()
+      })
+      .returning();
+    return newSymptom;
+  }
+
+  async deleteSymptom(id: number): Promise<boolean> {
+    const result = await db
+      .delete(symptoms)
+      .where(eq(symptoms.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Milestone methods
+  async getMilestones(childId: number): Promise<Milestone[]> {
+    return db
+      .select()
+      .from(milestones)
+      .where(eq(milestones.childId, childId))
+      .orderBy(desc(milestones.date));
+  }
+
+  async getRecentMilestones(childId: number, limit: number): Promise<Milestone[]> {
+    return db
+      .select()
+      .from(milestones)
+      .where(eq(milestones.childId, childId))
+      .orderBy(desc(milestones.date))
+      .limit(limit);
+  }
+
+  async createMilestone(milestone: InsertMilestone): Promise<Milestone> {
+    const [newMilestone] = await db
+      .insert(milestones)
+      .values({
+        ...milestone,
+        createdAt: new Date()
+      })
+      .returning();
+    return newMilestone;
+  }
+
+  async updateMilestone(id: number, updates: Partial<Milestone>): Promise<Milestone | undefined> {
+    const [updatedMilestone] = await db
+      .update(milestones)
+      .set(updates)
+      .where(eq(milestones.id, id))
+      .returning();
+    return updatedMilestone;
+  }
+
+  async deleteMilestone(id: number): Promise<boolean> {
+    const result = await db
+      .delete(milestones)
+      .where(eq(milestones.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Growth record methods
+  async getGrowthRecords(childId: number): Promise<GrowthRecord[]> {
+    return db
+      .select()
+      .from(growthRecords)
+      .where(eq(growthRecords.childId, childId))
+      .orderBy(desc(growthRecords.date));
+  }
+
+  async createGrowthRecord(record: InsertGrowthRecord): Promise<GrowthRecord> {
+    const [newRecord] = await db
+      .insert(growthRecords)
+      .values({
+        ...record,
+        createdAt: new Date()
+      })
+      .returning();
+    return newRecord;
+  }
+
+  async updateGrowthRecord(id: number, updates: Partial<GrowthRecord>): Promise<GrowthRecord | undefined> {
+    const [updatedRecord] = await db
+      .update(growthRecords)
+      .set(updates)
+      .where(eq(growthRecords.id, id))
+      .returning();
+    return updatedRecord;
+  }
+
+  // Appointment methods
+  async getAppointments(childId: number): Promise<Appointment[]> {
+    return db
+      .select()
+      .from(appointments)
+      .where(eq(appointments.childId, childId))
+      .orderBy(appointments.date);
+  }
+
+  async getUpcomingAppointments(childId: number, limit: number): Promise<Appointment[]> {
+    const now = new Date();
+    return db
+      .select()
+      .from(appointments)
+      .where(and(
+        eq(appointments.childId, childId),
+        sql`${appointments.date} >= ${now}`
+      ))
+      .orderBy(appointments.date)
+      .limit(limit);
+  }
+
+  async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
+    const [newAppointment] = await db
+      .insert(appointments)
+      .values({
+        ...appointment,
+        createdAt: new Date()
+      })
+      .returning();
+    return newAppointment;
+  }
+
+  async updateAppointment(id: number, updates: Partial<Appointment>): Promise<Appointment | undefined> {
+    const [updatedAppointment] = await db
+      .update(appointments)
+      .set(updates)
+      .where(eq(appointments.id, id))
+      .returning();
+    return updatedAppointment;
+  }
+
+  async deleteAppointment(id: number): Promise<boolean> {
+    const result = await db
+      .delete(appointments)
+      .where(eq(appointments.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Photo methods
+  async getPhotos(childId: number): Promise<Photo[]> {
+    return db
+      .select()
+      .from(photos)
+      .where(eq(photos.childId, childId))
+      .orderBy(desc(photos.createdAt));
+  }
+
+  async getPhotoCount(childId: number): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(photos)
+      .where(eq(photos.childId, childId));
+    return result[0]?.count || 0;
+  }
+
+  async createPhoto(photo: InsertPhoto): Promise<Photo> {
+    const [newPhoto] = await db
+      .insert(photos)
+      .values({
+        ...photo,
+        createdAt: new Date()
+      })
+      .returning();
+    return newPhoto;
+  }
+
+  async deletePhoto(id: number): Promise<boolean> {
+    const result = await db
+      .delete(photos)
+      .where(eq(photos.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Vaccination methods
+  async getVaccinations(childId: number): Promise<Vaccination[]> {
+    return db
+      .select()
+      .from(vaccinations)
+      .where(eq(vaccinations.childId, childId))
+      .orderBy(desc(vaccinations.date));
+  }
+
+  async createVaccination(vaccination: InsertVaccination): Promise<Vaccination> {
+    const [newVaccination] = await db
+      .insert(vaccinations)
+      .values({
+        ...vaccination,
+        createdAt: new Date()
+      })
+      .returning();
+    return newVaccination;
+  }
+
+  async deleteVaccination(id: number): Promise<boolean> {
+    const result = await db
+      .delete(vaccinations)
+      .where(eq(vaccinations.id, id));
+    return result.rowCount > 0;
+  }
+}
+
+// Switch from MemStorage to DatabaseStorage
+export const storage = new DatabaseStorage();
