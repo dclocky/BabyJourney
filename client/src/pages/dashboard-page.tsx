@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
-import { useLocation, useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -113,7 +113,7 @@ interface MilestoneData {
 
 export default function DashboardPage() {
   const { user } = useAuth() as { user: User | null };
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
   const { data: children = [], isLoading: isLoadingChildren } = useQuery<Child[]>({
@@ -179,7 +179,7 @@ function WelcomeCard({ child }: WelcomeCardProps) {
   const firstName = user?.fullName?.split(" ")[0] || "";
 
   const handleLogUpdate = () => {
-    navigate("/dashboard/log-update");
+    setLocation("/dashboard/log-update");
   };
 
   return (
