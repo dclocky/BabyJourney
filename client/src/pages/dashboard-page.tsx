@@ -572,7 +572,7 @@ function MilestonesCard({ childId }: MilestonesCardProps) {
                 <div className="rounded-full bg-primary-500 text-white w-8 h-8 flex items-center justify-center">
                   {milestone.category === "pregnancy" ? (
                     <Heart className="h-4 w-4" />
-                  ) : milestone.title.includes("Ultrasound") ? (
+                  ) : milestone.title && milestone.title.includes("Ultrasound") ? (
                     <Image className="h-4 w-4" />
                   ) : (
                     <User className="h-4 w-4" />
@@ -976,206 +976,206 @@ function PhotoGalleryCard({ childId, isPremium }: PhotoGalleryCardProps) {
         childId={childId}
       />
     </div>);
-        }
+}
 
-        interface UploadPhotoDialogProps {
-          open: boolean;
-          onClose: () => void;
-          childId?: number;
-        }
+interface UploadPhotoDialogProps {
+  open: boolean;
+  onClose: () => void;
+  childId?: number;
+}
 
-        function UploadPhotoDialog({ open, onClose, childId }: UploadPhotoDialogProps) {
-          const queryClient = useQueryClient();
-          const [photoData, setPhotoData] = useState({
-            image: null as File | null,
-            caption: "",
-            date: new Date(),
-          });
+function UploadPhotoDialog({ open, onClose, childId }: UploadPhotoDialogProps) {
+  const queryClient = useQueryClient();
+  const [photoData, setPhotoData] = useState({
+    image: null as File | null,
+    caption: "",
+    date: new Date(),
+  });
 
-          const uploadPhotoMutation = useMutation({
-            mutationFn: (data: { image: File; caption: string; date: Date }) => {
-              if (!childId) throw new Error("Child ID is required");
-              if (!data.image) throw new Error("Image is required");
+  const uploadPhotoMutation = useMutation({
+    mutationFn: (data: { image: File; caption: string; date: Date }) => {
+      if (!childId) throw new Error("Child ID is required");
+      if (!data.image) throw new Error("Image is required");
 
-              const formData = new FormData();
-              formData.append("image", data.image);
-              formData.append("caption", data.caption);
-              formData.append("date", data.date.toISOString());
+      const formData = new FormData();
+      formData.append("image", data.image);
+      formData.append("caption", data.caption);
+      formData.append("date", data.date.toISOString());
 
-              return fetch(`/api/children/${childId}/photos`, {
-                method: "POST",
-                body: formData,
-              }).then((res) => {
-                if (!res.ok) throw new Error("Failed to upload photo");
-                return res.json();
-              });
-            },
-            onSuccess: () => {
-              queryClient.invalidateQueries({
-                queryKey: ["/api/children", childId, "photos"],
-              });
-              queryClient.invalidateQueries({
-                queryKey: ["/api/children", childId, "photos/count"],
-              });
-              toast({
-                title: "Photo uploaded",
-                description: "Your photo has been uploaded successfully.",
-              });
-              onClose();
-            },
-            onError: (error) => {
-              toast({
-                title: "Error",
-                description: "Failed to upload your photo. Please try again.",
-                variant: "destructive",
-              });
-            },
-          });
+      return fetch(`/api/children/${childId}/photos`, {
+        method: "POST",
+        body: formData,
+      }).then((res) => {
+        if (!res.ok) throw new Error("Failed to upload photo");
+        return res.json();
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/children", childId, "photos"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/children", childId, "photos/count"],
+      });
+      toast({
+        title: "Photo uploaded",
+        description: "Your photo has been uploaded successfully.",
+      });
+      onClose();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to upload your photo. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
-          const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-            if (e.target.files && e.target.files[0]) {
-              setPhotoData((prev) => ({
-                ...prev,
-                image: e.target.files![0],
-              }));
-            }
-          };
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setPhotoData((prev) => ({
+        ...prev,
+        image: e.target.files![0],
+      }));
+    }
+  };
 
-          const handleCaptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-            setPhotoData((prev) => ({
-              ...prev,
-              caption: e.target.value,
-            }));
-          };
+  const handleCaptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhotoData((prev) => ({
+      ...prev,
+      caption: e.target.value,
+    }));
+  };
 
-          const handleDateChange = (date: Date) => {
-            setPhotoData((prev) => ({
-              ...prev,
-              date,
-            }));
-          };
+  const handleDateChange = (date: Date) => {
+    setPhotoData((prev) => ({
+      ...prev,
+      date,
+    }));
+  };
 
-          const handleSubmit = (e: React.FormEvent) => {
-            e.preventDefault();
-            if (photoData.image) {
-              uploadPhotoMutation.mutate({
-                image: photoData.image,
-                caption: photoData.caption,
-                date: photoData.date,
-              });
-            } else {
-              toast({
-                title: "Error",
-                description: "Please select an image to upload.",
-                variant: "destructive",
-              });
-            }
-          };
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (photoData.image) {
+      uploadPhotoMutation.mutate({
+        image: photoData.image,
+        caption: photoData.caption,
+        date: photoData.date,
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Please select an image to upload.",
+        variant: "destructive",
+      });
+    }
+  };
 
-          return (
-            <Dialog open={open} onOpenChange={onClose}>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Upload Photo</DialogTitle>
-                  <DialogDescription>
-                    Add a special moment to your pregnancy or baby's photo album.
-                  </DialogDescription>
-                </DialogHeader>
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Upload Photo</DialogTitle>
+          <DialogDescription>
+            Add a special moment to your pregnancy or baby's photo album.
+          </DialogDescription>
+        </DialogHeader>
 
-                <form onSubmit={handleSubmit}>
-                  <div className="space-y-4 py-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Select Photo
-                      </label>
-                      <Input
-                        type="file"
-                        onChange={handleImageChange}
-                        accept="image/*"
-                        required
-                      />
-                    </div>
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Select Photo
+              </label>
+              <Input
+                type="file"
+                onChange={handleImageChange}
+                accept="image/*"
+                required
+              />
+            </div>
 
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Caption</label>
-                      <Input
-                        value={photoData.caption}
-                        onChange={handleCaptionChange}
-                        placeholder="Describe this moment..."
-                      />
-                    </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Caption</label>
+              <Input
+                value={photoData.caption}
+                onChange={handleCaptionChange}
+                placeholder="Describe this moment..."
+              />
+            </div>
 
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Date Taken
-                      </label>
-                      <DatePicker
-                        date={photoData.date}
-                        onSelect={handleDateChange}
-                      />
-                    </div>
-                  </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Date Taken
+              </label>
+              <DatePicker
+                date={photoData.date}
+                onSelect={handleDateChange}
+              />
+            </div>
+          </div>
 
-                  <DialogFooter>
-                    <Button type="button" variant="outline" onClick={onClose}>
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      className="bg-primary-500 hover:bg-primary-600"
-                      disabled={uploadPhotoMutation.isPending || !photoData.image}
-                    >
-                      {uploadPhotoMutation.isPending ? "Uploading..." : "Upload Photo"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          );
-        }
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="bg-primary-500 hover:bg-primary-600"
+              disabled={uploadPhotoMutation.isPending || !photoData.image}
+            >
+              {uploadPhotoMutation.isPending ? "Uploading..." : "Upload Photo"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
-        function PremiumFeaturesCard() {
-          const [, setLocation] = useLocation();
+function PremiumFeaturesCard() {
+  const [, setLocation] = useLocation();
 
-          const handleUpgrade = () => {
-            setLocation("/upgrade");
-          };
+  const handleUpgrade = () => {
+    setLocation("/upgrade");
+  };
 
-          return (
-            <Card className="bg-gradient-to-br from-violet-500 to-primary-500 text-white">
-              <CardHeader>
-                <div className="flex items-center">
-                  <Crown className="h-5 w-5 mr-2" />
-                  <CardTitle className="text-lg">Premium Features</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  <li className="flex items-start">
-                    <Check className="h-4 w-4 mr-2 mt-0.5" />
-                    <span className="text-sm">Unlimited photo storage</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Check className="h-4 w-4 mr-2 mt-0.5" />
-                    <span className="text-sm">Track multiple pregnancies or babies</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Check className="h-4 w-4 mr-2 mt-0.5" />
-                    <span className="text-sm">Advanced health analytics & insights</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Check className="h-4 w-4 mr-2 mt-0.5" />
-                    <span className="text-sm">Expert Q&A access</span>
-                  </li>
-                </ul>
+  return (
+    <Card className="bg-gradient-to-br from-violet-500 to-primary-500 text-white">
+      <CardHeader>
+        <div className="flex items-center">
+          <Crown className="h-5 w-5 mr-2" />
+          <CardTitle className="text-lg">Premium Features</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <ul className="space-y-2">
+          <li className="flex items-start">
+            <Check className="h-4 w-4 mr-2 mt-0.5" />
+            <span className="text-sm">Unlimited photo storage</span>
+          </li>
+          <li className="flex items-start">
+            <Check className="h-4 w-4 mr-2 mt-0.5" />
+            <span className="text-sm">Track multiple pregnancies or babies</span>
+          </li>
+          <li className="flex items-start">
+            <Check className="h-4 w-4 mr-2 mt-0.5" />
+            <span className="text-sm">Advanced health analytics & insights</span>
+          </li>
+          <li className="flex items-start">
+            <Check className="h-4 w-4 mr-2 mt-0.5" />
+            <span className="text-sm">Expert Q&A access</span>
+          </li>
+        </ul>
 
-                <Button
-                  className="w-full mt-6 bg-white text-primary-600 hover:bg-white/90"
-                  onClick={handleUpgrade}
-                >
-                  Upgrade to Premium
-                </Button>
-              </CardContent>
-            </Card>
-          );
-        }
+        <Button
+          className="w-full mt-6 bg-white text-primary-600 hover:bg-white/90"
+          onClick={handleUpgrade}
+        >
+          Upgrade to Premium
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
