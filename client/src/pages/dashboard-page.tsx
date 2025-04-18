@@ -57,7 +57,7 @@ import {
 import { DatePicker } from "@/components/ui/date-picker";
 import { useToast } from "@/components/ui/use-toast";
 // import { toast } from "@/components/ui/use-toast"; // Already imported above
-const navigate = useNavigate();
+
 // Define interfaces for all the data we expect from the API
 interface User {
   id: number;
@@ -175,11 +175,11 @@ interface WelcomeCardProps {
 
 function WelcomeCard({ child }: WelcomeCardProps) {
   const { user } = useAuth() as { user: User | null };
-  const router = useRouter();
+  const navigate = useNavigate();
   const firstName = user?.fullName?.split(" ")[0] || "";
 
   const handleLogUpdate = () => {
-    router("/dashboard/log-update");
+    navigate("/dashboard/log-update");
   };
 
   return (
