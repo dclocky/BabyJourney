@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AppHeader } from "@/components/app-header";
@@ -32,21 +33,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Pregnancy, InsertPregnancy } from "@shared/schema";
+import { Progress } from "@/components/ui/progress";
+import { Child } from "@shared/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { format, addWeeks } from "date-fns";
-import { Loader2, Calendar, PlusCircle } from "lucide-react";
+import { format, addWeeks, differenceInWeeks } from "date-fns";
+import { Loader2, Calendar, PlusCircle, Baby } from "lucide-react";
 
 export default function PregnancyPage() {
   const { toast } = useToast();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = useState(false);
 
-  const { data: pregnancies = [], isLoading: isLoadingPregnancies } = useQuery<Pregnancy[]>({
+  const { data: pregnancies = [], isLoading: isLoadingPregnancies } = useQuery<Child[]>({
     queryKey: ["/api/pregnancies"],
   });
 
@@ -54,58 +55,25 @@ export default function PregnancyPage() {
     dueDate: z.string().refine(date => !isNaN(Date.parse(date)), {
       message: "Please enter a valid date",
     }),
-    startDate: z.string().refine(date => !isNaN(Date.parse(date)), {
-      message: "Please enter a valid date",
-    }),
+    babyName: z.string().optional(),
     notes: z.string().optional(),
   });
-
-  const appointmentSchema = z.object({
-    appointmentDate: z.string().refine(date => !isNaN(Date.parse(date)), {
-      message: "Please enter a valid date",
-    }),
-    description: z.string().min(1, "Description is required"),
-  });
-
-  const calculateStartDate = (dueDate: Date) => {
-    return format(addWeeks(dueDate, -40), "yyyy-MM-dd");
-  };
 
   const form = useForm<z.infer<typeof pregnancySchema>>({
     resolver: zodResolver(pregnancySchema),
     defaultValues: {
       dueDate: format(new Date(), "yyyy-MM-dd"),
-      startDate: calculateStartDate(new Date()),
+      babyName: "",
       notes: "",
     },
   });
 
-  const appointmentForm = useForm<z.infer<typeof appointmentSchema>>({
-    resolver: zodResolver(appointmentSchema),
-    defaultValues: {
-      appointmentDate: format(new Date(), "yyyy-MM-dd"),
-      description: "",
-    },
-  });
-
-  const watchDueDate = form.watch("dueDate");
-  const updateStartDate = () => {
-    if (!isNaN(Date.parse(watchDueDate))) {
-      const dueDate = new Date(watchDueDate);
-      form.setValue("startDate", calculateStartDate(dueDate));
-    }
-  };
-
   const addPregnancyMutation = useMutation({
     mutationFn: async (data: z.infer<typeof pregnancySchema>) => {
-      const newPregnancy: InsertPregnancy = {
-        userId: 0,
+      const res = await apiRequest("POST", "/api/pregnancies", {
         dueDate: new Date(data.dueDate),
-        startDate: new Date(data.startDate),
-        notes: data.notes || "",
-        status: "active",
-      };
-      const res = await apiRequest("POST", "/api/pregnancies", newPregnancy);
+        babyName: data.babyName,
+      });
       return await res.json();
     },
     onSuccess: () => {
@@ -114,11 +82,7 @@ export default function PregnancyPage() {
         title: "Pregnancy added",
         description: "Your pregnancy information has been saved!",
       });
-      form.reset({
-        dueDate: format(new Date(), "yyyy-MM-dd"),
-        startDate: calculateStartDate(new Date()),
-        notes: "",
-      });
+      form.reset();
       setIsAddDialogOpen(false);
     },
     onError: (error) => {
@@ -134,20 +98,10 @@ export default function PregnancyPage() {
     addPregnancyMutation.mutate(data);
   };
 
-  const onAddAppointment = (data: z.infer<typeof appointmentSchema>) => {
-    console.log("New appointment:", data);
-    toast({
-      title: "Appointment Added",
-      description: `Your appointment on ${data.appointmentDate} has been added.`,
-    });
-    appointmentForm.reset();
-    setIsAppointmentDialogOpen(false);
-  };
-
-  const getCurrentWeek = (startDate: Date) => {
-    const diffTime = Math.abs(new Date().getTime() - startDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return Math.floor(diffDays / 7) + 1;
+  const calculateWeeks = (dueDate: Date) => {
+    const startDate = addWeeks(dueDate, -40);
+    const currentWeek = differenceInWeeks(new Date(), startDate);
+    return Math.min(Math.max(currentWeek, 0), 40);
   };
 
   return (
@@ -156,10 +110,9 @@ export default function PregnancyPage() {
       <AppTabs />
 
       <main className="flex-grow container mx-auto px-4 py-6 pb-20 md:pb-6">
-        <div className="flex justify-between items-center mb-6 gap-2">
+        <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Pregnancy</h1>
-
-          <div className="flex gap-2">
+          {pregnancies.length === 0 && (
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
@@ -184,14 +137,7 @@ export default function PregnancyPage() {
                         <FormItem>
                           <FormLabel>Due Date</FormLabel>
                           <FormControl>
-                            <Input
-                              type="date"
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(e);
-                                setTimeout(updateStartDate, 0);
-                              }}
-                            />
+                            <Input type="date" {...field} />
                           </FormControl>
                           <FormDescription>Your estimated due date</FormDescription>
                           <FormMessage />
@@ -201,27 +147,12 @@ export default function PregnancyPage() {
 
                     <FormField
                       control={form.control}
-                      name="startDate"
+                      name="babyName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Start Date</FormLabel>
+                          <FormLabel>Baby Name (Optional)</FormLabel>
                           <FormControl>
-                            <Input type="date" {...field} disabled />
-                          </FormControl>
-                          <FormDescription>Automatically calculated from due date</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="notes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Notes</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Optional notes" {...field} />
+                            <Input placeholder="Enter baby's name" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -229,67 +160,112 @@ export default function PregnancyPage() {
                     />
 
                     <DialogFooter>
-                      <Button type="submit">Save</Button>
+                      <Button type="submit" disabled={addPregnancyMutation.isPending}>
+                        {addPregnancyMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          "Save"
+                        )}
+                      </Button>
                     </DialogFooter>
                   </form>
                 </Form>
               </DialogContent>
             </Dialog>
-
-            <Dialog open={isAppointmentDialogOpen} onOpenChange={setIsAppointmentDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Add Appointment
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add Appointment</DialogTitle>
-                  <DialogDescription>
-                    Schedule an upcoming appointment related to your pregnancy.
-                  </DialogDescription>
-                </DialogHeader>
-
-                <Form {...appointmentForm}>
-                  <form onSubmit={appointmentForm.handleSubmit(onAddAppointment)} className="space-y-4">
-                    <FormField
-                      control={appointmentForm.control}
-                      name="appointmentDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Appointment Date</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={appointmentForm.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Checkup, scan, etc." {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <DialogFooter>
-                      <Button type="submit">Add</Button>
-                    </DialogFooter>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
-          </div>
+          )}
         </div>
+
+        {isLoadingPregnancies ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+          </div>
+        ) : pregnancies.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+            <div className="w-16 h-16 bg-primary-50 text-primary-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Baby className="h-8 w-8" />
+            </div>
+            <h2 className="text-xl font-bold mb-4">No Pregnancy Recorded Yet</h2>
+            <p className="text-muted-foreground mb-6">
+              Start tracking your pregnancy journey by adding your pregnancy details.
+            </p>
+            <Button onClick={() => setIsAddDialogOpen(true)}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add Pregnancy
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {pregnancies.map((pregnancy) => (
+              <Card key={pregnancy.id}>
+                <CardHeader>
+                  <CardTitle>
+                    {pregnancy.name || "Baby"}'s Journey
+                  </CardTitle>
+                  <CardDescription>
+                    Due Date: {format(new Date(pregnancy.dueDate), "MMMM d, yyyy")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div>
+                      <Label>Pregnancy Progress</Label>
+                      <div className="mt-2">
+                        <Progress 
+                          value={(calculateWeeks(new Date(pregnancy.dueDate)) / 40) * 100} 
+                          className="h-2" 
+                        />
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Week {calculateWeeks(new Date(pregnancy.dueDate))} of 40
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm">First Trimester</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-2xl font-bold">
+                            {Math.min(calculateWeeks(new Date(pregnancy.dueDate)), 13)} / 13
+                          </p>
+                          <p className="text-xs text-muted-foreground">weeks completed</p>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm">Second Trimester</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-2xl font-bold">
+                            {Math.max(0, Math.min(calculateWeeks(new Date(pregnancy.dueDate)) - 13, 14))} / 14
+                          </p>
+                          <p className="text-xs text-muted-foreground">weeks completed</p>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm">Third Trimester</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-2xl font-bold">
+                            {Math.max(0, Math.min(calculateWeeks(new Date(pregnancy.dueDate)) - 27, 13))} / 13
+                          </p>
+                          <p className="text-xs text-muted-foreground">weeks completed</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </main>
 
       <AppFooter />
