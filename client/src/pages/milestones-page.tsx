@@ -370,10 +370,10 @@ export default function MilestonesPage() {
                       <div key={milestone.id} className="flex border rounded-md p-4">
                         <div className="flex flex-col items-center mr-4">
                           <div className="text-sm font-medium text-center bg-primary-50 text-primary-500 rounded-md px-2 py-1 whitespace-nowrap">
-                            {format(new Date(milestone.date), "MMM d")}
+                            {milestone.date ? format(new Date(milestone.date), "MMM d") : ""}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {format(new Date(milestone.date), "yyyy")}
+                            {milestone.date ? format(new Date(milestone.date), "yyyy") : ""}
                           </div>
                         </div>
                         <div>
