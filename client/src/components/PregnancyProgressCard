@@ -1,0 +1,56 @@
+import { useState } from "react"; // Add this at the top
+
+function PregnancyProgressCard({ child }: { child: Child | null }) {
+  const pregnancyWeek = 24;
+  const totalWeeks = 40;
+  const progress = (pregnancyWeek / totalWeeks) * 100;
+
+  const [viewAll, setViewAll] = useState(false);
+
+  const { data: appointments = [] } = useQuery({
+    queryKey: ["/api/children", child?.id, viewAll ? "appointments/all" : "appointments/upcoming"],
+    enabled: !!child?.id,
+  });
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+      <div className="bg-primary-500 px-6 py-4 flex justify-between items-center">
+        <h3 className="text-white font-bold">Pregnancy Journey</h3>
+        <span className="text-white bg-white bg-opacity-20 px-3 py-1 rounded-full text-xs">
+          {pregnancyWeek} of {totalWeeks} weeks
+        </span>
+      </div>
+
+      <div className="p-6">
+        <Progress value={progress} className="h-2.5 mb-6" />
+
+        <div className="flex justify-between text-xs text-muted-foreground mb-8">
+          <span>First Trimester</span>
+          <span>Second Trimester</span>
+          <span>Third Trimester</span>
+        </div>
+
+        {/* Appointments */}
+        <div className="mb-4">
+          <h4 className="font-medium mb-2">Appointments</h4>
+          <ul className="space-y-2 text-sm">
+            {appointments.map((appt: any) => (
+              <li key={appt.id} className="flex justify-between">
+                <span>{appt.title}</span>
+                <span>{format(new Date(appt.date), "MMM d, yyyy")}</span>
+              </li>
+            ))}
+          </ul>
+
+          <Button
+            variant="link"
+            className="mt-2 p-0 text-sm"
+            onClick={() => setViewAll((prev) => !prev)}
+          >
+            {viewAll ? "View Upcoming Appointments" : "View All Appointments"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}

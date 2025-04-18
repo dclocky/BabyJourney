@@ -63,7 +63,7 @@ export default function MilestonesPage() {
 
   // Group milestones by category
   const milestonesByCategory: Record<string, Milestone[]> = {};
-  
+
   if (milestones.length > 0) {
     milestones.forEach(milestone => {
       if (!milestonesByCategory[milestone.category]) {
@@ -169,7 +169,7 @@ export default function MilestonesPage() {
     <div className="min-h-screen flex flex-col bg-secondary-50">
       <AppHeader />
       <AppTabs />
-      
+
       <main className="flex-grow container mx-auto px-4 py-6 pb-20 md:pb-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Milestones</h1>
@@ -187,7 +187,7 @@ export default function MilestonesPage() {
                   Capture your baby's special moments and achievements.
                 </DialogDescription>
               </DialogHeader>
-              
+
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onAddMilestone)} className="space-y-4">
                   {children.length > 1 && (
@@ -215,7 +215,7 @@ export default function MilestonesPage() {
                       )}
                     />
                   )}
-                  
+
                   <FormField
                     control={form.control}
                     name="title"
@@ -229,7 +229,7 @@ export default function MilestonesPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="date"
@@ -243,7 +243,7 @@ export default function MilestonesPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="category"
@@ -267,7 +267,7 @@ export default function MilestonesPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="description"
@@ -285,7 +285,7 @@ export default function MilestonesPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <DialogFooter>
                     <Button
                       type="submit"
@@ -306,7 +306,7 @@ export default function MilestonesPage() {
             </DialogContent>
           </Dialog>
         </div>
-        
+
         {/* Child selector if user has multiple children */}
         {children.length > 1 && (
           <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
@@ -324,7 +324,7 @@ export default function MilestonesPage() {
             </div>
           </div>
         )}
-        
+
         {isLoadingChildren || isLoadingMilestones ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
@@ -390,8 +390,19 @@ export default function MilestonesPage() {
             ))}
           </div>
         )}
+
+        {/* Add New Milestone button at the bottom */}
+        <div className="mt-8 text-center">
+          <Button 
+            onClick={() => setIsAddDialogOpen(true)}
+            className="bg-blue-500 hover:bg-blue-600 text-white"
+          >
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add New Milestone
+          </Button>
+        </div>
       </main>
-      
+
       <AppFooter />
       <MobileNav />
     </div>

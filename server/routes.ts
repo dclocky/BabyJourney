@@ -27,10 +27,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Child profile management
-  app.get("/api/children", async (req, res, next) => {
+  // Authentication middleware
+  const requireAuth = (req, res, next) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+    next();
+  };
+
+  // === Pregnancy Routes ===
+  app.get("/api/pregnancies", requireAuth, async (req, res, next) => {
+    try {
+      // Get all pregnancies for the current user
+      const pregnancies = await storage.getPregnanciesForUser(req.user.id);
+      res.json(pregnancies);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post("/api/pregnancies", requireAuth, async (req, res, next) => {
+    try {
+      const pregnancy = await storage.createPregnancy({
+        ...req.body,
+        userId: req.user.id
+      });
+
+      res.status(201).json(pregnancy);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // === Child Profile Routes ===
+  app.get("/api/children", requireAuth, async (req, res, next) => {
     try {
       const children = await storage.getChildren(req.user.id);
       res.json(children);
@@ -39,63 +67,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/children/:id", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  app.get("/api/children/:id", requireAuth, async (req, res, next) => {
     try {
       const child = await storage.getChild(parseInt(req.params.id));
       if (!child) {
         return res.status(404).json({ message: "Child not found" });
       }
-      
+
       // Ensure user owns this child record
       if (child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized to access this profile" });
       }
-      
+
       res.json(child);
     } catch (err) {
       next(err);
     }
   });
 
-  app.post("/api/children", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  app.post("/api/children", requireAuth, async (req, res, next) => {
     try {
       // Check if free user already has one child
       const count = await storage.getChildCount(req.user.id);
       if (count >= 1 && !req.user.isPremium) {
         return res.status(403).json({ message: "Free accounts are limited to 1 child. Upgrade to premium for more." });
       }
-      
+
       const child = await storage.createChild({
         ...req.body,
         userId: req.user.id
       });
-      
+
       res.status(201).json(child);
     } catch (err) {
       next(err);
     }
   });
 
-  app.put("/api/children/:id", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  app.put("/api/children/:id", requireAuth, async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const child = await storage.getChild(childId);
-      
+
       if (!child) {
         return res.status(404).json({ message: "Child not found" });
       }
-      
+
       // Ensure user owns this child record
       if (child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized to modify this profile" });
       }
-      
+
       const updatedChild = await storage.updateChild(childId, req.body);
       res.json(updatedChild);
     } catch (err) {
@@ -103,18 +125,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Pregnancy journal
-  app.get("/api/children/:id/pregnancy-journal", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  // === Pregnancy Journal Routes ===
+  app.get("/api/children/:id/pregnancy-journal", requireAuth, async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const child = await storage.getChild(childId);
-      
+
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       const journals = await storage.getPregnancyJournals(childId);
       res.json(journals);
     } catch (err) {
@@ -122,93 +142,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/children/:id/pregnancy-journal/:week", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  app.get("/api/children/:id/pregnancy-journal/:week", requireAuth, async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const week = parseInt(req.params.week);
       const child = await storage.getChild(childId);
-      
+
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       const journal = await storage.getPregnancyJournalByWeek(childId, week);
       if (!journal) {
         return res.status(404).json({ message: "No journal entry for this week" });
       }
-      
+
       res.json(journal);
     } catch (err) {
       next(err);
     }
   });
 
-  app.post("/api/children/:id/pregnancy-journal", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  app.post("/api/children/:id/pregnancy-journal", requireAuth, async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const child = await storage.getChild(childId);
-      
+
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       // Check if journal for this week already exists
       const existingJournal = await storage.getPregnancyJournalByWeek(childId, req.body.week);
       if (existingJournal) {
         return res.status(400).json({ message: "Journal entry for this week already exists" });
       }
-      
+
       const journal = await storage.createPregnancyJournal({
         ...req.body,
         childId,
         userId: req.user.id
       });
-      
+
       res.status(201).json(journal);
     } catch (err) {
       next(err);
     }
   });
 
-  app.put("/api/children/:childId/pregnancy-journal/:id", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  app.put("/api/children/:id/pregnancy-journal/:journalId", requireAuth, async (req, res, next) => {
     try {
-      const childId = parseInt(req.params.childId);
-      const journalId = parseInt(req.params.id);
+      const childId = parseInt(req.params.id);
+      const journalId = parseInt(req.params.journalId);
       const child = await storage.getChild(childId);
-      
+
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       const updatedJournal = await storage.updatePregnancyJournal(journalId, req.body);
       if (!updatedJournal) {
         return res.status(404).json({ message: "Journal not found" });
       }
-      
+
       res.json(updatedJournal);
     } catch (err) {
       next(err);
     }
   });
 
-  // Symptoms
-  app.get("/api/children/:id/symptoms", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  // === Symptoms Routes ===
+  app.get("/api/children/:id/symptoms", requireAuth, async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const child = await storage.getChild(childId);
-      
+
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       const symptoms = await storage.getSymptoms(childId);
       res.json(symptoms);
     } catch (err) {
@@ -216,42 +228,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/children/:id/symptoms", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  app.post("/api/children/:id/symptoms", requireAuth, async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const child = await storage.getChild(childId);
-      
+
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       const symptom = await storage.createSymptom({
         ...req.body,
         childId,
         userId: req.user.id,
         date: new Date(req.body.date)
       });
-      
+
       res.status(201).json(symptom);
     } catch (err) {
       next(err);
     }
   });
 
-  // Milestones
-  app.get("/api/children/:id/milestones", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  // === Milestones Routes ===
+  app.get("/api/children/:id/milestones", requireAuth, async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const child = await storage.getChild(childId);
-      
+
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       const milestones = await storage.getMilestones(childId);
       res.json(milestones);
     } catch (err) {
@@ -259,18 +267,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/children/:id/milestones/recent", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  app.get("/api/children/:id/milestones/recent", requireAuth, async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const limit = parseInt(req.query.limit as string || "3");
       const child = await storage.getChild(childId);
-      
+
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       const milestones = await storage.getRecentMilestones(childId, limit);
       res.json(milestones);
     } catch (err) {
@@ -278,42 +284,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/children/:id/milestones", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  app.post("/api/children/:id/milestones", requireAuth, async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const child = await storage.getChild(childId);
-      
+
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       const milestone = await storage.createMilestone({
         ...req.body,
         childId,
         userId: req.user.id,
         date: new Date(req.body.date)
       });
-      
+
       res.status(201).json(milestone);
     } catch (err) {
       next(err);
     }
   });
 
-  // Growth records
-  app.get("/api/children/:id/growth", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  // === Growth Records Routes ===
+  app.get("/api/children/:id/growth", requireAuth, async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const child = await storage.getChild(childId);
-      
+
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       const records = await storage.getGrowthRecords(childId);
       res.json(records);
     } catch (err) {
@@ -321,42 +323,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/children/:id/growth", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  app.post("/api/children/:id/growth", requireAuth, async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const child = await storage.getChild(childId);
-      
+
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       const record = await storage.createGrowthRecord({
         ...req.body,
         childId,
         userId: req.user.id,
         date: new Date(req.body.date)
       });
-      
+
       res.status(201).json(record);
     } catch (err) {
       next(err);
     }
   });
 
-  // Appointments
-  app.get("/api/children/:id/appointments", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  // === Appointments Routes ===
+  app.get("/api/children/:id/appointments", requireAuth, async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const child = await storage.getChild(childId);
-      
+
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       const appointments = await storage.getAppointments(childId);
       res.json(appointments);
     } catch (err) {
@@ -364,18 +362,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/children/:id/appointments/upcoming", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  app.get("/api/children/:id/appointments/upcoming", requireAuth, async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const limit = parseInt(req.query.limit as string || "3");
       const child = await storage.getChild(childId);
-      
+
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       const appointments = await storage.getUpcomingAppointments(childId, limit);
       res.json(appointments);
     } catch (err) {
@@ -383,42 +379,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/children/:id/appointments", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  app.post("/api/children/:id/appointments", requireAuth, async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const child = await storage.getChild(childId);
-      
+
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       const appointment = await storage.createAppointment({
         ...req.body,
         childId,
         userId: req.user.id,
         date: new Date(req.body.date)
       });
-      
+
       res.status(201).json(appointment);
     } catch (err) {
       next(err);
     }
   });
 
-  // Photos
-  app.get("/api/children/:id/photos", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  // === Photos Routes ===
+  app.get("/api/children/:id/photos", requireAuth, async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const child = await storage.getChild(childId);
-      
+
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       const photos = await storage.getPhotos(childId);
       res.json(photos);
     } catch (err) {
@@ -426,17 +418,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/children/:id/photos/count", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  app.get("/api/children/:id/photos/count", requireAuth, async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const child = await storage.getChild(childId);
-      
+
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       const count = await storage.getPhotoCount(childId);
       res.json({ count });
     } catch (err) {
@@ -444,17 +434,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/children/:id/photos", upload.single('photo'), async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  app.post("/api/children/:id/photos", requireAuth, upload.single('photo'), async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const child = await storage.getChild(childId);
-      
+
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       // Check photo limit for free users
       if (!req.user.isPremium) {
         const count = await storage.getPhotoCount(childId);
@@ -464,17 +452,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-      
+
       if (!req.file) {
         return res.status(400).json({ message: "No photo uploaded" });
       }
-      
+
       // Generate unique filename (in a real app, this would be stored in cloud storage)
       const randomId = randomBytes(8).toString('hex');
       const fileExtension = req.file.mimetype.split('/')[1];
       const datePrefix = format(new Date(), 'yyyyMMdd');
       const filename = `${datePrefix}-${randomId}.${fileExtension}`;
-      
+
       // For this MVP, we're not actually storing the file, just simulating it
       const photo = await storage.createPhoto({
         childId,
@@ -485,25 +473,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         takenAt: req.body.takenAt ? new Date(req.body.takenAt) : new Date(),
         tags: req.body.tags ? JSON.parse(req.body.tags) : []
       });
-      
+
       res.status(201).json(photo);
     } catch (err) {
       next(err);
     }
   });
 
-  // Vaccinations
-  app.get("/api/children/:id/vaccinations", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  // === Vaccinations Routes ===
+  app.get("/api/children/:id/vaccinations", requireAuth, async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const child = await storage.getChild(childId);
-      
+
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       const vaccinations = await storage.getVaccinations(childId);
       res.json(vaccinations);
     } catch (err) {
@@ -511,24 +497,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/children/:id/vaccinations", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+  app.post("/api/children/:id/vaccinations", requireAuth, async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const child = await storage.getChild(childId);
-      
+
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      
+
       const vaccination = await storage.createVaccination({
         ...req.body,
         childId,
         userId: req.user.id,
         date: new Date(req.body.date)
       });
-      
+
       res.status(201).json(vaccination);
     } catch (err) {
       next(err);
