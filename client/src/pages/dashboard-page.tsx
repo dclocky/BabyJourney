@@ -175,7 +175,7 @@ interface WelcomeCardProps {
 
 function WelcomeCard({ child }: WelcomeCardProps) {
   const { user } = useAuth() as { user: User | null };
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const firstName = user?.fullName?.split(" ")[0] || "";
 
   const handleLogUpdate = () => {
@@ -975,7 +975,7 @@ interface PhotoGalleryCardProps {
                 onClose={() => setShowUploadDialog(false)}
                 childId={childId}
               />
-            </div>
+                        </div>
           );
         }
 
