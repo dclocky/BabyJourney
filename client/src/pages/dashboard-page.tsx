@@ -586,7 +586,7 @@ function MilestonesCard({ childId }: MilestonesCardProps) {
                 <h4 className="font-medium">{milestone.title}</h4>
                 <p className="text-sm text-muted-foreground mt-1">
                   Week {Math.floor(Math.random() * 10) + 15} -{" "}
-                  {format(new Date(milestone.date), "MMM d, yyyy")}
+                  {milestone.date ? format(new Date(milestone.date), "MMM d, yyyy") : ""}
                 </p>
                 <p className="text-sm mt-2">{milestone.description}</p>
 
@@ -974,8 +974,8 @@ function PhotoGalleryCard({ childId, isPremium }: PhotoGalleryCardProps) {
         open={showUploadDialog}
         onClose={() => setShowUploadDialog(false)}
         childId={childId}
-      />
-    </div>);
+      />    </div>
+  );
 }
 
 interface UploadPhotoDialogProps {
