@@ -881,102 +881,101 @@ interface PhotoGalleryCardProps {
   isPremium: boolean;
 }
 
-        function PhotoGalleryCard({ childId, isPremium }: PhotoGalleryCardProps) {
-          const [showUploadDialog, setShowUploadDialog] = useState<boolean>(false);
-          const router = useRouter();
-          const queryClient = useQueryClient();
+function PhotoGalleryCard({ childId, isPremium }: PhotoGalleryCardProps) {
+  const [showUploadDialog, setShowUploadDialog] = useState<boolean>(false);
+  const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
 
-          const { data: photos = [] } = useQuery<Photo[]>({
-            queryKey: ["/api/children", childId, "photos"],
-            enabled: !!childId,
-          });
+  const { data: photos = [] } = useQuery<Photo[]>({
+    queryKey: ["/api/children", childId, "photos"],
+    enabled: !!childId,
+  });
 
-          const { data: countData } = useQuery<PhotoCount>({
-            queryKey: ["/api/children", childId, "photos/count"],
-            enabled: !!childId,
-          });
+  const { data: countData } = useQuery<PhotoCount>({
+    queryKey: ["/api/children", childId, "photos/count"],
+    enabled: !!childId,
+  });
 
-          const photoCount = countData?.count || 0;
-          const maxPhotos = isPremium ? Infinity : 5;
-          const remainingUploads = Math.max(0, maxPhotos - photoCount);
-          const canUploadMore = isPremium || remainingUploads > 0;
+  const photoCount = countData?.count || 0;
+  const maxPhotos = isPremium ? Infinity : 5;
+  const remainingUploads = Math.max(0, maxPhotos - photoCount);
+  const canUploadMore = isPremium || remainingUploads > 0;
 
-          const handleUploadPhoto = () => {
-            if (!canUploadMore && !isPremium) {
-              // Show upgrade prompt if can't upload more
-              navigate("/upgrade");
-              return;
-            }
+  const handleUploadPhoto = () => {
+    if (!canUploadMore && !isPremium) {
+      // Show upgrade prompt if can't upload more
+      setLocation("/upgrade");
+      return;
+    }
 
-            setShowUploadDialog(true);
-          };
+    setShowUploadDialog(true);
+  };
 
-          const handleViewAllPhotos = () => {
-            navigate("/dashboard/photos");
-          };
+  const handleViewAllPhotos = () => {
+    setLocation("/dashboard/photos");
+  };
 
-          return (
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-secondary-100 flex justify-between items-center">
-                <h3 className="font-bold">Photo Gallery</h3>
-                <Button
-                  variant="link"
-                  className="p-0 h-auto text-primary-500"
-                  onClick={handleViewAllPhotos}
-                >
-                  View all
-                </Button>
+  return (
+    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+      <div className="px-6 py-4 border-b border-secondary-100 flex justify-between items-center">
+        <h3 className="font-bold">Photo Gallery</h3>
+        <Button
+          variant="link"
+          className="p-0 h-auto text-primary-500"
+          onClick={handleViewAllPhotos}
+        >
+          View all
+        </Button>
+      </div>
+
+      <div className="p-6">
+        {photos.length > 0 ? (
+          <div className="grid grid-cols-2 gap-2">
+            {photos.slice(0, 4).map((photo) => (
+              <div key={photo.id} className="relative h-24 bg-gray-100 rounded-md overflow-hidden">
+                <div className="w-full h-full flex items-center justify-center">
+                  <span className="text-xs text-gray-400">Photo</span>
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 truncate">
+                  {photo.caption || format(new Date(photo.date), "MMM d, yyyy")}
+                </div>
               </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-6">
+            <div className="bg-secondary-50 p-4 rounded-full w-14 h-14 flex items-center justify-center mx-auto mb-3">
+              <Image className="h-6 w-6 text-primary-500" />
+            </div>
+            <h4 className="font-medium mb-1">No photos yet</h4>
+            <p className="text-sm text-muted-foreground mb-4">
+              Start capturing special moments of your pregnancy journey
+            </p>
+          </div>
+        )}
 
-              <div className="p-6">
-                {photos.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-2">
-                    {photos.slice(0, 4).map((photo) => (
-                      <div key={photo.id} className="relative h-24 bg-gray-100 rounded-md overflow-hidden">
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-xs text-gray-400">Photo</span>
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 truncate">
-                          {photo.caption || format(new Date(photo.date), "MMM d, yyyy")}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-6">
-                    <div className="bg-secondary-50 p-4 rounded-full w-14 h-14 flex items-center justify-center mx-auto mb-3">
-                      <Image className="h-6 w-6 text-primary-500" />
-                    </div>
-                    <h4 className="font-medium mb-1">No photos yet</h4>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Start capturing special moments of your pregnancy journey
-                    </p>
-                  </div>
-                )}
+        <Button
+          variant="outline"
+          className="mt-4 w-full border-primary-500 text-primary-500 hover:bg-primary-50 flex items-center justify-center"
+          onClick={handleUploadPhoto}
+        >
+          <Upload className="h-4 w-4 mr-2" />
+          Upload Photo
+          {!isPremium && (
+            <span className="ml-1 text-xs text-muted-foreground">
+              ({remainingUploads}/{maxPhotos})
+            </span>
+          )}
+        </Button>
+      </div>
 
-                <Button
-                  variant="outline"
-                  className="mt-4 w-full border-primary-500 text-primary-500 hover:bg-primary-50 flex items-center justify-center"
-                  onClick={handleUploadPhoto}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Photo
-                  {!isPremium && (
-                    <span className="ml-1 text-xs text-muted-foreground">
-                      ({remainingUploads}/{maxPhotos})
-                    </span>
-                  )}
-                </Button>
-              </div>
-
-              {/* Upload Photo Dialog */}
-              <UploadPhotoDialog
-                open={showUploadDialog}
-                onClose={() => setShowUploadDialog(false)}
-                childId={childId}
-              />
-                        </div>
-          );
+      {/* Upload Photo Dialog */}
+      <UploadPhotoDialog
+        open={showUploadDialog}
+        onClose={() => setShowUploadDialog(false)}
+        childId={childId}
+      />
+    </div>);
         }
 
         interface UploadPhotoDialogProps {
@@ -1136,10 +1135,10 @@ interface PhotoGalleryCardProps {
         }
 
         function PremiumFeaturesCard() {
-          const router = useRouter();
+          const [, setLocation] = useLocation();
 
           const handleUpgrade = () => {
-            navigate("/upgrade");
+            setLocation("/upgrade");
           };
 
           return (
