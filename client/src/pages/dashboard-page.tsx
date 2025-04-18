@@ -216,7 +216,7 @@ interface PregnancyProgressCardProps {
 }
 
 function PregnancyProgressCard({ child }: PregnancyProgressCardProps) {
-  const router = useRouter();
+  const [, setLocation] = useLocation();
   const [showSymptomsDialog, setShowSymptomsDialog] = useState<boolean>(false);
 
   // For MVP, just showing static data
@@ -234,7 +234,7 @@ function PregnancyProgressCard({ child }: PregnancyProgressCardProps) {
   };
 
   const handleViewAllAppointments = () => {
-    navigate("/dashboard/appointments");
+    setLocation("/appointments");
   };
 
   return (
