@@ -973,8 +973,7 @@ function PhotoGalleryCard({ childId, isPremium }: PhotoGalleryCardProps) {
         >
           <Upload className="h-4 w-4 mr-2" />
           Upload Photo
-          {!isPremium && (
-            <span className="ml-1 text-xs text-muted-foreground">
+          {!isPremium && (<span className="ml-1 text-xs text-muted-foreground">
               ({remainingUploads}/{maxPhotos})
             </span>
           )}
@@ -1135,9 +1134,9 @@ function UploadPhotoDialog({ open, onClose, childId }: UploadPhotoDialogProps) {
             <Button
               type="submit"
               className="bg-primary-500 hover:bg-primary-600"
-              disabled={addMilestoneMutation.isPending}
+              disabled={uploadPhotoMutation.isPending}
             >
-              {addMilestoneMutation.isPending ? "Saving..." : "Save Milestone"}
+              {uploadPhotoMutation.isPending ? "Uploading..." : "Upload Photo"}
             </Button>
           </DialogFooter>
         </form>
