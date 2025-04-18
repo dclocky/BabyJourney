@@ -590,7 +590,7 @@ function MilestonesCard({ childId }: MilestonesCardProps) {
                 </p>
                 <p className="text-sm mt-2">{milestone.description}</p>
 
-                {milestone.title.includes("Ultrasound") && (
+                {milestone.title && milestone.title.includes("Ultrasound") && (
                   <div className="mt-3 inline-block rounded-md overflow-hidden border border-secondary-100">
                     <div className="w-24 h-24 bg-gray-100 flex items-center justify-center">
                       <span className="text-xs text-gray-400">
