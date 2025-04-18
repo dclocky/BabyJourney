@@ -496,7 +496,7 @@ interface MilestonesCardProps {
 
 function MilestonesCard({ childId }: MilestonesCardProps) {
   const [showAddMilestoneDialog, setShowAddMilestoneDialog] = useState<boolean>(false);
-  const router = useRouter();
+  const [, setLocation] = useLocation();
 
   const { data: milestones = [], isLoading } = useQuery<Milestone[]>({
     queryKey: ["/api/children", childId, "milestones/recent"],
@@ -548,7 +548,7 @@ function MilestonesCard({ childId }: MilestonesCardProps) {
   };
 
   const handleViewAllMilestones = () => {
-    navigate("/dashboard/milestones");
+    setLocation("/milestones");
   };
 
   return (
