@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "wouter";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -113,7 +113,7 @@ interface MilestoneData {
 
 export default function DashboardPage() {
   const { user } = useAuth() as { user: User | null };
-  const router = useRouter();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: children = [], isLoading: isLoadingChildren } = useQuery<Child[]>({
