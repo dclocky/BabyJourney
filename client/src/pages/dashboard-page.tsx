@@ -630,6 +630,7 @@ interface AddMilestoneDialogProps {
 }
 
 function AddMilestoneDialog({ open, onClose, childId }: AddMilestoneDialogProps) {
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [milestoneData, setMilestoneData] = useState<MilestoneData>({
     title: "",
@@ -741,7 +742,18 @@ function AddMilestoneDialog({ open, onClose, childId }: AddMilestoneDialogProps)
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          if (!milestoneData.title) {
+            toast({
+              title: "Error",
+              description: "Please enter a title for the milestone",
+              variant: "destructive",
+            });
+            return;
+          }
+          addMilestoneMutation.mutate(milestoneData);
+        }}>
           <div className="space-y-4 py-4">
             <div>
               <label className="block text-sm font-medium mb-1">Title</label>
@@ -1123,9 +1135,9 @@ function UploadPhotoDialog({ open, onClose, childId }: UploadPhotoDialogProps) {
             <Button
               type="submit"
               className="bg-primary-500 hover:bg-primary-600"
-              disabled={uploadPhotoMutation.isPending || !photoData.image}
+              disabled={addMilestoneMutation.isPending}
             >
-              {uploadPhotoMutation.isPending ? "Uploading..." : "Upload Photo"}
+              {addMilestoneMutation.isPending ? "Saving..." : "Save Milestone"}
             </Button>
           </DialogFooter>
         </form>
