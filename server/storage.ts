@@ -22,6 +22,10 @@ const PostgresSessionStore = connectPg(session);
 export interface IStorage {
   // Session store
   sessionStore: session.Store;
+
+  // Pregnancy methods
+  getPregnanciesForUser(userId: number): Promise<Child[]>;
+  createPregnancy(pregnancy: InsertChild): Promise<Child>;
   
   // User methods
   getUser(id: number): Promise<User | undefined>;
@@ -461,6 +465,29 @@ export class MemStorage implements IStorage {
 
 export class DatabaseStorage implements IStorage {
   public sessionStore: session.Store;
+
+  // Pregnancy methods
+  async getPregnanciesForUser(userId: number): Promise<Child[]> {
+    return db
+      .select()
+      .from(children)
+      .where(and(
+        eq(children.userId, userId),
+        eq(children.isPregnancy, true)
+      ));
+  }
+
+  async createPregnancy(pregnancy: InsertChild): Promise<Child> {
+    const [newPregnancy] = await db
+      .insert(children)
+      .values({
+        ...pregnancy,
+        isPregnancy: true,
+        createdAt: new Date()
+      })
+      .returning();
+    return newPregnancy;
+  }
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({ 

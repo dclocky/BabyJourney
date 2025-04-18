@@ -47,8 +47,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/pregnancies", requireAuth, async (req, res, next) => {
     try {
       const pregnancy = await storage.createPregnancy({
-        ...req.body,
-        userId: req.user.id
+        userId: req.user.id,
+        name: req.body.babyName || "Baby",
+        dueDate: new Date(req.body.dueDate),
+        isPregnancy: true
       });
 
       res.status(201).json(pregnancy);
