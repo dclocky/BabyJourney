@@ -179,7 +179,7 @@ function WelcomeCard({ child }: WelcomeCardProps) {
   const firstName = user?.fullName?.split(" ")[0] || "";
 
   const handleLogUpdate = () => {
-    rpushouter.("/dashboard/log-update");
+    router("/dashboard/log-update");
   };
 
   return (
