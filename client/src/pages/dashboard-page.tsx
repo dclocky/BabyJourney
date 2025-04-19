@@ -57,7 +57,6 @@ import {
 } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useToast } from "@/hooks/use-toast";
-// import { toast } from "@/components/ui/use-toast"; // Already imported above
 
 // Define interfaces for all the data we expect from the API
 interface User {
@@ -287,14 +286,13 @@ function WelcomeCard({ child, pregnancyWeek }: WelcomeCardProps) {
 
 interface PregnancyProgressCardProps {
   child: Child | null;
+  pregnancyWeek: number;
 }
 
-function PregnancyProgressCard({ child }: PregnancyProgressCardProps) {
+function PregnancyProgressCard({ child, pregnancyWeek }: PregnancyProgressCardProps) {
   const [, setLocation] = useLocation();
   const [showSymptomsDialog, setShowSymptomsDialog] = useState<boolean>(false);
 
-  // For MVP, just showing static data
-  const pregnancyWeek = 24;
   const totalWeeks = 40;
   const progress = (pregnancyWeek / totalWeeks) * 100;
 
@@ -416,6 +414,8 @@ function SymptomTrackingDialog({ open, onClose, childId }: SymptomTrackingDialog
     notes: "",
   });
 
+  const { toast } = useToast();
+  
   const trackSymptomsMutation = useMutation({
     mutationFn: (data: SymptomData) => {
       if (!childId) throw new Error("Child ID is required");
@@ -902,11 +902,163 @@ function AddMilestoneDialog({ open, onClose, childId }: AddMilestoneDialogProps)
   );
 }
 
+// Import SVG illustrations
+import week12Svg from "../assets/baby-development/week-12.svg";
+import week16Svg from "../assets/baby-development/week-16.svg";
+import week20Svg from "../assets/baby-development/week-20.svg";
+import week24Svg from "../assets/baby-development/week-24.svg";
+import week28Svg from "../assets/baby-development/week-28.svg";
+// Create placeholder SVGs for the rest
+const week32Svg = week28Svg;
+const week36Svg = week28Svg;
+const week40Svg = week28Svg;
+
 interface BabyDevelopmentCardProps {
   pregnancyWeek: number;
 }
 
 function BabyDevelopmentCard({ pregnancyWeek }: BabyDevelopmentCardProps) {
+  // Get the appropriate development information based on pregnancy week
+  const getDevelopmentInfo = (week: number) => {
+    switch (true) {
+      case week <= 8:
+        return {
+          size: "Raspberry",
+          weight: "0.04 oz",
+          length: "0.6 inches",
+          movement: "None yet",
+          description: [
+            "Baby's basic facial features are forming, including the eyes, nose, mouth, and ears.",
+            "The heart is now beating at a steady rhythm. Major organs like the liver and kidneys are developing."
+          ]
+        };
+      case week <= 12:
+        return {
+          size: "Lime",
+          weight: "0.5 oz",
+          length: "2.1 inches",
+          movement: "First movements (not felt yet)",
+          description: [
+            "Your baby's fingers and toes are fully separated, and nails are beginning to develop.",
+            "All major organs are formed and beginning to function. The baby can make tiny movements."
+          ]
+        };
+      case week <= 16:
+        return {
+          size: "Avocado",
+          weight: "3.5 oz",
+          length: "4.6 inches",
+          movement: "Subtle movements",
+          description: [
+            "Baby can now make facial expressions and may even suck their thumb.",
+            "The skin is thin and translucent. The backbone and tiny ribs are beginning to be visible."
+          ]
+        };
+      case week <= 20:
+        return {
+          size: "Banana",
+          weight: "10.6 oz",
+          length: "6.5 inches",
+          movement: "Noticeable kicks",
+          description: [
+            "Your baby is developing a regular sleep and wake cycle. You might start feeling more movement.",
+            "Baby's hearing is developing, and they may respond to loud sounds or your voice."
+          ]
+        };
+      case week <= 24:
+        return {
+          size: "Corn",
+          weight: "1.3 pounds",
+          length: "11.8 inches",
+          movement: "Regular kicks",
+          description: [
+            "Your baby now weighs about 1.3 pounds and is 11.8 inches long. Their face is fully formed with eyelashes, eyebrows, and hair.",
+            "Baby's brain is developing rapidly, and they can now hear your voice clearly. Try talking or singing to your baby!"
+          ]
+        };
+      case week <= 28:
+        return {
+          size: "Eggplant",
+          weight: "2.2 pounds",
+          length: "14.8 inches",
+          movement: "Strong kicks and rolls",
+          description: [
+            "Your baby's eyes can now open and close, and they have eyelashes.",
+            "The brain is developing rapidly, and baby is gaining weight and body fat quickly."
+          ]
+        };
+      case week <= 32:
+        return {
+          size: "Squash",
+          weight: "3.8 pounds",
+          length: "16.7 inches",
+          movement: "Rhythmic movements",
+          description: [
+            "Baby is practicing breathing movements and developing their immune system.",
+            "They're running out of room to move around, but you'll still feel plenty of kicks and rolls."
+          ]
+        };
+      case week <= 36:
+        return {
+          size: "Honeydew Melon",
+          weight: "5.8 pounds",
+          length: "18.7 inches",
+          movement: "Less space to move",
+          description: [
+            "Baby is gaining about half a pound per week and developing more body fat.",
+            "The lungs are nearly fully developed in preparation for breathing outside the womb."
+          ]
+        };
+      case week <= 40:
+        return {
+          size: "Watermelon",
+          weight: "7.5 pounds",
+          length: "20.1 inches",
+          movement: "Squirms rather than kicks",
+          description: [
+            "Your baby is considered full-term now. Most of their organs are ready for life outside the womb.",
+            "The brain and lungs continue to mature, and baby is gaining weight until delivery."
+          ]
+        };
+      default:
+        return {
+          size: "Watermelon",
+          weight: "7.5+ pounds",
+          length: "20.1+ inches",
+          movement: "Ready for birth",
+          description: [
+            "Baby is fully developed and ready to meet you!",
+            "You may notice less movement as there's very little room left in the uterus."
+          ]
+        };
+    }
+  };
+  
+  // Get the appropriate SVG illustration
+  const getWeekSvg = (week: number) => {
+    switch (true) {
+      case week <= 12:
+        return week12Svg;
+      case week <= 16:
+        return week16Svg;
+      case week <= 20:
+        return week20Svg;
+      case week <= 24:
+        return week24Svg;
+      case week <= 28:
+        return week28Svg;
+      case week <= 32:
+        return week32Svg;
+      case week <= 36:
+        return week36Svg;
+      default:
+        return week40Svg;
+    }
+  };
+  
+  const developmentInfo = getDevelopmentInfo(pregnancyWeek);
+  const weekSvg = getWeekSvg(pregnancyWeek);
+  
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-secondary-100">
@@ -914,39 +1066,36 @@ function BabyDevelopmentCard({ pregnancyWeek }: BabyDevelopmentCardProps) {
       </div>
 
       <div className="p-6">
-        <div className="w-full h-64 bg-gray-100 rounded-md mb-4 flex items-center justify-center">
-          <span className="text-sm text-gray-400">
-            Baby development illustration
-          </span>
+        <div className="w-full h-64 bg-primary-50 rounded-md mb-4 flex items-center justify-center overflow-hidden">
+          <img 
+            src={weekSvg} 
+            alt={`Baby at week ${pregnancyWeek}`} 
+            className="max-h-full p-4"
+          />
         </div>
 
         <div className="space-y-3 text-sm">
-          <p>
-            Your baby now weighs about 1.3 pounds and is 11.8 inches long. Their
-            face is fully formed with eyelashes, eyebrows, and hair.
-          </p>
-          <p>
-            Baby's brain is developing rapidly, and they can now hear your voice
-            clearly. Try talking or singing to your baby!
-          </p>
+          {developmentInfo.description.map((paragraph, index) => (
+            <p key={index}>{paragraph}</p>
+          ))}
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
           <div className="bg-primary-50 p-3 rounded-md">
             <p className="font-medium text-primary-600">Size</p>
-            <p>Size of a corn</p>
+            <p>Size of a {developmentInfo.size.toLowerCase()}</p>
           </div>
           <div className="bg-primary-50 p-3 rounded-md">
             <p className="font-medium text-primary-600">Weight</p>
-            <p>~1.3 pounds</p>
+            <p>~{developmentInfo.weight}</p>
           </div>
           <div className="bg-primary-50 p-3 rounded-md">
             <p className="font-medium text-primary-600">Length</p>
-            <p>~11.8 inches</p>
+            <p>~{developmentInfo.length}</p>
           </div>
           <div className="bg-primary-50 p-3 rounded-md">
             <p className="font-medium text-primary-600">Movement</p>
-            <p>Regular kicks</p>
+            <p>{developmentInfo.movement}</p>
           </div>
         </div>
       </div>
@@ -1063,6 +1212,7 @@ interface UploadPhotoDialogProps {
 
 function UploadPhotoDialog({ open, onClose, childId }: UploadPhotoDialogProps) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [photoData, setPhotoData] = useState({
     image: null as File | null,
     caption: "",
