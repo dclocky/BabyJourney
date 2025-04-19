@@ -140,7 +140,7 @@ export const vaccinations = pgTable("vaccinations", {
 // Registry for baby items wishlist
 export const registries = pgTable("registries", {
   id: serial("id").primaryKey(),
-  childId: integer("child_id").references(() => children.id).notNull(),
+  childId: integer("child_id").references(() => children.id),
   userId: integer("user_id").references(() => users.id).notNull(),
   title: text("title").notNull(),
   description: text("description"),
