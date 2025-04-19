@@ -38,6 +38,7 @@ export interface IStorage {
   getFamilyMembers(userId: number): Promise<FamilyMember[]>;
   getFamilyMemberCount(userId: number): Promise<number>;
   createFamilyMember(member: InsertFamilyMember): Promise<FamilyMember>;
+  updateFamilyMember(id: number, member: Partial<FamilyMember>): Promise<FamilyMember | undefined>;
   deleteFamilyMember(id: number): Promise<boolean>;
 
   // Child methods
@@ -193,6 +194,19 @@ export class MemStorage implements IStorage {
     };
     this.familyMembers.set(id, familyMember);
     return familyMember;
+  }
+
+  async updateFamilyMember(id: number, updates: Partial<FamilyMember>): Promise<FamilyMember | undefined> {
+    const member = this.familyMembers.get(id);
+    if (!member) return undefined;
+    
+    const updatedMember: FamilyMember = {
+      ...member,
+      ...updates
+    };
+    
+    this.familyMembers.set(id, updatedMember);
+    return updatedMember;
   }
 
   async deleteFamilyMember(id: number): Promise<boolean> {
@@ -559,6 +573,15 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return familyMember;
+  }
+
+  async updateFamilyMember(id: number, updates: Partial<FamilyMember>): Promise<FamilyMember | undefined> {
+    const [updatedMember] = await db
+      .update(familyMembers)
+      .set(updates)
+      .where(eq(familyMembers.id, id))
+      .returning();
+    return updatedMember;
   }
 
   async deleteFamilyMember(id: number): Promise<boolean> {

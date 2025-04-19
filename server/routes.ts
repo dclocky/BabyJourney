@@ -612,15 +612,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Family member not found" });
       }
       
-      // Update member (using storage method or direct DB update)
-      // This is a simplified approach
-      const updatedMember = {
-        ...member,
-        ...req.body
-      };
-      
-      // In a real implementation, we would call a storage method:
-      // const updatedMember = await storage.updateFamilyMember(memberId, req.body);
+      // Use the storage method to update the family member
+      const updatedMember = await storage.updateFamilyMember(memberId, req.body);
       
       res.json(updatedMember);
     } catch (err) {
