@@ -84,7 +84,7 @@ export default function BabyPage() {
         userId: user!.id,
         name: data.name,
         gender: data.gender,
-        birthDate: data.birthDate, // Send as string instead of Date object
+        birthDate: data.birthDate ? data.birthDate.toISOString() : null, // Send as ISO string for consistent date format handling
         isPregnancy: false,
       };
       const res = await apiRequest("POST", "/api/children", newBaby);

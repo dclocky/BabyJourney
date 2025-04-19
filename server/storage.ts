@@ -687,13 +687,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPregnancy(pregnancy: InsertChild): Promise<Child> {
+    // Process dates properly to avoid toISOString error
+    const processedPregnancy = {
+      ...pregnancy,
+      birthDate: pregnancy.birthDate ? (typeof pregnancy.birthDate === 'string' ? new Date(pregnancy.birthDate) : pregnancy.birthDate) : null,
+      dueDate: pregnancy.dueDate ? (typeof pregnancy.dueDate === 'string' ? new Date(pregnancy.dueDate) : pregnancy.dueDate) : null,
+      isPregnancy: true,
+      createdAt: new Date()
+    };
+
     const [newPregnancy] = await db
       .insert(children)
-      .values({
-        ...pregnancy,
-        isPregnancy: true,
-        createdAt: new Date()
-      })
+      .values(processedPregnancy)
       .returning();
     return newPregnancy;
   }

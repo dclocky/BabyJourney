@@ -100,13 +100,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Free accounts are limited to 1 child. Upgrade to premium for more." });
       }
 
-      const child = await storage.createChild({
+      // Process dates properly to avoid conversion issues
+      const childData = {
         ...req.body,
-        userId: req.user.id
-      });
+        userId: req.user.id,
+        // Don't transform dates here, the storage layer will handle it
+      };
 
+      const child = await storage.createChild(childData);
       res.status(201).json(child);
     } catch (err) {
+      console.error("Error creating child:", err);
       next(err);
     }
   });
