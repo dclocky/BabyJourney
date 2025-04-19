@@ -83,7 +83,7 @@ export function AppHeader() {
                 onClick={handleUpgrade}
                 disabled={createPaymentIntentMutation.isPending}
               >
-                Upgrade to Premium
+                {createPaymentIntentMutation.isPending ? "Processing..." : "Upgrade to Premium"}
               </Button>
             )}
             

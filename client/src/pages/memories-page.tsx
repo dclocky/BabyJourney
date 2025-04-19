@@ -55,7 +55,7 @@ import { PremiumBadge } from "@/components/premium-badge";
 
 export default function MemoriesPage() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, createPaymentIntentMutation, confirmPremiumUpgradeMutation } = useAuth();
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [selectedChild, setSelectedChild] = useState<number | null>(null);
   const [activeTag, setActiveTag] = useState<string | null>(null);
@@ -144,16 +144,26 @@ export default function MemoriesPage() {
               
               <Button 
                 className="bg-accent-500 hover:bg-accent-600"
-                onClick={() => user?.upgradeToPremiumMutation.mutate()}
-                disabled={user?.upgradeToPremiumMutation.isPending}
+                onClick={async () => {
+                  try {
+                    const result = await createPaymentIntentMutation.mutateAsync();
+                    // In a real implementation, we'd use Stripe Elements
+                    // For now we'll just use the dialog payment flow
+                    const paymentIntentId = result.clientSecret.split('_')[1];
+                    confirmPremiumUpgradeMutation.mutate(paymentIntentId);
+                  } catch (error) {
+                    console.error("Failed to process payment", error);
+                  }
+                }}
+                disabled={createPaymentIntentMutation.isPending || confirmPremiumUpgradeMutation.isPending}
               >
-                {user?.upgradeToPremiumMutation.isPending ? (
+                {createPaymentIntentMutation.isPending || confirmPremiumUpgradeMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Processing...
                   </>
                 ) : (
-                  "Upgrade to Premium for $39.99 (one-time)"
+                  "Upgrade to Premium for $9.99/month"
                 )}
               </Button>
             </div>
