@@ -10,12 +10,38 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sprout } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogHeader,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { useState } from "react";
 
 export function AppHeader() {
-  const { user, logoutMutation, upgradeToPremiumMutation } = useAuth();
+  const { user, logoutMutation, createPaymentIntentMutation, confirmPremiumUpgradeMutation } = useAuth();
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   
-  const handleUpgrade = () => {
-    upgradeToPremiumMutation.mutate();
+  const handleUpgrade = async () => {
+    try {
+      const result = await createPaymentIntentMutation.mutateAsync();
+      // In a real implementation, we would use Stripe Elements to collect payment
+      // For now, we'll just store the mock payment intent ID
+      setPaymentIntentId(result.clientSecret.split('_')[1]);
+      setShowPaymentDialog(true);
+    } catch (error) {
+      console.error("Failed to create payment intent", error);
+    }
+  };
+  
+  const handleConfirmPayment = () => {
+    if (paymentIntentId) {
+      confirmPremiumUpgradeMutation.mutate(paymentIntentId);
+      setShowPaymentDialog(false);
+    }
   };
   
   const handleLogout = () => {
@@ -38,61 +64,92 @@ export function AppHeader() {
   };
 
   return (
-    <header className="bg-white shadow-sm">
-      <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-        <div className="flex items-center">
-          <div className="mr-2 text-primary-500 text-3xl">
-            <Sprout />
+    <>
+      <header className="bg-white shadow-sm">
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+          <div className="flex items-center">
+            <div className="mr-2 text-primary-500 text-3xl">
+              <Sprout />
+            </div>
+            <Link href="/">
+              <h1 className="font-bold text-xl text-primary-500 cursor-pointer">BabyJourney</h1>
+            </Link>
           </div>
-          <Link href="/">
-            <h1 className="font-bold text-xl text-primary-500 cursor-pointer">BabyJourney</h1>
-          </Link>
-        </div>
-        <div className="flex items-center space-x-4">
-          {!user.isPremium && (
-            <Button
-              variant="outline"
-              className="hidden md:flex bg-accent-50 text-accent-500 hover:bg-accent-100 border-accent-100"
-              onClick={handleUpgrade}
-              disabled={upgradeToPremiumMutation.isPending}
-            >
-              Upgrade to Premium
-            </Button>
-          )}
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger className="focus:outline-none">
-              <div className="flex items-center space-x-2">
-                <Avatar>
-                  <AvatarFallback className="bg-primary-500 text-white">
-                    {getInitials()}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="hidden md:inline text-sm font-medium">{user.fullName}</span>
-                <i className="ri-arrow-down-s-line"></i>
-              </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem className="cursor-pointer">
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer">
-                Family Members
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer">
-                Settings
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                className="cursor-pointer text-destructive focus:text-destructive" 
-                onClick={handleLogout}
+          <div className="flex items-center space-x-4">
+            {!user.isPremium && (
+              <Button
+                variant="outline"
+                className="hidden md:flex bg-accent-50 text-accent-500 hover:bg-accent-100 border-accent-100"
+                onClick={handleUpgrade}
+                disabled={createPaymentIntentMutation.isPending}
               >
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                Upgrade to Premium
+              </Button>
+            )}
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger className="focus:outline-none">
+                <div className="flex items-center space-x-2">
+                  <Avatar>
+                    <AvatarFallback className="bg-primary-500 text-white">
+                      {getInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="hidden md:inline text-sm font-medium">{user.fullName}</span>
+                  <i className="ri-arrow-down-s-line"></i>
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem className="cursor-pointer">
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">
+                  Family Members
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  className="cursor-pointer text-destructive focus:text-destructive" 
+                  onClick={handleLogout}
+                >
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upgrade to Premium</DialogTitle>
+            <DialogDescription>
+              Unlock all premium features for just $9.99/month.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <h3 className="font-medium mb-2">Premium Benefits:</h3>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Unlimited photo uploads</li>
+              <li>Advanced pregnancy tracking tools</li>
+              <li>Detailed developmental milestone tracking</li>
+              <li>Customizable journals and reminders</li>
+              <li>Priority customer support</li>
+            </ul>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmPayment} disabled={confirmPremiumUpgradeMutation.isPending}>
+              {confirmPremiumUpgradeMutation.isPending ? "Processing..." : "Confirm Payment ($9.99)"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
