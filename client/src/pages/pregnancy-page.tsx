@@ -242,7 +242,7 @@ export default function PregnancyPage() {
                         </CardHeader>
                         <CardContent>
                           <p className="text-2xl font-bold">
-                            {Math.max(0, Math.min(calculateWeeks(new Date(pregnancy.dueDate)) - 13, 14))} / 14
+                            {pregnancy.dueDate ? Math.max(0, Math.min(calculateWeeks(new Date(pregnancy.dueDate)) - 13, 14)) : 0} / 14
                           </p>
                           <p className="text-xs text-muted-foreground">weeks completed</p>
                         </CardContent>
@@ -254,7 +254,7 @@ export default function PregnancyPage() {
                         </CardHeader>
                         <CardContent>
                           <p className="text-2xl font-bold">
-                            {Math.max(0, Math.min(calculateWeeks(new Date(pregnancy.dueDate)) - 27, 13))} / 13
+                            {pregnancy.dueDate ? Math.max(0, Math.min(calculateWeeks(new Date(pregnancy.dueDate)) - 27, 13)) : 0} / 13
                           </p>
                           <p className="text-xs text-muted-foreground">weeks completed</p>
                         </CardContent>
