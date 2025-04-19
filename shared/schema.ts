@@ -18,12 +18,13 @@ export const users = pgTable("users", {
 export const familyMembers = pgTable("family_members", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
-  name: text("name").notNull(),
-  email: text("email").notNull(),
+  fullName: text("full_name").notNull(),
+  email: text("email"),
   relationship: text("relationship").notNull(),
-  canViewMedical: boolean("can_view_medical").default(false).notNull(),
-  canEditProfile: boolean("can_edit_profile").default(false).notNull(),
-  canUploadPhotos: boolean("can_upload_photos").default(false).notNull(),
+  // These fields are planned for future implementation
+  // canViewMedical: boolean("can_view_medical").default(false).notNull(),
+  // canEditProfile: boolean("can_edit_profile").default(false).notNull(),
+  // canUploadPhotos: boolean("can_upload_photos").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

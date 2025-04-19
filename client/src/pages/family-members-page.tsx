@@ -75,9 +75,10 @@ export default function FamilyMembersPage() {
 
   // Form schema for family members
   const familyMemberSchema = z.object({
-    name: z.string().min(1, "Name is required"),
-    email: z.string().email("Valid email is required"),
+    name: z.string().min(1, "Name is required"), // We'll map this to fullName
+    email: z.string().email("Valid email is required").optional().or(z.literal("")),
     relationship: z.string().min(1, "Relationship is required"),
+    // These fields are for the UI only, not stored in DB yet
     canViewMedical: z.boolean().default(false),
     canEditProfile: z.boolean().default(false),
     canUploadPhotos: z.boolean().default(false),
@@ -159,7 +160,23 @@ export default function FamilyMembersPage() {
 
   const updateFamilyMemberMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number, data: z.infer<typeof familyMemberSchema> }) => {
-      const res = await apiRequest("PATCH", `/api/family-members/${id}`, data);
+      // Map from our UI form to the DB schema
+      const payload = {
+        fullName: data.name,
+        email: data.email,
+        relationship: data.relationship,
+        // We'll store permissions in the DB later, currently just logging
+        // canViewMedical: data.canViewMedical,
+        // canEditProfile: data.canEditProfile,
+        // canUploadPhotos: data.canUploadPhotos
+      };
+      console.log("Updating family member with permissions:", {
+        canViewMedical: data.canViewMedical,
+        canEditProfile: data.canEditProfile,
+        canUploadPhotos: data.canUploadPhotos
+      });
+      
+      const res = await apiRequest("PATCH", `/api/family-members/${id}`, payload);
       return await res.json();
     },
     onSuccess: () => {
@@ -415,7 +432,7 @@ export default function FamilyMembersPage() {
                         <User className="h-5 w-5 text-primary-500" />
                       </div>
                       <div>
-                        <CardTitle className="text-lg">{member.name}</CardTitle>
+                        <CardTitle className="text-lg">{member.fullName}</CardTitle>
                         <CardDescription>{member.relationship}</CardDescription>
                       </div>
                     </div>
@@ -445,7 +462,7 @@ export default function FamilyMembersPage() {
                         <DropdownMenuItem 
                           className="text-destructive focus:text-destructive cursor-pointer"
                           onClick={() => {
-                            if (confirm(`Are you sure you want to remove ${member.name}?`)) {
+                            if (confirm(`Are you sure you want to remove ${member.fullName}?`)) {
                               deleteFamilyMemberMutation.mutate(member.id);
                             }
                           }}
