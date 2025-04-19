@@ -120,6 +120,8 @@ export class MemStorage implements IStorage {
   private appointments: Map<number, Appointment>;
   private photos: Map<number, Photo>;
   private vaccinations: Map<number, Vaccination>;
+  private registries: Map<number, Registry>;
+  private registryItems: Map<number, RegistryItem>;
   public sessionStore: session.Store;
 
   private userIdCounter: number = 1;
@@ -146,6 +148,8 @@ export class MemStorage implements IStorage {
     this.appointments = new Map();
     this.photos = new Map();
     this.vaccinations = new Map();
+    this.registries = new Map();
+    this.registryItems = new Map();
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // 24 hours
     });
@@ -494,6 +498,172 @@ export class MemStorage implements IStorage {
 
   async deleteVaccination(id: number): Promise<boolean> {
     return this.vaccinations.delete(id);
+  }
+
+  // Registry methods
+  async getPregnanciesForUser(userId: number): Promise<Child[]> {
+    return Array.from(this.children.values()).filter(
+      (child) => child.userId === userId && child.isPregnancy === true
+    );
+  }
+
+  async createPregnancy(pregnancy: InsertChild): Promise<Child> {
+    const id = this.childIdCounter++;
+    const child: Child = {
+      ...pregnancy,
+      id,
+      isPregnancy: true,
+      createdAt: new Date()
+    };
+    this.children.set(id, child);
+    return child;
+  }
+
+  async getRegistriesByUserId(userId: number): Promise<Registry[]> {
+    return Array.from(this.registries.values()).filter(
+      (registry) => registry.userId === userId
+    );
+  }
+
+  async getRegistry(id: number): Promise<Registry | undefined> {
+    return this.registries.get(id);
+  }
+
+  async getRegistryByChildId(childId: number): Promise<Registry | undefined> {
+    return Array.from(this.registries.values()).find(
+      (registry) => registry.childId === childId
+    );
+  }
+
+  async getRegistryByShareCode(shareCode: string): Promise<Registry | undefined> {
+    return Array.from(this.registries.values()).find(
+      (registry) => registry.shareCode === shareCode
+    );
+  }
+
+  async createRegistry(registry: InsertRegistry): Promise<Registry> {
+    const id = this.registryIdCounter++;
+    // Generate a random share code (8 characters alphanumeric)
+    const shareCode = Math.random().toString(36).substring(2, 10);
+    
+    const newRegistry: Registry = {
+      ...registry,
+      id,
+      shareCode,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.registries.set(id, newRegistry);
+    return newRegistry;
+  }
+
+  async updateRegistry(id: number, updates: Partial<Registry>): Promise<Registry | undefined> {
+    const registry = this.registries.get(id);
+    if (!registry) return undefined;
+    
+    const updatedRegistry: Registry = {
+      ...registry,
+      ...updates,
+      updatedAt: new Date()
+    };
+    
+    this.registries.set(id, updatedRegistry);
+    return updatedRegistry;
+  }
+
+  async deleteRegistry(id: number): Promise<boolean> {
+    // Also delete all registry items associated with this registry
+    const registryItems = Array.from(this.registryItems.values()).filter(
+      (item) => item.registryId === id
+    );
+    
+    for (const item of registryItems) {
+      this.registryItems.delete(item.id);
+    }
+    
+    return this.registries.delete(id);
+  }
+
+  // Registry item methods
+  async getRegistryItems(registryId: number): Promise<RegistryItem[]> {
+    return Array.from(this.registryItems.values()).filter(
+      (item) => item.registryId === registryId
+    );
+  }
+
+  async getRegistryItem(id: number): Promise<RegistryItem | undefined> {
+    return this.registryItems.get(id);
+  }
+
+  async createRegistryItem(item: InsertRegistryItem): Promise<RegistryItem> {
+    const id = this.registryItemIdCounter++;
+    
+    const newItem: RegistryItem = {
+      ...item,
+      id,
+      status: "available",
+      reserverName: null,
+      reserverEmail: null,
+      reservedAt: null,
+      purchasedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.registryItems.set(id, newItem);
+    return newItem;
+  }
+
+  async updateRegistryItem(id: number, updates: Partial<RegistryItem>): Promise<RegistryItem | undefined> {
+    const item = this.registryItems.get(id);
+    if (!item) return undefined;
+    
+    const updatedItem: RegistryItem = {
+      ...item,
+      ...updates,
+      updatedAt: new Date()
+    };
+    
+    this.registryItems.set(id, updatedItem);
+    return updatedItem;
+  }
+
+  async deleteRegistryItem(id: number): Promise<boolean> {
+    return this.registryItems.delete(id);
+  }
+
+  async updateRegistryItemStatus(
+    id: number, 
+    status: "available" | "reserved" | "purchased", 
+    personInfo: { name?: string; email?: string }
+  ): Promise<RegistryItem | undefined> {
+    const item = this.registryItems.get(id);
+    if (!item) return undefined;
+    
+    const now = new Date();
+    const updates: Partial<RegistryItem> = {
+      status,
+      updatedAt: now
+    };
+    
+    if (status === "available") {
+      updates.reserverName = null;
+      updates.reserverEmail = null;
+      updates.reservedAt = null;
+      updates.purchasedAt = null;
+    } else if (status === "reserved") {
+      updates.reserverName = personInfo.name || null;
+      updates.reserverEmail = personInfo.email || null;
+      updates.reservedAt = now;
+      updates.purchasedAt = null;
+    } else if (status === "purchased") {
+      updates.reserverName = personInfo.name || item.reserverName;
+      updates.reserverEmail = personInfo.email || item.reserverEmail;
+      updates.purchasedAt = now;
+    }
+    
+    return this.updateRegistryItem(id, updates);
   }
 }
 
@@ -906,6 +1076,161 @@ export class DatabaseStorage implements IStorage {
       .delete(vaccinations)
       .where(eq(vaccinations.id, id));
     return result.rowCount > 0;
+  }
+
+  // Registry methods
+  async getRegistriesByUserId(userId: number): Promise<Registry[]> {
+    return db
+      .select()
+      .from(registries)
+      .where(eq(registries.userId, userId));
+  }
+
+  async getRegistry(id: number): Promise<Registry | undefined> {
+    const [registry] = await db
+      .select()
+      .from(registries)
+      .where(eq(registries.id, id));
+    return registry;
+  }
+
+  async getRegistryByChildId(childId: number): Promise<Registry | undefined> {
+    const [registry] = await db
+      .select()
+      .from(registries)
+      .where(eq(registries.childId, childId));
+    return registry;
+  }
+
+  async getRegistryByShareCode(shareCode: string): Promise<Registry | undefined> {
+    const [registry] = await db
+      .select()
+      .from(registries)
+      .where(eq(registries.shareCode, shareCode));
+    return registry;
+  }
+
+  async createRegistry(registry: InsertRegistry): Promise<Registry> {
+    const [newRegistry] = await db
+      .insert(registries)
+      .values({
+        ...registry,
+        shareCode: Math.random().toString(36).substring(2, 10),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return newRegistry;
+  }
+
+  async updateRegistry(id: number, updates: Partial<Registry>): Promise<Registry | undefined> {
+    const [updatedRegistry] = await db
+      .update(registries)
+      .set({
+        ...updates,
+        updatedAt: new Date()
+      })
+      .where(eq(registries.id, id))
+      .returning();
+    return updatedRegistry;
+  }
+
+  async deleteRegistry(id: number): Promise<boolean> {
+    // First delete all registry items
+    await db
+      .delete(registryItems)
+      .where(eq(registryItems.registryId, id));
+    
+    // Then delete the registry
+    const result = await db
+      .delete(registries)
+      .where(eq(registries.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Registry item methods
+  async getRegistryItems(registryId: number): Promise<RegistryItem[]> {
+    return db
+      .select()
+      .from(registryItems)
+      .where(eq(registryItems.registryId, registryId));
+  }
+
+  async getRegistryItem(id: number): Promise<RegistryItem | undefined> {
+    const [item] = await db
+      .select()
+      .from(registryItems)
+      .where(eq(registryItems.id, id));
+    return item;
+  }
+
+  async createRegistryItem(item: InsertRegistryItem): Promise<RegistryItem> {
+    const [newItem] = await db
+      .insert(registryItems)
+      .values({
+        ...item,
+        status: "available",
+        reservedByName: null,
+        reservedByEmail: null,
+        reservedAt: null,
+        purchasedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return newItem;
+  }
+
+  async updateRegistryItem(id: number, updates: Partial<RegistryItem>): Promise<RegistryItem | undefined> {
+    const [updatedItem] = await db
+      .update(registryItems)
+      .set({
+        ...updates,
+        updatedAt: new Date()
+      })
+      .where(eq(registryItems.id, id))
+      .returning();
+    return updatedItem;
+  }
+
+  async deleteRegistryItem(id: number): Promise<boolean> {
+    const result = await db
+      .delete(registryItems)
+      .where(eq(registryItems.id, id));
+    return result.rowCount > 0;
+  }
+
+  async updateRegistryItemStatus(
+    id: number, 
+    status: "available" | "reserved" | "purchased", 
+    personInfo: { name?: string; email?: string }
+  ): Promise<RegistryItem | undefined> {
+    const item = await this.getRegistryItem(id);
+    if (!item) return undefined;
+    
+    const now = new Date();
+    const updates: Partial<RegistryItem> = {
+      status,
+      updatedAt: now
+    };
+    
+    if (status === "available") {
+      updates.reservedByName = null;
+      updates.reservedByEmail = null;
+      updates.reservedAt = null;
+      updates.purchasedAt = null;
+    } else if (status === "reserved") {
+      updates.reservedByName = personInfo.name || null;
+      updates.reservedByEmail = personInfo.email || null;
+      updates.reservedAt = now;
+      updates.purchasedAt = null;
+    } else if (status === "purchased") {
+      updates.reservedByName = personInfo.name || item.reservedByName;
+      updates.reservedByEmail = personInfo.email || item.reservedByEmail;
+      updates.purchasedAt = now;
+    }
+    
+    return this.updateRegistryItem(id, updates);
   }
 }
 

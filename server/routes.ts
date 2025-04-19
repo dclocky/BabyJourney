@@ -636,6 +636,279 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // === Registry Routes ===
+  
+  // Get all registries for the authenticated user
+  app.get("/api/registries", requireAuth, async (req, res, next) => {
+    try {
+      const registries = await storage.getRegistriesByUserId(req.user.id);
+      res.json(registries);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Get a registry by ID
+  app.get("/api/registries/:id", requireAuth, async (req, res, next) => {
+    try {
+      const registryId = parseInt(req.params.id);
+      const registry = await storage.getRegistry(registryId);
+      
+      if (!registry) {
+        return res.status(404).json({ message: "Registry not found" });
+      }
+      
+      if (registry.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      res.json(registry);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Get a registry by child ID
+  app.get("/api/registries/child/:childId", requireAuth, async (req, res, next) => {
+    try {
+      const childId = parseInt(req.params.childId);
+      const registry = await storage.getRegistryByChildId(childId);
+      
+      if (!registry) {
+        return res.status(404).json({ message: "Registry not found" });
+      }
+      
+      if (registry.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      res.json(registry);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Get a registry by share code (public endpoint)
+  app.get("/api/registries/public/:shareCode", async (req, res, next) => {
+    try {
+      const shareCode = req.params.shareCode;
+      const registry = await storage.getRegistryByShareCode(shareCode);
+      
+      if (!registry) {
+        return res.status(404).json({ message: "Registry not found" });
+      }
+      
+      res.json(registry);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Create a new registry
+  app.post("/api/registries", requireAuth, async (req, res, next) => {
+    try {
+      const registry = await storage.createRegistry({
+        ...req.body,
+        userId: req.user.id
+      });
+      
+      res.status(201).json(registry);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Update a registry
+  app.put("/api/registries/:id", requireAuth, async (req, res, next) => {
+    try {
+      const registryId = parseInt(req.params.id);
+      const registry = await storage.getRegistry(registryId);
+      
+      if (!registry) {
+        return res.status(404).json({ message: "Registry not found" });
+      }
+      
+      if (registry.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      const updatedRegistry = await storage.updateRegistry(registryId, req.body);
+      res.json(updatedRegistry);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Delete a registry
+  app.delete("/api/registries/:id", requireAuth, async (req, res, next) => {
+    try {
+      const registryId = parseInt(req.params.id);
+      const registry = await storage.getRegistry(registryId);
+      
+      if (!registry) {
+        return res.status(404).json({ message: "Registry not found" });
+      }
+      
+      if (registry.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      const deleted = await storage.deleteRegistry(registryId);
+      
+      if (deleted) {
+        res.status(204).end();
+      } else {
+        res.status(500).json({ message: "Failed to delete registry" });
+      }
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // === Registry Item Routes ===
+  
+  // Get items for a registry
+  app.get("/api/registries/:registryId/items", async (req, res, next) => {
+    try {
+      const registryId = parseInt(req.params.registryId);
+      const registry = await storage.getRegistry(registryId);
+      
+      if (!registry) {
+        return res.status(404).json({ message: "Registry not found" });
+      }
+      
+      // If not the owner, check if share code is valid
+      if (!req.isAuthenticated() || registry.userId !== req.user?.id) {
+        const shareCode = req.query.shareCode as string;
+        if (!shareCode || registry.shareCode !== shareCode) {
+          return res.status(403).json({ message: "Not authorized" });
+        }
+      }
+      
+      const items = await storage.getRegistryItems(registryId);
+      res.json(items);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Add an item to a registry
+  app.post("/api/registry-items", requireAuth, async (req, res, next) => {
+    try {
+      const registryId = parseInt(req.body.registryId);
+      const registry = await storage.getRegistry(registryId);
+      
+      if (!registry) {
+        return res.status(404).json({ message: "Registry not found" });
+      }
+      
+      if (registry.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      const item = await storage.createRegistryItem(req.body);
+      res.status(201).json(item);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Update a registry item
+  app.put("/api/registry-items/:id", requireAuth, async (req, res, next) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      const item = await storage.getRegistryItem(itemId);
+      
+      if (!item) {
+        return res.status(404).json({ message: "Registry item not found" });
+      }
+      
+      const registry = await storage.getRegistry(item.registryId);
+      
+      if (registry.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      const updatedItem = await storage.updateRegistryItem(itemId, req.body);
+      res.json(updatedItem);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Delete a registry item
+  app.delete("/api/registry-items/:id", requireAuth, async (req, res, next) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      const item = await storage.getRegistryItem(itemId);
+      
+      if (!item) {
+        return res.status(404).json({ message: "Registry item not found" });
+      }
+      
+      const registry = await storage.getRegistry(item.registryId);
+      
+      if (registry.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      const deleted = await storage.deleteRegistryItem(itemId);
+      
+      if (deleted) {
+        res.status(204).end();
+      } else {
+        res.status(500).json({ message: "Failed to delete registry item" });
+      }
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Update registry item status (reserve or purchase)
+  app.put("/api/registry-items/:id/status", async (req, res, next) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      const item = await storage.getRegistryItem(itemId);
+      
+      if (!item) {
+        return res.status(404).json({ message: "Registry item not found" });
+      }
+      
+      const registry = await storage.getRegistry(item.registryId);
+      
+      // Only owner can set back to available
+      if (req.body.status === "available") {
+        if (!req.isAuthenticated() || registry.userId !== req.user?.id) {
+          return res.status(403).json({ message: "Only registry owner can mark items as available" });
+        }
+      }
+      
+      // Verify registry access 
+      if (!req.isAuthenticated() || registry.userId !== req.user?.id) {
+        const shareCode = req.body.shareCode;
+        if (!shareCode || registry.shareCode !== shareCode) {
+          return res.status(403).json({ message: "Invalid share code" });
+        }
+      }
+      
+      // Validate status
+      const status = req.body.status;
+      if (!["available", "reserved", "purchased"].includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+      
+      const personInfo = {
+        name: req.body.name,
+        email: req.body.email
+      };
+      
+      const updatedItem = await storage.updateRegistryItemStatus(itemId, status, personInfo);
+      res.json(updatedItem);
+    } catch (err) {
+      next(err);
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
