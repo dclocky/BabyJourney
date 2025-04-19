@@ -476,11 +476,7 @@ function SymptomTrackingDialog({ open, onClose, childId }: SymptomTrackingDialog
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              className="bg-primary-500 hover:bg-primary-600"
-              disabled={trackSymptomsMutation.isPending}
-            >
+            <Button type="submit" variant="outline" onClick={onClose} className="bg-primary-500 hover:bg-primary-600">
               {trackSymptomsMutation.isPending ? "Saving..." : "Save Symptoms"}
             </Button>
           </DialogFooter>
@@ -822,11 +818,7 @@ function AddMilestoneDialog({ open, onClose, childId }: AddMilestoneDialogProps)
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              className="bg-primary-500 hover:bg-primary-600"
-              disabled={addMilestoneMutation.isPending}
-            >
+            <Button type="submit" variant="outline" onClick={onClose} className="bg-primary-500 hover:bg-primary-600">
               {addMilestoneMutation.isPending ? "Saving..." : "Save Milestone"}
             </Button>
           </DialogFooter>
@@ -1131,11 +1123,7 @@ function UploadPhotoDialog({ open, onClose, childId }: UploadPhotoDialogProps) {
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              className="bg-primary-500 hover:bg-primary-600"
-              disabled={uploadPhotoMutation.isPending}
-            >
+            <Button type="submit" variant="outline" onClick={onClose} className="bg-primary-500 hover:bg-primary-600">
               {uploadPhotoMutation.isPending ? "Uploading..." : "Upload Photo"}
             </Button>
           </DialogFooter>
