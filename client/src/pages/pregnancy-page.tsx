@@ -33,7 +33,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { ContractionTimer } from "@/components/contraction-timer";
+import { BirthPlanner } from "@/components/birth-planner";
 import { Child } from "@shared/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -41,7 +49,7 @@ import { useForm } from "react-hook-form";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format, addWeeks, differenceInWeeks } from "date-fns";
-import { Loader2, Calendar, PlusCircle, Baby } from "lucide-react";
+import { Loader2, Calendar, PlusCircle, Baby, Clock, Clipboard } from "lucide-react";
 
 export default function PregnancyPage() {
   const { toast } = useToast();
@@ -197,73 +205,100 @@ export default function PregnancyPage() {
             </Button>
           </div>
         ) : (
-          <div className="space-y-6">
-            {pregnancies.map((pregnancy) => (
-              <Card key={pregnancy.id}>
-                <CardHeader>
-                  <CardTitle>
-                    {pregnancy.name || "Baby"}'s Journey
-                  </CardTitle>
-                  <CardDescription>
-                    Due Date: {pregnancy.dueDate ? format(new Date(pregnancy.dueDate), "MMMM d, yyyy") : "Not set"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div>
-                      <Label>Pregnancy Progress</Label>
-                      <div className="mt-2">
-                        <Progress 
-                          value={pregnancy.dueDate ? (calculateWeeks(new Date(pregnancy.dueDate)) / 40) * 100 : 0} 
-                          className="h-2" 
-                        />
+          <div className="space-y-8">
+            <Tabs defaultValue="progress" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="progress" className="flex items-center gap-1.5">
+                  <Baby className="h-4 w-4" />
+                  Progress
+                </TabsTrigger>
+                <TabsTrigger value="contractions" className="flex items-center gap-1.5">
+                  <Clock className="h-4 w-4" />
+                  Contractions
+                </TabsTrigger>
+                <TabsTrigger value="birth-plan" className="flex items-center gap-1.5">
+                  <Clipboard className="h-4 w-4" />
+                  Birth Plan
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="progress" className="space-y-6 mt-6">
+                {pregnancies.map((pregnancy) => (
+                  <Card key={pregnancy.id}>
+                    <CardHeader>
+                      <CardTitle>
+                        {pregnancy.name || "Baby"}'s Journey
+                      </CardTitle>
+                      <CardDescription>
+                        Due Date: {pregnancy.dueDate ? format(new Date(pregnancy.dueDate), "MMMM d, yyyy") : "Not set"}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-6">
+                        <div>
+                          <Label>Pregnancy Progress</Label>
+                          <div className="mt-2">
+                            <Progress 
+                              value={pregnancy.dueDate ? (calculateWeeks(new Date(pregnancy.dueDate)) / 40) * 100 : 0} 
+                              className="h-2" 
+                            />
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            Week {pregnancy.dueDate ? calculateWeeks(new Date(pregnancy.dueDate)) : 0} of 40
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <Card>
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-sm">First Trimester</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <p className="text-2xl font-bold">
+                                {pregnancy.dueDate ? Math.min(calculateWeeks(new Date(pregnancy.dueDate)), 13) : 0} / 13
+                              </p>
+                              <p className="text-xs text-muted-foreground">weeks completed</p>
+                            </CardContent>
+                          </Card>
+
+                          <Card>
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-sm">Second Trimester</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <p className="text-2xl font-bold">
+                                {pregnancy.dueDate ? Math.max(0, Math.min(calculateWeeks(new Date(pregnancy.dueDate)) - 13, 14)) : 0} / 14
+                              </p>
+                              <p className="text-xs text-muted-foreground">weeks completed</p>
+                            </CardContent>
+                          </Card>
+
+                          <Card>
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-sm">Third Trimester</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <p className="text-2xl font-bold">
+                                {pregnancy.dueDate ? Math.max(0, Math.min(calculateWeeks(new Date(pregnancy.dueDate)) - 27, 13)) : 0} / 13
+                              </p>
+                              <p className="text-xs text-muted-foreground">weeks completed</p>
+                            </CardContent>
+                          </Card>
+                        </div>
                       </div>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Week {pregnancy.dueDate ? calculateWeeks(new Date(pregnancy.dueDate)) : 0} of 40
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-sm">First Trimester</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-2xl font-bold">
-                            {pregnancy.dueDate ? Math.min(calculateWeeks(new Date(pregnancy.dueDate)), 13) : 0} / 13
-                          </p>
-                          <p className="text-xs text-muted-foreground">weeks completed</p>
-                        </CardContent>
-                      </Card>
-
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-sm">Second Trimester</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-2xl font-bold">
-                            {pregnancy.dueDate ? Math.max(0, Math.min(calculateWeeks(new Date(pregnancy.dueDate)) - 13, 14)) : 0} / 14
-                          </p>
-                          <p className="text-xs text-muted-foreground">weeks completed</p>
-                        </CardContent>
-                      </Card>
-
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-sm">Third Trimester</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-2xl font-bold">
-                            {pregnancy.dueDate ? Math.max(0, Math.min(calculateWeeks(new Date(pregnancy.dueDate)) - 27, 13)) : 0} / 13
-                          </p>
-                          <p className="text-xs text-muted-foreground">weeks completed</p>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    </CardContent>
+                  </Card>
+                ))}
+              </TabsContent>
+              
+              <TabsContent value="contractions" className="mt-6">
+                <ContractionTimer />
+              </TabsContent>
+              
+              <TabsContent value="birth-plan" className="mt-6">
+                <BirthPlanner />
+              </TabsContent>
+            </Tabs>
           </div>
         )}
       </main>
