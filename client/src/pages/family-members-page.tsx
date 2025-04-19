@@ -227,7 +227,16 @@ export default function FamilyMembersPage() {
     }
   }
 
-  function inviteFamilyMember(email: string) {
+  function inviteFamilyMember(email: string | null) {
+    if (!email) {
+      toast({
+        title: "Missing email",
+        description: "No email address available for this family member.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     // This would typically send an email invitation
     toast({
       title: "Invitation sent",
@@ -477,7 +486,7 @@ export default function FamilyMembersPage() {
                 <CardContent>
                   <div className="text-sm text-muted-foreground mb-4">
                     <Mail className="inline-block h-4 w-4 mr-1 -mt-0.5" />
-                    {member.email}
+                    {member.email || 'No email provided'}
                   </div>
                   
                   <div className="space-y-2">
@@ -485,30 +494,11 @@ export default function FamilyMembersPage() {
                       <span className="text-sm font-medium">Permissions:</span>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {member.canViewMedical && (
-                        <Badge variant="outline" className="bg-green-50 text-green-600 hover:bg-green-50">
-                          <ShieldCheck className="h-3 w-3 mr-1" />
-                          Medical Info
-                        </Badge>
-                      )}
-                      {member.canEditProfile && (
-                        <Badge variant="outline" className="bg-blue-50 text-blue-600 hover:bg-blue-50">
-                          <Edit className="h-3 w-3 mr-1" />
-                          Edit Profile
-                        </Badge>
-                      )}
-                      {member.canUploadPhotos && (
-                        <Badge variant="outline" className="bg-purple-50 text-purple-600 hover:bg-purple-50">
-                          <PlusCircle className="h-3 w-3 mr-1" />
-                          Upload Photos
-                        </Badge>
-                      )}
-                      {!member.canViewMedical && !member.canEditProfile && !member.canUploadPhotos && (
-                        <Badge variant="outline" className="bg-gray-50 text-gray-600 hover:bg-gray-50">
-                          <Shield className="h-3 w-3 mr-1" />
-                          No Permissions
-                        </Badge>
-                      )}
+                      {/* Temporarily show a "Default" badge until permissions are implemented in DB */}
+                      <Badge variant="outline" className="bg-gray-50 text-gray-600 hover:bg-gray-50">
+                        <Shield className="h-3 w-3 mr-1" />
+                        Default Access
+                      </Badge>
                     </div>
                   </div>
                 </CardContent>
