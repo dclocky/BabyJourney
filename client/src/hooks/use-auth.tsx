@@ -126,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const createPaymentIntentMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/upgrade/intent");
+      const res = await apiRequest("POST", "/api/create-payment-intent");
       return await res.json();
     },
     onError: (error: Error) => {
@@ -140,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const confirmPremiumUpgradeMutation = useMutation({
     mutationFn: async (paymentIntentId: string) => {
-      const res = await apiRequest("POST", "/api/upgrade/confirm", { paymentIntentId });
+      const res = await apiRequest("POST", "/api/confirm-premium-upgrade", { paymentIntentId });
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {

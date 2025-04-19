@@ -520,6 +520,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(err);
     }
   });
+  
+  // === Premium Subscription Routes ===
+  app.post("/api/create-payment-intent", requireAuth, async (req, res, next) => {
+    try {
+      // Generate a fake client secret for demo purposes
+      // In a real app, this would use Stripe:
+      // const paymentIntent = await stripe.paymentIntents.create({
+      //   amount: 999, // $9.99 in cents
+      //   currency: 'usd',
+      //   metadata: { userId: req.user.id }
+      // });
+      
+      const fakeClientSecret = `pi_${randomBytes(16).toString('hex')}_secret_${randomBytes(16).toString('hex')}`;
+      
+      res.json({ 
+        clientSecret: fakeClientSecret,
+        amount: 999,
+        currency: 'usd'
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  app.post("/api/confirm-premium-upgrade", requireAuth, async (req, res, next) => {
+    try {
+      const paymentIntentId = req.body.paymentIntentId;
+      
+      if (!paymentIntentId) {
+        return res.status(400).json({ message: "Payment intent ID is required" });
+      }
+      
+      // In a real app, we would verify the payment with Stripe:
+      // const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      // if (paymentIntent.status !== 'succeeded') {
+      //   return res.status(400).json({ message: "Payment not successful" });
+      // }
+      
+      // Update user's premium status
+      const updatedUser = await storage.updateUserPremiumStatus(req.user.id, true);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  // === Family Members Routes ===
+  app.get("/api/family-members", requireAuth, async (req, res, next) => {
+    try {
+      const members = await storage.getFamilyMembers(req.user.id);
+      res.json(members);
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  app.post("/api/family-members", requireAuth, async (req, res, next) => {
+    try {
+      // Check if user has reached limit (4 members for free users)
+      const count = await storage.getFamilyMemberCount(req.user.id);
+      if (count >= 4 && !req.user.isPremium) {
+        return res.status(403).json({ 
+          message: "Free accounts are limited to 4 family members. Upgrade to premium for more." 
+        });
+      }
+      
+      const member = await storage.createFamilyMember({
+        ...req.body,
+        userId: req.user.id
+      });
+      
+      res.status(201).json(member);
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  app.patch("/api/family-members/:id", requireAuth, async (req, res, next) => {
+    try {
+      const memberId = parseInt(req.params.id);
+      const members = await storage.getFamilyMembers(req.user.id);
+      const member = members.find(m => m.id === memberId);
+      
+      if (!member) {
+        return res.status(404).json({ message: "Family member not found" });
+      }
+      
+      // Update member (using storage method or direct DB update)
+      // This is a simplified approach
+      const updatedMember = {
+        ...member,
+        ...req.body
+      };
+      
+      // In a real implementation, we would call a storage method:
+      // const updatedMember = await storage.updateFamilyMember(memberId, req.body);
+      
+      res.json(updatedMember);
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  app.delete("/api/family-members/:id", requireAuth, async (req, res, next) => {
+    try {
+      const memberId = parseInt(req.params.id);
+      const deleted = await storage.deleteFamilyMember(memberId);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Family member not found" });
+      }
+      
+      res.status(204).end();
+    } catch (err) {
+      next(err);
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

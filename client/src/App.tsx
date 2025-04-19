@@ -8,6 +8,7 @@ import BabyPage from "@/pages/baby-page";
 import MilestonesPage from "@/pages/milestones-page";
 import AppointmentsPage from "@/pages/appointments-page";
 import MemoriesPage from "@/pages/memories-page";
+import FamilyMembersPage from "@/pages/family-members-page";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
@@ -20,6 +21,7 @@ function Router() {
       <ProtectedRoute path="/milestones" component={MilestonesPage} />
       <ProtectedRoute path="/appointments" component={AppointmentsPage} />
       <ProtectedRoute path="/memories" component={MemoriesPage} />
+      <ProtectedRoute path="/family" component={FamilyMembersPage} />
       <Route path="*" component={NotFound} />
     </Switch>
   );

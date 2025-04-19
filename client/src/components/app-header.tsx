@@ -112,8 +112,8 @@ export function AppHeader() {
                 <DropdownMenuItem className="cursor-pointer">
                   Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  Family Members
+                <DropdownMenuItem className="cursor-pointer" asChild>
+                  <Link href="/family">Family Members</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem className="cursor-pointer">
                   Settings
