@@ -223,13 +223,37 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Premium upgrade (mock)
-  app.post("/api/upgrade", async (req, res, next) => {
+  // Premium upgrade (with payment confirmation requirement)
+  app.post("/api/upgrade/intent", async (req, res, next) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      // In a real app, this would handle payment processing
-      // For this MVP, we'll just upgrade the user immediately
+      // This would typically create a payment intent with Stripe
+      // For now, we'll just return a mock payment intent
+      res.status(200).json({
+        clientSecret: "mock_payment_intent_" + Date.now(),
+        amount: 999, // $9.99
+        currency: "usd"
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  // Confirm premium upgrade (requires payment confirmation)
+  app.post("/api/upgrade/confirm", async (req, res, next) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      // This endpoint would normally validate the payment was successful with Stripe
+      // We'll check for a paymentIntentId in the request body
+      const { paymentIntentId } = req.body;
+      
+      if (!paymentIntentId) {
+        return res.status(400).json({ message: "Payment confirmation required" });
+      }
+      
+      // Once payment is confirmed, update the user status
       const updatedUser = await storage.updateUserPremiumStatus(req.user.id, true);
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });

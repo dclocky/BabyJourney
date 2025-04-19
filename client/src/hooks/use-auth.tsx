@@ -16,7 +16,8 @@ type AuthContextType = {
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
-  upgradeToPremiumMutation: UseMutationResult<SelectUser, Error, void>;
+  createPaymentIntentMutation: UseMutationResult<any, Error, void>;
+  confirmPremiumUpgradeMutation: UseMutationResult<SelectUser, Error, string>;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -123,9 +124,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const upgradeToPremiumMutation = useMutation({
+  const createPaymentIntentMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/upgrade");
+      const res = await apiRequest("POST", "/api/upgrade/intent");
+      return await res.json();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Payment intent creation failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const confirmPremiumUpgradeMutation = useMutation({
+    mutationFn: async (paymentIntentId: string) => {
+      const res = await apiRequest("POST", "/api/upgrade/confirm", { paymentIntentId });
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
@@ -153,7 +168,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
-        upgradeToPremiumMutation,
+        createPaymentIntentMutation,
+        confirmPremiumUpgradeMutation,
       }}
     >
       {children}
