@@ -11,6 +11,7 @@ import MemoriesPage from "@/pages/memories-page";
 import FamilyMembersPage from "@/pages/family-members-page";
 import RegistryPage from "@/pages/registry-page";
 import RegistrySharePage from "@/pages/registry-share-page";
+import SettingsPage from "@/pages/settings-page";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
@@ -26,6 +27,7 @@ function Router() {
       <ProtectedRoute path="/family" component={FamilyMembersPage} />
       <ProtectedRoute path="/registry" component={RegistryPage} />
       <ProtectedRoute path="/registry/:id" component={RegistryPage} />
+      <ProtectedRoute path="/settings" component={SettingsPage} />
       {/* Public shared registry view - doesn't require authentication */}
       <Route path="/registry/share/:shareCode" component={RegistrySharePage} />
       <Route path="*" component={NotFound} />
