@@ -146,13 +146,21 @@ export default function MemoriesPage() {
                 className="bg-accent-500 hover:bg-accent-600"
                 onClick={async () => {
                   try {
+                    console.log("Creating payment intent...");
                     const result = await createPaymentIntentMutation.mutateAsync();
+                    console.log("Payment intent created:", result);
                     // In a real implementation, we'd use Stripe Elements
                     // For now we'll just use the dialog payment flow
                     const paymentIntentId = result.clientSecret.split('_')[1];
+                    console.log("Payment intent ID:", paymentIntentId);
                     confirmPremiumUpgradeMutation.mutate(paymentIntentId);
                   } catch (error) {
                     console.error("Failed to process payment", error);
+                    toast({
+                      title: "Payment failed",
+                      description: "There was an error processing your payment. Please try again.",
+                      variant: "destructive",
+                    });
                   }
                 }}
                 disabled={createPaymentIntentMutation.isPending || confirmPremiumUpgradeMutation.isPending}

@@ -19,21 +19,30 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export function AppHeader() {
   const { user, logoutMutation, createPaymentIntentMutation, confirmPremiumUpgradeMutation } = useAuth();
+  const { toast } = useToast();
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   
   const handleUpgrade = async () => {
     try {
+      console.log("Creating payment intent from app header...");
       const result = await createPaymentIntentMutation.mutateAsync();
+      console.log("Payment intent created:", result);
       // In a real implementation, we would use Stripe Elements to collect payment
       // For now, we'll just store the mock payment intent ID
       setPaymentIntentId(result.clientSecret.split('_')[1]);
       setShowPaymentDialog(true);
     } catch (error) {
       console.error("Failed to create payment intent", error);
+      toast({
+        title: "Payment initialization failed",
+        description: "There was an error starting the payment process. Please try again.",
+        variant: "destructive",
+      });
     }
   };
   
