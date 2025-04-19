@@ -376,10 +376,19 @@ export default function MilestonesPage() {
                             {milestone.date ? format(new Date(milestone.date), "yyyy") : ""}
                           </div>
                         </div>
-                        <div>
+                        <div className="flex-grow">
                           <h3 className="font-medium text-lg">{milestone.title}</h3>
                           {milestone.description && (
                             <p className="text-muted-foreground mt-1">{milestone.description}</p>
+                          )}
+                          {milestone.imageData && milestone.imageType && (
+                            <div className="mt-3">
+                              <img 
+                                src={`data:${milestone.imageType};base64,${milestone.imageData}`} 
+                                alt={milestone.title}
+                                className="rounded-md max-h-36 object-cover" 
+                              />
+                            </div>
                           )}
                         </div>
                       </div>

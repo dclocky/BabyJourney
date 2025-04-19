@@ -75,6 +75,9 @@ export const milestones = pgTable("milestones", {
   category: text("category", { 
     enum: ["pregnancy", "birth", "first", "growth", "health", "other"]
   }).notNull(),
+  // Image data stored as base64
+  imageData: text("image_data"),
+  imageType: text("image_type"), // e.g., image/jpeg, image/png
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

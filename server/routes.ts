@@ -286,7 +286,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/children/:id/milestones", requireAuth, async (req, res, next) => {
+  // We already have multer configured at the top of the file
+
+  app.post("/api/children/:id/milestones", requireAuth, upload.single('image'), async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const child = await storage.getChild(childId);
@@ -295,15 +297,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Not authorized" });
       }
 
+      // Get milestone data from either FormData or JSON
+      const milestoneData = req.file 
+        ? { 
+            title: req.body.title,
+            description: req.body.description,
+            category: req.body.category,
+            date: new Date(req.body.date),
+            // Add image data if available
+            imageData: req.file.buffer.toString('base64'),
+            imageType: req.file.mimetype
+          } 
+        : { ...req.body, date: new Date(req.body.date) };
+
       const milestone = await storage.createMilestone({
-        ...req.body,
+        ...milestoneData,
         childId,
-        userId: req.user.id,
-        date: new Date(req.body.date)
+        userId: req.user.id
       });
 
       res.status(201).json(milestone);
     } catch (err) {
+      console.error("Error creating milestone:", err);
       next(err);
     }
   });
