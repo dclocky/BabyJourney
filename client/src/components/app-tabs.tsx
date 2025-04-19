@@ -17,7 +17,8 @@ export function AppTabs() {
     { name: "Baby", path: "/baby" },
     { name: "Milestones", path: "/milestones" },
     { name: "Appointments", path: "/appointments" },
-    { name: "Memories", path: "/memories", premium: !isPremium }
+    { name: "Memories", path: "/memories", premium: !isPremium },
+    { name: "Family", path: "/family" }
   ];
 
   return (

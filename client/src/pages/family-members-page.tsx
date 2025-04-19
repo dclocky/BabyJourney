@@ -108,19 +108,35 @@ export default function FamilyMembersPage() {
   const handleEditMember = (member: FamilyMember) => {
     setEditingMember(member);
     form.reset({
-      name: member.name,
-      email: member.email,
+      name: member.fullName,
+      email: member.email || '',
       relationship: member.relationship,
-      canViewMedical: member.canViewMedical,
-      canEditProfile: member.canEditProfile,
-      canUploadPhotos: member.canUploadPhotos,
+      canViewMedical: false, // Default values since these fields aren't in DB yet
+      canEditProfile: false,
+      canUploadPhotos: false,
     });
     setIsAddMemberDialogOpen(true);
   };
 
   const addFamilyMemberMutation = useMutation({
     mutationFn: async (data: z.infer<typeof familyMemberSchema>) => {
-      const res = await apiRequest("POST", "/api/family-members", data);
+      // Map from our UI form to the DB schema
+      const payload = {
+        fullName: data.name,
+        email: data.email,
+        relationship: data.relationship,
+        // We'll store permissions in the DB later, currently just logging
+        // canViewMedical: data.canViewMedical,
+        // canEditProfile: data.canEditProfile,
+        // canUploadPhotos: data.canUploadPhotos
+      };
+      console.log("Creating family member with permissions:", {
+        canViewMedical: data.canViewMedical,
+        canEditProfile: data.canEditProfile,
+        canUploadPhotos: data.canUploadPhotos
+      });
+      
+      const res = await apiRequest("POST", "/api/family-members", payload);
       return await res.json();
     },
     onSuccess: () => {

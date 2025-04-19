@@ -43,7 +43,7 @@ export function MobileNav() {
           icon={<Menu className="h-5 w-5" />}
           label="More"
           href="/memories"
-          isActive={location === "/memories" || location === "/milestones"}
+          isActive={location === "/memories" || location === "/milestones" || location === "/family"}
           isPremium={!isPremium && location === "/memories"}
         />
       </div>

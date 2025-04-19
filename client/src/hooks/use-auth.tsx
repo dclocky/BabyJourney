@@ -20,7 +20,7 @@ type AuthContextType = {
   confirmPremiumUpgradeMutation: UseMutationResult<SelectUser, Error, string>;
 };
 
-export const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
