@@ -66,7 +66,7 @@ import { AppTabs } from "@/components/app-tabs";
 
 // Define form schemas
 const registryFormSchema = z.object({
-  childId: z.string().min(1, "Please select a child"),
+  childId: z.string().optional(),
   name: z.string().min(3, "Name must be at least 3 characters"),
   description: z.string().optional(),
 });
@@ -153,10 +153,12 @@ export default function RegistryPage() {
   // Create registry mutation
   const createRegistryMutation = useMutation({
     mutationFn: async (data: RegistryFormValues) => {
-      const response = await apiRequest("POST", "/api/registries", {
+      // Only include childId if it's provided
+      const payload = {
         ...data,
-        childId: parseInt(data.childId),
-      });
+        childId: data.childId ? parseInt(data.childId) : undefined,
+      };
+      const response = await apiRequest("POST", "/api/registries", payload);
       return response.json();
     },
     onSuccess: () => {
@@ -651,14 +653,15 @@ export default function RegistryPage() {
                   name="childId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Select Child</FormLabel>
+                      <FormLabel>Select Child (Optional)</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a child" />
+                            <SelectValue placeholder="Select a child or leave empty" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value="">No child selected (Pre-pregnancy registry)</SelectItem>
                           {childrenLoading ? (
                             <SelectItem value="loading" disabled>
                               Loading...
@@ -677,7 +680,7 @@ export default function RegistryPage() {
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Choose which child this registry is for
+                        You can create a registry without selecting a child for pre-pregnancy planning.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -718,7 +721,7 @@ export default function RegistryPage() {
                 <DialogFooter>
                   <Button 
                     type="submit" 
-                    disabled={createRegistryMutation.isPending || !children || children.length === 0}
+                    disabled={createRegistryMutation.isPending}
                   >
                     {createRegistryMutation.isPending && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
