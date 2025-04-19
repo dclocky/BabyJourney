@@ -8,7 +8,9 @@ import {
   growthRecords, type GrowthRecord, type InsertGrowthRecord,
   appointments, type Appointment, type InsertAppointment,
   photos, type Photo, type InsertPhoto,
-  vaccinations, type Vaccination, type InsertVaccination
+  vaccinations, type Vaccination, type InsertVaccination,
+  registries, type Registry, type InsertRegistry,
+  registryItems, type RegistryItem, type InsertRegistryItem
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -89,6 +91,22 @@ export interface IStorage {
   getVaccinations(childId: number): Promise<Vaccination[]>;
   createVaccination(vaccination: InsertVaccination): Promise<Vaccination>;
   deleteVaccination(id: number): Promise<boolean>;
+  
+  // Registry methods
+  getRegistriesByUserId(userId: number): Promise<Registry[]>;
+  getRegistryByChildId(childId: number): Promise<Registry | undefined>;
+  getRegistryByShareCode(shareCode: string): Promise<Registry | undefined>;
+  createRegistry(registry: InsertRegistry): Promise<Registry>;
+  updateRegistry(id: number, registry: Partial<Registry>): Promise<Registry | undefined>;
+  deleteRegistry(id: number): Promise<boolean>;
+  
+  // Registry item methods
+  getRegistryItems(registryId: number): Promise<RegistryItem[]>;
+  getRegistryItem(id: number): Promise<RegistryItem | undefined>;
+  createRegistryItem(item: InsertRegistryItem): Promise<RegistryItem>;
+  updateRegistryItem(id: number, item: Partial<RegistryItem>): Promise<RegistryItem | undefined>;
+  deleteRegistryItem(id: number): Promise<boolean>;
+  updateRegistryItemStatus(id: number, status: "available" | "reserved" | "purchased", personInfo: { name?: string; email?: string }): Promise<RegistryItem | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -114,6 +132,8 @@ export class MemStorage implements IStorage {
   private appointmentIdCounter: number = 1;
   private photoIdCounter: number = 1;
   private vaccinationIdCounter: number = 1;
+  private registryIdCounter: number = 1;
+  private registryItemIdCounter: number = 1;
 
   constructor() {
     this.users = new Map();

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json, uniqueIndex, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -128,6 +128,42 @@ export const vaccinations = pgTable("vaccinations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Registry for baby items wishlist
+export const registries = pgTable("registries", {
+  id: serial("id").primaryKey(),
+  childId: integer("child_id").references(() => children.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  isPublic: boolean("is_public").default(true).notNull(),
+  shareCode: varchar("share_code", { length: 16 }).notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Registry items
+export const registryItems = pgTable("registry_items", {
+  id: serial("id").primaryKey(),
+  registryId: integer("registry_id").references(() => registries.id).notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  url: text("url"),
+  imageUrl: text("image_url"),
+  quantity: integer("quantity").default(1).notNull(),
+  priority: text("priority", { enum: ["high", "medium", "low"] }).default("medium").notNull(),
+  category: text("category").notNull(),
+  price: integer("price"), // stored in cents
+  status: text("status", { enum: ["available", "reserved", "purchased"] }).default("available").notNull(),
+  reservedBy: text("reserved_by"),
+  reservedByEmail: text("reserved_by_email"),
+  purchasedBy: text("purchased_by"),
+  purchasedByEmail: text("purchased_by_email"),
+  reservedAt: timestamp("reserved_at"),
+  purchasedAt: timestamp("purchased_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Define insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -181,6 +217,21 @@ export const insertVaccinationSchema = createInsertSchema(vaccinations).omit({
   createdAt: true
 });
 
+export const insertRegistrySchema = createInsertSchema(registries).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  shareCode: true // System generated
+});
+
+export const insertRegistryItemSchema = createInsertSchema(registryItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  reservedAt: true,
+  purchasedAt: true
+});
+
 // Define types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -211,6 +262,12 @@ export type InsertPhoto = z.infer<typeof insertPhotoSchema>;
 
 export type Vaccination = typeof vaccinations.$inferSelect;
 export type InsertVaccination = z.infer<typeof insertVaccinationSchema>;
+
+export type Registry = typeof registries.$inferSelect;
+export type InsertRegistry = z.infer<typeof insertRegistrySchema>;
+
+export type RegistryItem = typeof registryItems.$inferSelect;
+export type InsertRegistryItem = z.infer<typeof insertRegistryItemSchema>;
 
 // Extend schemas with validation
 export const userSchema = insertUserSchema.extend({
