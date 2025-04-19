@@ -71,7 +71,7 @@ export default function PregnancyPage() {
   const addPregnancyMutation = useMutation({
     mutationFn: async (data: z.infer<typeof pregnancySchema>) => {
       const res = await apiRequest("POST", "/api/pregnancies", {
-        dueDate: data.dueDate, // Send as string instead of Date object
+        dueDate: data.dueDate, // Already a string as we defined in the schema
         babyName: data.babyName,
       });
       return await res.json();
@@ -205,7 +205,7 @@ export default function PregnancyPage() {
                     {pregnancy.name || "Baby"}'s Journey
                   </CardTitle>
                   <CardDescription>
-                    Due Date: {format(new Date(pregnancy.dueDate), "MMMM d, yyyy")}
+                    Due Date: {pregnancy.dueDate ? format(new Date(pregnancy.dueDate), "MMMM d, yyyy") : "Not set"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -214,12 +214,12 @@ export default function PregnancyPage() {
                       <Label>Pregnancy Progress</Label>
                       <div className="mt-2">
                         <Progress 
-                          value={(calculateWeeks(new Date(pregnancy.dueDate)) / 40) * 100} 
+                          value={pregnancy.dueDate ? (calculateWeeks(new Date(pregnancy.dueDate)) / 40) * 100 : 0} 
                           className="h-2" 
                         />
                       </div>
                       <p className="text-sm text-muted-foreground mt-2">
-                        Week {calculateWeeks(new Date(pregnancy.dueDate))} of 40
+                        Week {pregnancy.dueDate ? calculateWeeks(new Date(pregnancy.dueDate)) : 0} of 40
                       </p>
                     </div>
 
@@ -230,7 +230,7 @@ export default function PregnancyPage() {
                         </CardHeader>
                         <CardContent>
                           <p className="text-2xl font-bold">
-                            {Math.min(calculateWeeks(new Date(pregnancy.dueDate)), 13)} / 13
+                            {pregnancy.dueDate ? Math.min(calculateWeeks(new Date(pregnancy.dueDate)), 13) : 0} / 13
                           </p>
                           <p className="text-xs text-muted-foreground">weeks completed</p>
                         </CardContent>

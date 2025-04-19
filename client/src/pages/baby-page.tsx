@@ -30,7 +30,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Loader2, PlusCircle, ArrowDown, ArrowUp, Calendar, Activity, Ruler, Weight, Syringe } from "lucide-react";
+import { Loader2, PlusCircle, ArrowDown, ArrowUp, Calendar, Activity, Ruler, Weight, Syringe, Check } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -84,7 +84,7 @@ export default function BabyPage() {
         userId: user!.id,
         name: data.name,
         gender: data.gender,
-        birthDate: data.birthDate ? data.birthDate.toISOString() : null, // Send as ISO string for consistent date format handling
+        birthDate: data.birthDate, // Already a string from the form input
         isPregnancy: false,
       };
       const res = await apiRequest("POST", "/api/children", newBaby);
