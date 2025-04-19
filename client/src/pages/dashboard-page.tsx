@@ -774,11 +774,13 @@ function AddMilestoneDialog({ open, onClose, childId }: AddMilestoneDialogProps)
     }));
   };
 
-  const handleDateChange = (date: Date) => {
-    setMilestoneData((prev) => ({
-      ...prev,
-      date,
-    }));
+  const handleDateChange = (date: Date | undefined) => {
+    if (date) {
+      setMilestoneData((prev) => ({
+        ...prev,
+        date,
+      }));
+    }
   };
 
   const handleCategoryChange = (category: string) => {
@@ -912,6 +914,17 @@ import week28Svg from "../assets/baby-development/week-28.svg";
 const week32Svg = week28Svg;
 const week36Svg = week28Svg;
 const week40Svg = week28Svg;
+
+// Import fruit SVGs
+import raspberrySvg from "../assets/baby-development/fruits/raspberry.svg";
+import limeSvg from "../assets/baby-development/fruits/lime.svg";
+import avocadoSvg from "../assets/baby-development/fruits/avocado.svg";
+import bananaSvg from "../assets/baby-development/fruits/banana.svg";
+import cornSvg from "../assets/baby-development/fruits/corn.svg";
+import eggplantSvg from "../assets/baby-development/fruits/eggplant.svg";
+import squashSvg from "../assets/baby-development/fruits/squash.svg";
+import honeydewSvg from "../assets/baby-development/fruits/honeydew.svg";
+import watermelonSvg from "../assets/baby-development/fruits/watermelon.svg";
 
 interface BabyDevelopmentCardProps {
   pregnancyWeek: number;
@@ -1056,8 +1069,33 @@ function BabyDevelopmentCard({ pregnancyWeek }: BabyDevelopmentCardProps) {
     }
   };
   
+  // Get the appropriate fruit SVG
+  const getFruitSvg = (week: number) => {
+    switch (true) {
+      case week <= 8:
+        return raspberrySvg;
+      case week <= 12:
+        return limeSvg;
+      case week <= 16:
+        return avocadoSvg;
+      case week <= 20:
+        return bananaSvg;
+      case week <= 24:
+        return cornSvg;
+      case week <= 28:
+        return eggplantSvg;
+      case week <= 32:
+        return squashSvg;
+      case week <= 36:
+        return honeydewSvg;
+      default:
+        return watermelonSvg;
+    }
+  };
+  
   const developmentInfo = getDevelopmentInfo(pregnancyWeek);
   const weekSvg = getWeekSvg(pregnancyWeek);
+  const fruitSvg = getFruitSvg(pregnancyWeek);
   
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -1066,12 +1104,23 @@ function BabyDevelopmentCard({ pregnancyWeek }: BabyDevelopmentCardProps) {
       </div>
 
       <div className="p-6">
-        <div className="w-full h-64 bg-primary-50 rounded-md mb-4 flex items-center justify-center overflow-hidden">
-          <img 
-            src={weekSvg} 
-            alt={`Baby at week ${pregnancyWeek}`} 
-            className="max-h-full p-4"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="h-64 bg-primary-50 rounded-md flex items-center justify-center overflow-hidden">
+            <img 
+              src={weekSvg} 
+              alt={`Baby at week ${pregnancyWeek}`} 
+              className="max-h-full p-4"
+            />
+          </div>
+          <div className="h-64 bg-amber-50 rounded-md flex flex-col items-center justify-center overflow-hidden p-4">
+            <h4 className="font-medium text-center mb-2">Size Comparison</h4>
+            <img 
+              src={fruitSvg} 
+              alt={`Size comparison: ${developmentInfo.size}`} 
+              className="max-h-44"
+            />
+            <p className="text-sm text-center mt-2">Your baby is about the size of a {developmentInfo.size.toLowerCase()}</p>
+          </div>
         </div>
 
         <div className="space-y-3 text-sm">
@@ -1081,10 +1130,6 @@ function BabyDevelopmentCard({ pregnancyWeek }: BabyDevelopmentCardProps) {
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-          <div className="bg-primary-50 p-3 rounded-md">
-            <p className="font-medium text-primary-600">Size</p>
-            <p>Size of a {developmentInfo.size.toLowerCase()}</p>
-          </div>
           <div className="bg-primary-50 p-3 rounded-md">
             <p className="font-medium text-primary-600">Weight</p>
             <p>~{developmentInfo.weight}</p>
@@ -1096,6 +1141,10 @@ function BabyDevelopmentCard({ pregnancyWeek }: BabyDevelopmentCardProps) {
           <div className="bg-primary-50 p-3 rounded-md">
             <p className="font-medium text-primary-600">Movement</p>
             <p>{developmentInfo.movement}</p>
+          </div>
+          <div className="bg-primary-50 p-3 rounded-md">
+            <p className="font-medium text-primary-600">Week</p>
+            <p>Week {pregnancyWeek} of pregnancy</p>
           </div>
         </div>
       </div>
@@ -1275,11 +1324,13 @@ function UploadPhotoDialog({ open, onClose, childId }: UploadPhotoDialogProps) {
     }));
   };
 
-  const handleDateChange = (date: Date) => {
-    setPhotoData((prev) => ({
-      ...prev,
-      date,
-    }));
+  const handleDateChange = (date: Date | undefined) => {
+    if (date) {
+      setPhotoData((prev) => ({
+        ...prev,
+        date,
+      }));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
