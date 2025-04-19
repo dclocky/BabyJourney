@@ -3,13 +3,34 @@ import { cn } from "@/lib/utils";
 import { PremiumBadge } from "@/components/premium-badge";
 import { useAuth } from "@/hooks/use-auth";
 
-export function AppTabs() {
+interface AppTabsProps {
+  activeTab?: string;
+}
+
+export function AppTabs({ activeTab }: AppTabsProps) {
   const [location] = useLocation();
   const { user } = useAuth();
   
   if (!user) return null;
 
   const isPremium = user.isPremium;
+  
+  // Determine active tab from location or prop
+  const getIsActive = (path: string) => {
+    if (activeTab) {
+      return path.replace('/', '') === activeTab;
+    }
+    
+    if (path === '/' && location === '/') {
+      return true;
+    }
+    
+    if (path !== '/' && location.startsWith(path)) {
+      return true;
+    }
+    
+    return location === path;
+  };
   
   const tabs = [
     { name: "Dashboard", path: "/" },
@@ -18,7 +39,8 @@ export function AppTabs() {
     { name: "Milestones", path: "/milestones" },
     { name: "Appointments", path: "/appointments" },
     { name: "Memories", path: "/memories", premium: !isPremium },
-    { name: "Family", path: "/family" }
+    { name: "Family", path: "/family" },
+    { name: "Registry", path: "/registry" }
   ];
 
   return (
@@ -29,7 +51,7 @@ export function AppTabs() {
             <Link key={tab.path} href={tab.path}>
               <div className={cn(
                 "px-4 py-3 text-sm font-medium border-b-2 flex items-center",
-                location === tab.path 
+                getIsActive(tab.path) 
                   ? "border-primary-500 text-primary-500" 
                   : "border-transparent hover:text-primary-400"
               )}>
