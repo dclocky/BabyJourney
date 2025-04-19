@@ -7,12 +7,15 @@ import { MobileNav } from "@/components/mobile-nav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import {
   Form,
@@ -32,14 +35,39 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Child, Pregnancy, Appointment, InsertAppointment } from "@shared/schema";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Child, Pregnancy, Appointment, InsertAppointment, Symptom } from "@shared/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
-import { Loader2, Calendar, PlusCircle, Clock, MapPin, User } from "lucide-react";
+import { format, isBefore, addDays } from "date-fns";
+import { 
+  Loader2, 
+  Calendar, 
+  PlusCircle, 
+  Clock, 
+  MapPin, 
+  User, 
+  Stethoscope, 
+  Thermometer, 
+  Tablet, 
+  ClipboardList, 
+  FileText, 
+  ArrowRight
+} from "lucide-react";
 
 export default function AppointmentsPage() {
   const { toast } = useToast();
@@ -65,6 +93,9 @@ export default function AppointmentsPage() {
   const childAppointments = appointments.filter(app => app.childId !== null);
   const pregnancyAppointments = appointments.filter(app => app.pregnancyId !== null);
 
+  // State for Doctor Mode toggle
+  const [isDoctorMode, setIsDoctorMode] = useState(false);
+
   // Schema for appointment form validation
   const appointmentSchema = z.object({
     title: z.string().min(1, "Title is required"),
@@ -77,6 +108,16 @@ export default function AppointmentsPage() {
     type: z.enum(['child', 'pregnancy']),
     childId: z.number().optional().nullable(),
     pregnancyId: z.number().optional().nullable(),
+    // Doctor mode fields
+    isDoctorMode: z.boolean().optional().default(false),
+    doctorName: z.string().optional(),
+    doctorSpecialty: z.string().optional(),
+    diagnosis: z.string().optional(),
+    treatment: z.string().optional(),
+    prescriptions: z.string().optional(),
+    followUpDate: z.string().optional(),
+    doctorNotes: z.string().optional(),
+    vitals: z.record(z.string()).optional().default({}),
   });
 
   // Form setup
@@ -91,6 +132,16 @@ export default function AppointmentsPage() {
       type: 'child',
       childId: children.length > 0 ? children[0].id : null,
       pregnancyId: null,
+      // Doctor mode fields
+      isDoctorMode: false,
+      doctorName: "",
+      doctorSpecialty: "",
+      diagnosis: "",
+      treatment: "",
+      prescriptions: "",
+      followUpDate: "",
+      doctorNotes: "",
+      vitals: {},
     },
   });
 
@@ -121,8 +172,16 @@ export default function AppointmentsPage() {
         location: data.location || "",
         notes: data.notes || "",
         childId: data.type === 'child' ? data.childId : null,
-        pregnancyId: data.type === 'pregnancy' ? data.pregnancyId : null,
         status: "scheduled",
+        // Doctor mode fields
+        doctorName: data.isDoctorMode ? data.doctorName || null : null,
+        doctorSpecialty: data.isDoctorMode ? data.doctorSpecialty || null : null,
+        diagnosis: data.isDoctorMode ? data.diagnosis || null : null,
+        treatment: data.isDoctorMode ? data.treatment || null : null,
+        prescriptions: data.isDoctorMode ? data.prescriptions || null : null,
+        followUpDate: data.isDoctorMode && data.followUpDate ? new Date(data.followUpDate) : null,
+        doctorNotes: data.isDoctorMode ? data.doctorNotes || null : null,
+        vitals: data.isDoctorMode ? data.vitals : {},
       };
       const res = await apiRequest("POST", "/api/appointments", newAppointment);
       return await res.json();
@@ -359,6 +418,209 @@ export default function AppointmentsPage() {
                       </FormItem>
                     )}
                   />
+
+                  {/* Doctor Mode Toggle */}
+                  <div className="border-t pt-4 mt-6">
+                    <FormField
+                      control={form.control}
+                      name="isDoctorMode"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base flex items-center">
+                              <Stethoscope className="w-4 h-4 mr-2" />
+                              Doctor Mode
+                            </FormLabel>
+                            <FormDescription>
+                              Track medical information from your doctor appointment
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={(checked) => {
+                                field.onChange(checked);
+                                setIsDoctorMode(checked);
+                              }}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Doctor Mode Fields */}
+                  {isDoctorMode && (
+                    <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+                      <h3 className="font-medium text-sm flex items-center mb-2">
+                        <Stethoscope className="w-4 h-4 mr-2" />
+                        Medical Information
+                      </h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="doctorName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Doctor Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Dr. Smith" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="doctorSpecialty"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Specialty</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g., Pediatrician, OB/GYN" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <Tabs defaultValue="diagnosis" className="w-full">
+                        <TabsList className="grid w-full grid-cols-3">
+                          <TabsTrigger value="diagnosis">Diagnosis</TabsTrigger>
+                          <TabsTrigger value="treatment">Treatment</TabsTrigger>
+                          <TabsTrigger value="followup">Follow-up</TabsTrigger>
+                        </TabsList>
+                        
+                        <TabsContent value="diagnosis" className="space-y-4 pt-4">
+                          <FormField
+                            control={form.control}
+                            name="diagnosis"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Diagnosis</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    placeholder="Doctor's diagnosis"
+                                    className="min-h-24"
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          {/* Vitals - Future Enhancement */}
+                          <FormField
+                            control={form.control}
+                            name="vitals"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Vitals</FormLabel>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <Input
+                                    type="text"
+                                    placeholder="Blood Pressure (e.g., 120/80)"
+                                    onChange={(e) => {
+                                      const newVitals = {...field.value};
+                                      newVitals['blood_pressure'] = e.target.value;
+                                      field.onChange(newVitals);
+                                    }}
+                                    value={field.value?.['blood_pressure'] || ''}
+                                  />
+                                  <Input
+                                    type="text"
+                                    placeholder="Temperature (e.g., 98.6°F)"
+                                    onChange={(e) => {
+                                      const newVitals = {...field.value};
+                                      newVitals['temperature'] = e.target.value;
+                                      field.onChange(newVitals);
+                                    }}
+                                    value={field.value?.['temperature'] || ''}
+                                  />
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                        </TabsContent>
+                        
+                        <TabsContent value="treatment" className="space-y-4 pt-4">
+                          <FormField
+                            control={form.control}
+                            name="treatment"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Treatment Plan</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    placeholder="Recommended treatment plan"
+                                    className="min-h-24"
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="prescriptions"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Prescriptions</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    placeholder="List medications prescribed"
+                                    className="min-h-20"
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </TabsContent>
+                        
+                        <TabsContent value="followup" className="space-y-4 pt-4">
+                          <FormField
+                            control={form.control}
+                            name="followUpDate"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Follow-up Date</FormLabel>
+                                <FormControl>
+                                  <Input type="date" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="doctorNotes"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Doctor's Notes</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    placeholder="Additional notes from the doctor"
+                                    className="min-h-20"
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </TabsContent>
+                      </Tabs>
+                    </div>
+                  )}
 
                   <DialogFooter>
                     <Button
