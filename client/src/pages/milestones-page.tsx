@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
@@ -46,6 +46,8 @@ export default function MilestonesPage() {
   const { toast } = useToast();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedChild, setSelectedChild] = useState<number | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const { data: children = [], isLoading: isLoadingChildren } = useQuery<Child[]>({
     queryKey: ["/api/children"],
@@ -143,8 +145,77 @@ export default function MilestonesPage() {
     },
   });
 
+  // Handle image selection
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedImage(e.target.files[0]);
+    }
+  };
+
+  // Function to reset the image selection
+  const clearImageSelection = () => {
+    setSelectedImage(null);
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
+  };
+
+  // Updated function to handle milestone submission with image upload
   function onAddMilestone(data: z.infer<typeof milestoneSchema>) {
-    addMilestoneMutation.mutate(data);
+    if (selectedChild === null) {
+      toast({
+        title: "Error",
+        description: "Please select a child first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // If there's an image, we need to use FormData to submit
+    if (selectedImage) {
+      const formData = new FormData();
+      formData.append('title', data.title);
+      formData.append('date', data.date);
+      formData.append('description', data.description || '');
+      formData.append('category', data.category);
+      formData.append('image', selectedImage);
+      
+      // Custom fetch to handle file upload
+      fetch(`/api/children/${data.childId}/milestones`, {
+        method: 'POST',
+        body: formData,
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to save milestone');
+        return res.json();
+      })
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/children", selectedChild, "milestones"] });
+        toast({
+          title: "Milestone added",
+          description: "Your baby's milestone has been saved with the image!",
+        });
+        form.reset({
+          childId: selectedChild,
+          title: "",
+          date: format(new Date(), "yyyy-MM-dd"),
+          description: "",
+          category: "first",
+        });
+        clearImageSelection();
+        setIsAddDialogOpen(false);
+      })
+      .catch(error => {
+        toast({
+          title: "Failed to add milestone",
+          description: error.message,
+          variant: "destructive",
+        });
+      });
+    } else {
+      // Use the standard mutation without an image
+      addMilestoneMutation.mutate(data);
+    }
   }
 
   // Function to get icon for milestone category
@@ -285,6 +356,43 @@ export default function MilestonesPage() {
                       </FormItem>
                     )}
                   />
+                  
+                  {/* Image upload field */}
+                  <div>
+                    <Label htmlFor="image">Image (Optional)</Label>
+                    <div className="mt-1 flex flex-col gap-2">
+                      <Input
+                        id="image"
+                        type="file"
+                        ref={imageInputRef}
+                        accept="image/*"
+                        onChange={handleImageSelect}
+                      />
+                      {selectedImage && (
+                        <div className="flex flex-col gap-2">
+                          <div className="relative h-32 w-32 overflow-hidden rounded-md">
+                            <img
+                              src={URL.createObjectURL(selectedImage)}
+                              alt="Selected image preview"
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={clearImageSelection}
+                            className="w-32"
+                          >
+                            Remove Image
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Add a photo of this milestone moment (max 5MB)
+                    </p>
+                  </div>
 
                   <DialogFooter>
                     <Button
