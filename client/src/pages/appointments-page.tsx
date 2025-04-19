@@ -201,7 +201,19 @@ export default function AppointmentsPage() {
         type: appointmentType,
         childId: appointmentType === 'child' ? (children.length > 0 ? children[0].id : null) : null,
         pregnancyId: appointmentType === 'pregnancy' ? (pregnancies.length > 0 ? pregnancies[0].id : null) : null,
+        // Reset doctor mode fields
+        isDoctorMode: false,
+        doctorName: "",
+        doctorSpecialty: "",
+        diagnosis: "",
+        treatment: "",
+        prescriptions: "",
+        followUpDate: "",
+        doctorNotes: "",
+        vitals: {},
       });
+      // Reset Doctor Mode UI state
+      setIsDoctorMode(false);
       setIsAddDialogOpen(false);
     },
     onError: (error) => {
@@ -676,8 +688,16 @@ export default function AppointmentsPage() {
                         <div key={appointment.id} className="border rounded-lg p-4">
                           <div className="flex justify-between items-start mb-2">
                             <h3 className="font-medium text-lg">{appointment.title}</h3>
-                            <div className="text-sm bg-primary-50 text-primary-500 px-2 py-1 rounded">
-                              {appointment.childId ? 'Child' : 'Pregnancy'}
+                            <div className="flex gap-2">
+                              {appointment.doctorName && (
+                                <div className="text-sm bg-blue-50 text-blue-600 px-2 py-1 rounded flex items-center">
+                                  <Stethoscope className="h-3 w-3 mr-1" />
+                                  Doctor
+                                </div>
+                              )}
+                              <div className="text-sm bg-primary-50 text-primary-500 px-2 py-1 rounded">
+                                {appointment.childId ? 'Child' : 'Pregnancy'}
+                              </div>
                             </div>
                           </div>
 
@@ -705,11 +725,102 @@ export default function AppointmentsPage() {
                                 <span>{getChildName(appointment.childId)}</span>
                               </div>
                             )}
+                            
+                            {appointment.doctorName && (
+                              <div className="flex items-center">
+                                <Stethoscope className="h-4 w-4 mr-2 text-muted-foreground" />
+                                <span>{appointment.doctorName}</span>
+                                {appointment.doctorSpecialty && (
+                                  <span className="ml-1 text-muted-foreground">({appointment.doctorSpecialty})</span>
+                                )}
+                              </div>
+                            )}
                           </div>
 
                           {appointment.notes && (
                             <div className="mt-2 text-sm text-muted-foreground">
                               <p>{appointment.notes}</p>
+                            </div>
+                          )}
+                          
+                          {/* Doctor Mode Information */}
+                          {appointment.doctorName && (
+                            <div className="mt-4 pt-4 border-t border-dashed">
+                              <Accordion type="single" collapsible className="w-full">
+                                {appointment.diagnosis && (
+                                  <AccordionItem value="diagnosis">
+                                    <AccordionTrigger className="text-sm font-medium flex items-center py-2">
+                                      <FileText className="h-4 w-4 mr-2 text-blue-500" />
+                                      Diagnosis
+                                    </AccordionTrigger>
+                                    <AccordionContent className="text-sm">
+                                      <p className="p-2 bg-muted/30 rounded-md">{appointment.diagnosis}</p>
+                                      
+                                      {/* Display vitals if available */}
+                                      {appointment.vitals && Object.keys(appointment.vitals).length > 0 && (
+                                        <div className="mt-2">
+                                          <p className="font-medium text-xs mb-1">Vitals:</p>
+                                          <div className="grid grid-cols-2 gap-2 text-xs">
+                                            {Object.entries(appointment.vitals).map(([key, value]) => (
+                                              <div key={key} className="bg-muted/20 p-1 px-2 rounded flex justify-between">
+                                                <span className="capitalize">{key.replace('_', ' ')}</span>
+                                                <span className="font-medium">{value}</span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </AccordionContent>
+                                  </AccordionItem>
+                                )}
+                                
+                                {appointment.treatment && (
+                                  <AccordionItem value="treatment">
+                                    <AccordionTrigger className="text-sm font-medium flex items-center py-2">
+                                      <ClipboardList className="h-4 w-4 mr-2 text-green-500" />
+                                      Treatment Plan
+                                    </AccordionTrigger>
+                                    <AccordionContent className="text-sm">
+                                      <p className="p-2 bg-muted/30 rounded-md">{appointment.treatment}</p>
+                                      
+                                      {appointment.prescriptions && (
+                                        <div className="mt-2">
+                                          <p className="font-medium text-xs mb-1">Prescribed Medications:</p>
+                                          <div className="bg-muted/20 p-2 rounded text-xs">
+                                            <p>{appointment.prescriptions}</p>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </AccordionContent>
+                                  </AccordionItem>
+                                )}
+                                
+                                {(appointment.followUpDate || appointment.doctorNotes) && (
+                                  <AccordionItem value="followup">
+                                    <AccordionTrigger className="text-sm font-medium flex items-center py-2">
+                                      <ArrowRight className="h-4 w-4 mr-2 text-purple-500" />
+                                      Follow-up
+                                    </AccordionTrigger>
+                                    <AccordionContent className="text-sm">
+                                      {appointment.followUpDate && (
+                                        <div className="flex items-center mb-2">
+                                          <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                                          <span>Follow-up on {format(new Date(appointment.followUpDate), "MMMM d, yyyy")}</span>
+                                        </div>
+                                      )}
+                                      
+                                      {appointment.doctorNotes && (
+                                        <div>
+                                          <p className="font-medium text-xs mb-1">Doctor's Notes:</p>
+                                          <div className="bg-muted/30 p-2 rounded text-xs">
+                                            <p>{appointment.doctorNotes}</p>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </AccordionContent>
+                                  </AccordionItem>
+                                )}
+                              </Accordion>
                             </div>
                           )}
                         </div>
@@ -741,8 +852,16 @@ export default function AppointmentsPage() {
                         <div key={appointment.id} className="border rounded-lg p-4 bg-gray-50">
                           <div className="flex justify-between items-start mb-2">
                             <h3 className="font-medium text-lg">{appointment.title}</h3>
-                            <div className="text-sm bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                              {appointment.childId ? 'Child' : 'Pregnancy'}
+                            <div className="flex gap-2">
+                              {appointment.doctorName && (
+                                <div className="text-sm bg-blue-50 text-blue-600 px-2 py-1 rounded flex items-center">
+                                  <Stethoscope className="h-3 w-3 mr-1" />
+                                  Doctor
+                                </div>
+                              )}
+                              <div className="text-sm bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                {appointment.childId ? 'Child' : 'Pregnancy'}
+                              </div>
                             </div>
                           </div>
 
@@ -770,11 +889,102 @@ export default function AppointmentsPage() {
                                 <span>{getChildName(appointment.childId)}</span>
                               </div>
                             )}
+                            
+                            {appointment.doctorName && (
+                              <div className="flex items-center">
+                                <Stethoscope className="h-4 w-4 mr-2 text-muted-foreground" />
+                                <span>{appointment.doctorName}</span>
+                                {appointment.doctorSpecialty && (
+                                  <span className="ml-1 text-muted-foreground">({appointment.doctorSpecialty})</span>
+                                )}
+                              </div>
+                            )}
                           </div>
 
                           {appointment.notes && (
                             <div className="mt-2 text-sm text-muted-foreground">
                               <p>{appointment.notes}</p>
+                            </div>
+                          )}
+                          
+                          {/* Doctor Mode Information */}
+                          {appointment.doctorName && (
+                            <div className="mt-4 pt-4 border-t border-dashed">
+                              <Accordion type="single" collapsible className="w-full">
+                                {appointment.diagnosis && (
+                                  <AccordionItem value="diagnosis">
+                                    <AccordionTrigger className="text-sm font-medium flex items-center py-2">
+                                      <FileText className="h-4 w-4 mr-2 text-blue-500" />
+                                      Diagnosis
+                                    </AccordionTrigger>
+                                    <AccordionContent className="text-sm">
+                                      <p className="p-2 bg-muted/30 rounded-md">{appointment.diagnosis}</p>
+                                      
+                                      {/* Display vitals if available */}
+                                      {appointment.vitals && Object.keys(appointment.vitals).length > 0 && (
+                                        <div className="mt-2">
+                                          <p className="font-medium text-xs mb-1">Vitals:</p>
+                                          <div className="grid grid-cols-2 gap-2 text-xs">
+                                            {Object.entries(appointment.vitals).map(([key, value]) => (
+                                              <div key={key} className="bg-muted/20 p-1 px-2 rounded flex justify-between">
+                                                <span className="capitalize">{key.replace('_', ' ')}</span>
+                                                <span className="font-medium">{value}</span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </AccordionContent>
+                                  </AccordionItem>
+                                )}
+                                
+                                {appointment.treatment && (
+                                  <AccordionItem value="treatment">
+                                    <AccordionTrigger className="text-sm font-medium flex items-center py-2">
+                                      <ClipboardList className="h-4 w-4 mr-2 text-green-500" />
+                                      Treatment Plan
+                                    </AccordionTrigger>
+                                    <AccordionContent className="text-sm">
+                                      <p className="p-2 bg-muted/30 rounded-md">{appointment.treatment}</p>
+                                      
+                                      {appointment.prescriptions && (
+                                        <div className="mt-2">
+                                          <p className="font-medium text-xs mb-1">Prescribed Medications:</p>
+                                          <div className="bg-muted/20 p-2 rounded text-xs">
+                                            <p>{appointment.prescriptions}</p>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </AccordionContent>
+                                  </AccordionItem>
+                                )}
+                                
+                                {(appointment.followUpDate || appointment.doctorNotes) && (
+                                  <AccordionItem value="followup">
+                                    <AccordionTrigger className="text-sm font-medium flex items-center py-2">
+                                      <ArrowRight className="h-4 w-4 mr-2 text-purple-500" />
+                                      Follow-up
+                                    </AccordionTrigger>
+                                    <AccordionContent className="text-sm">
+                                      {appointment.followUpDate && (
+                                        <div className="flex items-center mb-2">
+                                          <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                                          <span>Follow-up on {format(new Date(appointment.followUpDate), "MMMM d, yyyy")}</span>
+                                        </div>
+                                      )}
+                                      
+                                      {appointment.doctorNotes && (
+                                        <div>
+                                          <p className="font-medium text-xs mb-1">Doctor's Notes:</p>
+                                          <div className="bg-muted/30 p-2 rounded text-xs">
+                                            <p>{appointment.doctorNotes}</p>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </AccordionContent>
+                                  </AccordionItem>
+                                )}
+                              </Accordion>
                             </div>
                           )}
                         </div>
