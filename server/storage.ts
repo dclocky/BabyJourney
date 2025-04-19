@@ -737,13 +737,17 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUserPremiumStatus(id: number, isPremium: boolean): Promise<User | undefined> {
+  async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
     const [updatedUser] = await db
       .update(users)
-      .set({ isPremium })
+      .set(updates)
       .where(eq(users.id, id))
       .returning();
     return updatedUser;
+  }
+
+  async updateUserPremiumStatus(id: number, isPremium: boolean): Promise<User | undefined> {
+    return this.updateUser(id, { isPremium });
   }
 
   // Family member methods
