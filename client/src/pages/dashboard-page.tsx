@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import {
   Check,
   Crown,
   Plus,
+  Clock,
 } from "lucide-react";
 import { Child, Milestone } from "@shared/schema";
 import { format } from "date-fns";
@@ -122,6 +123,29 @@ export default function DashboardPage() {
 
   // For simplicity, we'll default to the first pregnancy/child in this MVP
   const activeChild = children.length > 0 ? children[0] : null;
+  
+  // Calculate pregnancy week if this is a pregnancy with a due date
+  const pregnancyWeek = useMemo(() => {
+    if (activeChild?.isPregnancy && activeChild?.dueDate) {
+      const dueDate = new Date(activeChild.dueDate);
+      const today = new Date();
+      
+      // Calculate difference between due date and today
+      const differenceInTime = dueDate.getTime() - today.getTime();
+      const differenceInDays = Math.ceil(differenceInTime / (1000 * 3600 * 24));
+      
+      // Pregnancy is typically 40 weeks (280 days) long
+      // So if dueDate is in 70 days, we're at week 30 (40 - 10)
+      const weeksRemaining = Math.ceil(differenceInDays / 7);
+      const currentWeek = 40 - weeksRemaining;
+      
+      // Ensure week is between 1 and 40
+      return Math.max(1, Math.min(40, currentWeek));
+    }
+    
+    // Default to week 20 if not a pregnancy or no due date
+    return 20;
+  }, [activeChild]);
 
   if (!user) {
     return null;
@@ -134,13 +158,13 @@ export default function DashboardPage() {
 
       <main className="flex-grow container mx-auto px-4 py-6 pb-20 md:pb-6">
         {/* Welcome Card */}
-        <WelcomeCard child={activeChild} />
+        <WelcomeCard child={activeChild} pregnancyWeek={pregnancyWeek} />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
           {/* Left Column */}
           <div className="md:col-span-2 space-y-6">
             {/* Pregnancy Progress Card */}
-            <PregnancyProgressCard child={activeChild} />
+            <PregnancyProgressCard child={activeChild} pregnancyWeek={pregnancyWeek} />
 
             {/* Milestones Card */}
             <MilestonesCard childId={activeChild?.id} />
@@ -149,7 +173,7 @@ export default function DashboardPage() {
           {/* Right Column */}
           <div className="space-y-6">
             {/* Baby Development Card */}
-            <BabyDevelopmentCard pregnancyWeek={24} />
+            <BabyDevelopmentCard pregnancyWeek={pregnancyWeek} />
 
             {/* Photo Gallery Card */}
             <PhotoGalleryCard
@@ -171,12 +195,53 @@ export default function DashboardPage() {
 
 interface WelcomeCardProps {
   child: Child | null;
+  pregnancyWeek: number;
 }
 
-function WelcomeCard({ child }: WelcomeCardProps) {
+function WelcomeCard({ child, pregnancyWeek }: WelcomeCardProps) {
   const { user } = useAuth() as { user: User | null };
   const [, setLocation] = useLocation();
   const firstName = user?.fullName?.split(" ")[0] || "";
+  
+  // Get the size comparison based on pregnancy week
+  const getBabySize = (week: number) => {
+    switch (true) {
+      case week <= 8:
+        return "a raspberry";
+      case week <= 12:
+        return "a lime";
+      case week <= 16:
+        return "an avocado";
+      case week <= 20:
+        return "a banana";
+      case week <= 24:
+        return "a corn";
+      case week <= 28:
+        return "an eggplant";
+      case week <= 32:
+        return "a squash";
+      case week <= 36:
+        return "a honeydew melon";
+      case week <= 40:
+        return "a watermelon";
+      default:
+        return "a watermelon";
+    }
+  };
+  
+  // Calculate days until due date
+  const getDaysUntilDueDate = () => {
+    if (child?.dueDate) {
+      const dueDate = new Date(child.dueDate);
+      const today = new Date();
+      const differenceInTime = dueDate.getTime() - today.getTime();
+      const differenceInDays = Math.ceil(differenceInTime / (1000 * 3600 * 24));
+      return Math.max(0, differenceInDays);
+    }
+    return 0;
+  };
+  
+  const daysUntilDueDate = getDaysUntilDueDate();
 
   const handleLogUpdate = () => {
     setLocation("/dashboard/log-update");
@@ -188,9 +253,18 @@ function WelcomeCard({ child }: WelcomeCardProps) {
         <div>
           <h2 className="font-bold text-xl mb-2">Welcome back, {firstName}!</h2>
           {child?.isPregnancy && child?.dueDate && (
-            <p className="text-muted-foreground">
-              You're in week 24 of your pregnancy. Baby is the size of a corn!
-            </p>
+            <>
+              <p className="text-muted-foreground mb-1">
+                You're in week {pregnancyWeek} of your pregnancy. Baby is the size of {getBabySize(pregnancyWeek)}!
+              </p>
+              <p className="text-sm font-medium text-primary-500 flex items-center">
+                <Clock className="h-4 w-4 mr-1" /> 
+                {daysUntilDueDate > 0 
+                  ? `${daysUntilDueDate} days until your due date` 
+                  : "Your due date is today!"
+                }
+              </p>
+            </>
           )}
           {!child && (
             <p className="text-muted-foreground">
