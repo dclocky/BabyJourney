@@ -46,10 +46,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/pregnancies", requireAuth, async (req, res, next) => {
     try {
+      // Process dates properly to avoid toISOString error
+      const dueDate = typeof req.body.dueDate === 'string' 
+        ? req.body.dueDate
+        : (req.body.dueDate instanceof Date ? req.body.dueDate.toISOString() : null);
+        
       const pregnancy = await storage.createPregnancy({
         userId: req.user.id,
         name: req.body.babyName || "Baby",
-        dueDate: new Date(req.body.dueDate),
+        dueDate: dueDate,
         isPregnancy: true
       });
 

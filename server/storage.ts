@@ -809,12 +809,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createChild(child: InsertChild): Promise<Child> {
+    // Parse date strings into proper Date objects if they are strings
+    const processedChild = {
+      ...child,
+      birthDate: child.birthDate ? (typeof child.birthDate === 'string' ? new Date(child.birthDate) : child.birthDate) : null,
+      dueDate: child.dueDate ? (typeof child.dueDate === 'string' ? new Date(child.dueDate) : child.dueDate) : null, 
+      createdAt: new Date()
+    };
+
     const [newChild] = await db
       .insert(children)
-      .values({
-        ...child,
-        createdAt: new Date()
-      })
+      .values(processedChild)
       .returning();
     return newChild;
   }
