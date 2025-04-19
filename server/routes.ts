@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth } from "./auth";
+import { setupAuth, hashPassword, comparePasswords } from "./auth";
 import multer from "multer";
 import { randomBytes } from "crypto";
 import { format } from "date-fns";
@@ -942,12 +942,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/user/password", requireAuth, async (req, res, next) => {
     try {
       const { currentPassword, newPassword } = req.body;
-      
-      // We need to import these from auth.ts to use them here
-      // This is just a placeholder for now since we don't have the actual implementation
-      // In a production app, we would refactor to share these functions properly
-      const comparePasswords = (supplied, stored) => Promise.resolve(true);
-      const hashPassword = (password) => Promise.resolve(password);
       
       // Verify current password
       const isPasswordCorrect = await comparePasswords(currentPassword, req.user.password);
