@@ -101,6 +101,15 @@ export const appointments = pgTable("appointments", {
   time: text("time"),
   location: text("location"),
   notes: text("notes"),
+  // Doctor mode fields
+  doctorName: text("doctor_name"),
+  doctorSpecialty: text("doctor_specialty"),
+  diagnosis: text("diagnosis"),
+  treatment: text("treatment"),
+  prescriptions: text("prescriptions"),
+  followUpDate: timestamp("follow_up_date"),
+  doctorNotes: text("doctor_notes"),
+  vitals: json("vitals").default({}),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
