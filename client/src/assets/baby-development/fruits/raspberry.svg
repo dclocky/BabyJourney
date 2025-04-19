@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <title>Raspberry</title>
+  <g fill="none" fill-rule="evenodd">
+    <circle cx="100" cy="100" r="80" fill="#f8e5e5" />
+    <g transform="translate(40, 40)">
+      <path d="M60,30 C60,13.43 46.57,0 30,0 C13.43,0 0,13.43 0,30 C0,46.57 13.43,60 30,60 C46.57,60 60,46.57 60,30" fill="#E30B5C"/>
+      <path d="M50,30 C50,18.95 41.05,10 30,10 C18.95,10 10,18.95 10,30 C10,41.05 18.95,50 30,50 C41.05,50 50,41.05 50,30" fill="#C71585"/>
+      <path d="M20.5,17.5 C25.5,22.5 28,30 35,25" stroke="#FFFFFF" stroke-width="1" stroke-linecap="round"/>
+      <path d="M40,25 C45,30 42,38 35,40" stroke="#FFFFFF" stroke-width="1" stroke-linecap="round"/>
+      <path d="M25,40 C20,45 25,50 32,45" stroke="#FFFFFF" stroke-width="1" stroke-linecap="round"/>
+      <path d="M15,30 C10,35 15,45 25,35" stroke="#FFFFFF" stroke-width="1" stroke-linecap="round"/>
+      <path d="M35,15 C40,20 45,15 40,10" stroke="#FFFFFF" stroke-width="1" stroke-linecap="round"/>
+      <path d="M45,30 C50,35 50,25 45,20" stroke="#FFFFFF" stroke-width="1" stroke-linecap="round"/>
+      <circle cx="30" cy="30" r="2" fill="#FFF"/>
+      <circle cx="40" cy="20" r="2" fill="#FFF"/>
+      <circle cx="20" cy="25" r="2" fill="#FFF"/>
+      <circle cx="30" cy="45" r="2" fill="#FFF"/>
+      <circle cx="45" cy="40" r="2" fill="#FFF"/>
+      <circle cx="15" cy="40" r="2" fill="#FFF"/>
+    </g>
+    <text x="100" y="160" font-family="Arial" font-size="16" fill="#333" text-anchor="middle">Raspberry</text>
+  </g>
+</svg>

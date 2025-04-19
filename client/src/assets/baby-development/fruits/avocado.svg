@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <title>Avocado</title>
+  <g fill="none" fill-rule="evenodd">
+    <circle cx="100" cy="100" r="80" fill="#f2f9e9" />
+    <g transform="translate(60, 40)">
+      <ellipse cx="40" cy="60" rx="30" ry="50" fill="#2E7D32" />
+      <ellipse cx="40" cy="60" rx="25" ry="45" fill="#558B2F" />
+      <ellipse cx="40" cy="60" rx="15" ry="30" fill="#FFF9C4" />
+      <circle cx="40" cy="60" r="10" fill="#795548" />
+      
+      <!-- Texture details -->
+      <path d="M25,30 C30,40 50,40 55,30" stroke="#1B5E20" stroke-width="1" stroke-linecap="round" opacity="0.5" />
+      <path d="M20,45 C30,55 50,55 60,45" stroke="#1B5E20" stroke-width="1" stroke-linecap="round" opacity="0.5" />
+      <path d="M20,75 C30,85 50,85 60,75" stroke="#1B5E20" stroke-width="1" stroke-linecap="round" opacity="0.5" />
+      
+      <!-- Stem -->
+      <path d="M40,10 L40,0" stroke="#795548" stroke-width="2" stroke-linecap="round" />
+      <path d="M40,0 C45,0 50,5 45,10" stroke="#795548" stroke-width="1" stroke-linecap="round" />
+    </g>
+    <text x="100" y="160" font-family="Arial" font-size="16" fill="#333" text-anchor="middle">Avocado</text>
+  </g>
+</svg>

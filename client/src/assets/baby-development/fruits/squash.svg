@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <title>Squash</title>
+  <g fill="none" fill-rule="evenodd">
+    <circle cx="100" cy="100" r="80" fill="#fffde7" />
+    <g transform="translate(60, 40)">
+      <!-- Main squash body -->
+      <ellipse cx="40" cy="60" rx="30" ry="50" fill="#FFA000" />
+      
+      <!-- Vertical ridges -->
+      <path d="M20,30 C25,60 25,90 20,110" stroke="#FF8F00" stroke-width="2" stroke-linecap="round" />
+      <path d="M30,20 C35,60 35,100 30,120" stroke="#FF8F00" stroke-width="2" stroke-linecap="round" />
+      <path d="M50,20 C45,60 45,100 50,120" stroke="#FF8F00" stroke-width="2" stroke-linecap="round" />
+      <path d="M60,30 C55,60 55,90 60,110" stroke="#FF8F00" stroke-width="2" stroke-linecap="round" />
+      
+      <!-- Stem -->
+      <path d="M40,10 C40,5 40,0 40,0" stroke="#8D6E63" stroke-width="4" stroke-linecap="round" />
+      <path d="M40,10 C50,5 55,15 50,15" stroke="#8D6E63" stroke-width="2" stroke-linecap="round" />
+      <path d="M40,10 C30,5 25,15 30,15" stroke="#8D6E63" stroke-width="2" stroke-linecap="round" />
+      
+      <!-- Bottom accent -->
+      <path d="M30,110 C40,115 50,110 50,110" stroke="#FF8F00" stroke-width="2" stroke-linecap="round" />
+    </g>
+    <text x="100" y="160" font-family="Arial" font-size="16" fill="#333" text-anchor="middle">Squash</text>
+  </g>
+</svg>

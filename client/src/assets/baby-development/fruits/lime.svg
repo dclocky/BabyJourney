@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <title>Lime</title>
+  <g fill="none" fill-rule="evenodd">
+    <circle cx="100" cy="100" r="80" fill="#f2f9e9" />
+    <g transform="translate(50, 40)">
+      <ellipse cx="50" cy="60" rx="40" ry="50" fill="#7CB342" />
+      <ellipse cx="50" cy="60" rx="35" ry="45" fill="#8BC34A" />
+      <path d="M50,15 C70,25 80,50 70,85" stroke="#5A8F28" stroke-width="1" stroke-linecap="round" />
+      <path d="M50,15 C30,25 20,50 30,85" stroke="#5A8F28" stroke-width="1" stroke-linecap="round" />
+      <path d="M25,40 C40,50 60,50 75,40" stroke="#5A8F28" stroke-width="1" stroke-linecap="round" />
+      <path d="M25,60 C40,70 60,70 75,60" stroke="#5A8F28" stroke-width="1" stroke-linecap="round" />
+      <path d="M25,80 C40,90 60,90 75,80" stroke="#5A8F28" stroke-width="1" stroke-linecap="round" />
+      
+      <!-- Stem -->
+      <path d="M50,15 C50,5 45,0 40,0" stroke="#795548" stroke-width="2" stroke-linecap="round" />
+      <circle cx="40" cy="0" r="1" fill="#795548" />
+    </g>
+    <text x="100" y="160" font-family="Arial" font-size="16" fill="#333" text-anchor="middle">Lime</text>
+  </g>
+</svg>

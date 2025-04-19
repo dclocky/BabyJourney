@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <title>Honeydew Melon</title>
+  <g fill="none" fill-rule="evenodd">
+    <circle cx="100" cy="100" r="80" fill="#f1f8e9" />
+    <g transform="translate(40, 40)">
+      <!-- Main melon body -->
+      <circle cx="60" cy="60" r="50" fill="#DCEDC8" />
+      <circle cx="60" cy="60" r="45" fill="#F1F8E9" />
+      
+      <!-- Inner patterns -->
+      <path d="M30,30 C40,50 80,50 90,30" stroke="#C5E1A5" stroke-width="1.5" stroke-linecap="round" />
+      <path d="M30,40 C40,60 80,60 90,40" stroke="#C5E1A5" stroke-width="1.5" stroke-linecap="round" />
+      <path d="M30,50 C40,70 80,70 90,50" stroke="#C5E1A5" stroke-width="1.5" stroke-linecap="round" />
+      <path d="M30,60 C40,80 80,80 90,60" stroke="#C5E1A5" stroke-width="1.5" stroke-linecap="round" />
+      <path d="M30,70 C40,90 80,90 90,70" stroke="#C5E1A5" stroke-width="1.5" stroke-linecap="round" />
+      <path d="M30,80 C40,100 80,100 90,80" stroke="#C5E1A5" stroke-width="1.5" stroke-linecap="round" />
+      
+      <path d="M30,30 C50,40 50,80 30,90" stroke="#C5E1A5" stroke-width="1.5" stroke-linecap="round" />
+      <path d="M40,30 C60,40 60,80 40,90" stroke="#C5E1A5" stroke-width="1.5" stroke-linecap="round" />
+      <path d="M50,30 C70,40 70,80 50,90" stroke="#C5E1A5" stroke-width="1.5" stroke-linecap="round" />
+      <path d="M60,30 C80,40 80,80 60,90" stroke="#C5E1A5" stroke-width="1.5" stroke-linecap="round" />
+      <path d="M70,30 C90,40 90,80 70,90" stroke="#C5E1A5" stroke-width="1.5" stroke-linecap="round" />
+      <path d="M80,30 C100,40 100,80 80,90" stroke="#C5E1A5" stroke-width="1.5" stroke-linecap="round" />
+      
+      <!-- Seed cavity -->
+      <circle cx="60" cy="60" r="15" fill="#E8F5E9" />
+      <ellipse cx="60" cy="60" rx="10" ry="8" fill="#AED581" opacity="0.7" />
+      
+      <!-- Add some seeds -->
+      <ellipse cx="57" cy="57" rx="2" ry="3" fill="#FFF" transform="rotate(-15)" />
+      <ellipse cx="64" cy="58" rx="2" ry="3" fill="#FFF" transform="rotate(15)" />
+      <ellipse cx="60" cy="64" rx="2" ry="3" fill="#FFF" transform="rotate(45)" />
+    </g>
+    <text x="100" y="160" font-family="Arial" font-size="16" fill="#333" text-anchor="middle">Honeydew Melon</text>
+  </g>
+</svg>

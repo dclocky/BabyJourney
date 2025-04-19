@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <title>Banana</title>
+  <g fill="none" fill-rule="evenodd">
+    <circle cx="100" cy="100" r="80" fill="#fffde7" />
+    <g transform="translate(35, 30)">
+      <path d="M100,15 C120,20 130,45 95,120 C90,130 70,140 50,125 C30,110 40,70 50,50 C60,30 85,10 100,15 Z" fill="#FFE082" />
+      <path d="M100,15 C120,20 130,45 95,120 C90,130 70,140 50,125" stroke="#FFA000" stroke-width="1" fill="none" />
+      
+      <!-- Stem -->
+      <path d="M100,15 C110,0 90,-10 80,5" stroke="#795548" stroke-width="2" stroke-linecap="round" fill="none" />
+      
+      <!-- Details -->
+      <path d="M90,30 C70,50 60,80 70,110" stroke="#FFC107" stroke-width="1" stroke-linecap="round" opacity="0.7" />
+      <path d="M80,25 C60,45 50,75 60,105" stroke="#FFC107" stroke-width="1" stroke-linecap="round" opacity="0.7" />
+      
+      <!-- Brown spots -->
+      <circle cx="75" cy="40" r="2" fill="#795548" opacity="0.3" />
+      <circle cx="85" cy="65" r="2" fill="#795548" opacity="0.3" />
+      <circle cx="65" cy="90" r="2" fill="#795548" opacity="0.3" />
+      <circle cx="75" cy="110" r="2" fill="#795548" opacity="0.3" />
+    </g>
+    <text x="100" y="160" font-family="Arial" font-size="16" fill="#333" text-anchor="middle">Banana</text>
+  </g>
+</svg>
