@@ -71,7 +71,7 @@ export default function PregnancyPage() {
   const addPregnancyMutation = useMutation({
     mutationFn: async (data: z.infer<typeof pregnancySchema>) => {
       const res = await apiRequest("POST", "/api/pregnancies", {
-        dueDate: new Date(data.dueDate),
+        dueDate: data.dueDate, // Send as string instead of Date object
         babyName: data.babyName,
       });
       return await res.json();

@@ -84,7 +84,7 @@ export default function BabyPage() {
         userId: user!.id,
         name: data.name,
         gender: data.gender,
-        birthDate: new Date(data.birthDate),
+        birthDate: data.birthDate, // Send as string instead of Date object
         isPregnancy: false,
       };
       const res = await apiRequest("POST", "/api/children", newBaby);
