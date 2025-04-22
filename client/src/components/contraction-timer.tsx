@@ -1,251 +1,298 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { formatDistanceToNow, format } from "date-fns";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { AlertCircle, Clock, PlayCircle, StopCircle, TimerReset } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Timer, AlertCircle, Play, Pause, StopCircle, Plus, Clock, XCircle } from "lucide-react";
-import { format } from "date-fns";
-import { formatDuration } from "@/lib/utils";
 
-type Contraction = {
-  id: string;
-  start: Date;
-  end: Date | null;
-  duration: number | null;
-  interval: number | null;
-};
+interface Contraction {
+  id?: number;
+  pregnancyId: number;
+  startTime: Date;
+  endTime?: Date | null;
+  duration?: number | null;
+  intensity?: 'mild' | 'moderate' | 'strong';
+}
 
-export function ContractionTimer() {
-  const [contractions, setContractions] = useState<Contraction[]>([]);
+export interface ContractionTimerProps {
+  pregnancyId: number;
+  pregnancyDue?: Date | null;
+  existingContractions?: Contraction[];
+}
+
+export function ContractionTimer({ pregnancyId, pregnancyDue, existingContractions = [] }: ContractionTimerProps) {
+  const { toast } = useToast();
   const [isTracking, setIsTracking] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [currentContraction, setCurrentContraction] = useState<Contraction | null>(null);
+  const [contractionStart, setContractionStart] = useState<Date | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [contractions, setContractions] = useState<Contraction[]>(existingContractions);
+  const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
+  const [isNearDueDate, setIsNearDueDate] = useState(false);
 
-  // Update the current time every second
+  // Check if user is within 2 weeks of due date
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
+    if (pregnancyDue) {
+      const now = new Date();
+      const dueDate = new Date(pregnancyDue);
+      const twoWeeksBeforeDue = new Date(dueDate);
+      twoWeeksBeforeDue.setDate(dueDate.getDate() - 14);
+      
+      if (now >= twoWeeksBeforeDue) {
+        setIsNearDueDate(true);
+      }
+    }
+  }, [pregnancyDue]);
 
-  // Calculate average duration and interval
-  const averageDuration = contractions.length > 0
-    ? contractions.filter(c => c.duration).reduce((sum, c) => sum + (c.duration || 0), 0) / contractions.filter(c => c.duration).length
-    : 0;
+  // Save contraction to database
+  const saveContractionMutation = useMutation({
+    mutationFn: async (contraction: Contraction) => {
+      const response = await apiRequest(
+        "POST", 
+        `/api/pregnancies/${pregnancyId}/contractions`, 
+        contraction
+      );
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/pregnancies/${pregnancyId}/contractions`] });
+      toast({
+        title: "Contraction saved",
+        description: "Your contraction has been recorded",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to save contraction",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
-  const averageInterval = contractions.length > 1
-    ? contractions.filter(c => c.interval).reduce((sum, c) => sum + (c.interval || 0), 0) / contractions.filter(c => c.interval).length
-    : 0;
-  
-  // Start tracking a new contraction
+  // Start tracking a contraction
   const startContraction = () => {
     const now = new Date();
+    setContractionStart(now);
+    setIsTracking(true);
+    setElapsed(0);
+    
+    // Start timer
+    const id = setInterval(() => {
+      setElapsed(prev => prev + 1);
+    }, 1000);
+    
+    setIntervalId(id);
+  };
+
+  // Stop tracking and save the contraction
+  const stopContraction = (intensity: 'mild' | 'moderate' | 'strong') => {
+    if (!contractionStart) return;
+    
+    // Clear interval
+    if (intervalId) {
+      clearInterval(intervalId);
+      setIntervalId(null);
+    }
+    
+    const endTime = new Date();
+    const duration = Math.round((endTime.getTime() - contractionStart.getTime()) / 1000);
+    
+    // Create new contraction object
     const newContraction: Contraction = {
-      id: Date.now().toString(),
-      start: now,
-      end: null,
-      duration: null,
-      interval: contractions.length > 0 && contractions[0].end 
-        ? Math.floor((now.getTime() - contractions[0].end.getTime()) / 1000)
-        : null
+      pregnancyId,
+      startTime: contractionStart,
+      endTime,
+      duration,
+      intensity,
     };
     
-    setCurrentContraction(newContraction);
-    setIsTracking(true);
-  };
-
-  // Stop tracking the current contraction
-  const stopContraction = () => {
-    if (currentContraction) {
-      const now = new Date();
-      const duration = Math.floor((now.getTime() - currentContraction.start.getTime()) / 1000);
-      
-      const completed: Contraction = {
-        ...currentContraction,
-        end: now,
-        duration
-      };
-      
-      setContractions([completed, ...contractions]);
-      setCurrentContraction(null);
-      setIsTracking(false);
-    }
-  };
-
-  // Reset the timer and clear all contractions
-  const resetTimer = () => {
-    setContractions([]);
-    setCurrentContraction(null);
-    setIsTracking(false);
-  };
-
-  // Remove a specific contraction
-  const removeContraction = (id: string) => {
-    setContractions(contractions.filter(c => c.id !== id));
-  };
-
-  // Get the current contraction duration
-  const getCurrentDuration = () => {
-    if (!currentContraction) return 0;
-    return Math.floor((currentTime.getTime() - currentContraction.start.getTime()) / 1000);
-  };
-
-  // Determine contraction frequency status
-  const getContractionStatus = () => {
-    if (contractions.length < 3) return null;
+    // Save to local state first
+    setContractions(prev => [newContraction, ...prev]);
     
-    if (averageInterval <= 120 && averageDuration >= 60) {
-      return {
-        label: "Active Labor",
-        description: "Contractions are 2 minutes apart or less and last 60+ seconds",
-        color: "bg-red-500"
-      };
-    } else if (averageInterval <= 300 && averageDuration >= 45) {
-      return {
-        label: "Early Labor",
-        description: "Contractions are 5 minutes apart or less and last 45+ seconds",
-        color: "bg-amber-500"
-      };
-    } else {
-      return {
-        label: "Pre-labor",
-        description: "Contractions are more than 5 minutes apart",
-        color: "bg-green-500"
-      };
-    }
+    // Reset tracking state
+    setIsTracking(false);
+    setContractionStart(null);
+    setElapsed(0);
+    
+    // Save to database
+    saveContractionMutation.mutate(newContraction);
   };
 
-  const status = getContractionStatus();
+  // Cancel the current tracking
+  const cancelTracking = () => {
+    if (intervalId) {
+      clearInterval(intervalId);
+      setIntervalId(null);
+    }
+    
+    setIsTracking(false);
+    setContractionStart(null);
+    setElapsed(0);
+  };
+
+  // Format seconds to MM:SS
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Calculate average contraction duration
+  const averageDuration = contractions.length > 0 
+    ? Math.round(contractions.reduce((sum, c) => sum + (c.duration || 0), 0) / contractions.length) 
+    : 0;
+
+  // Calculate average time between contractions
+  const calculateTimeBetween = () => {
+    if (contractions.length < 2) return 'N/A';
+    
+    const intervals = [];
+    for (let i = 0; i < contractions.length - 1; i++) {
+      const current = new Date(contractions[i].startTime).getTime();
+      const next = new Date(contractions[i + 1].startTime).getTime();
+      intervals.push((current - next) / 1000); // in seconds
+    }
+    
+    const averageSeconds = Math.round(intervals.reduce((sum, val) => sum + val, 0) / intervals.length);
+    
+    const mins = Math.floor(averageSeconds / 60);
+    return `${mins} min`;
+  };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <Timer className="mr-2 h-5 w-5" />
-          Contraction Timer
-        </CardTitle>
-        <CardDescription>
-          Track your contractions to help determine when to go to the hospital
-        </CardDescription>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        {/* Status Card */}
-        {status && (
-          <Card>
-            <CardHeader className={`${status.color} text-white rounded-t-lg py-2`}>
-              <CardTitle className="text-base">{status.label}</CardTitle>
-            </CardHeader>
-            <CardContent className="py-3">
-              <div className="text-sm text-muted-foreground">{status.description}</div>
-              {status.label === "Active Labor" && (
-                <div className="mt-2 flex items-center text-red-500">
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  <span className="text-sm font-semibold">Consider going to the hospital</span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Timer Display */}
-        <div className="text-center py-6 space-y-4">
-          <div className="text-4xl font-bold">
-            {isTracking ? formatDuration(getCurrentDuration()) : "00:00:00"}
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {isTracking ? "Contraction in progress..." : "Press Start when a contraction begins"}
-          </div>
-          
-          <div className="flex flex-wrap justify-center gap-2 mt-4">
-            {!isTracking ? (
-              <Button onClick={startContraction} className="flex items-center">
-                <Play className="mr-2 h-4 w-4" />
-                Start
-              </Button>
-            ) : (
-              <Button onClick={stopContraction} variant="destructive" className="flex items-center">
-                <StopCircle className="mr-2 h-4 w-4" />
-                Stop
-              </Button>
-            )}
-            
-            <Button onClick={resetTimer} variant="outline" className="flex items-center">
-              <XCircle className="mr-2 h-4 w-4" />
-              Reset
-            </Button>
-          </div>
+    <Card className={cn(
+      "shadow-md", 
+      isTracking ? "border-primary border-2" : ""
+    )}>
+      <CardHeader className={cn(
+        "flex flex-row items-center justify-between space-y-0 pb-2",
+        isTracking ? "bg-primary/10" : ""
+      )}>
+        <div>
+          <CardTitle className="text-xl">Contraction Timer</CardTitle>
+          <CardDescription>
+            {isNearDueDate 
+              ? "Track your contractions in the final weeks" 
+              : "Available in the last 2 weeks of pregnancy"}
+          </CardDescription>
         </div>
-
-        {/* Stats */}
-        {contractions.length > 0 && (
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Avg Duration</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{formatDuration(averageDuration)}</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Avg Interval</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{formatDuration(averageInterval)}</p>
-              </CardContent>
-            </Card>
+        <Clock className="h-6 w-6 text-primary" />
+      </CardHeader>
+      
+      <CardContent className="pt-6">
+        {!isNearDueDate ? (
+          <div className="flex items-center p-4 bg-muted/50 rounded-md">
+            <AlertCircle className="h-5 w-5 text-muted-foreground mr-2" />
+            <p className="text-sm text-muted-foreground">
+              This feature will be available in the last 2 weeks before your due date
+            </p>
           </div>
-        )}
-
-        {/* History */}
-        {contractions.length > 0 && (
-          <div>
-            <h3 className="text-base font-medium mb-2">History</h3>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {contractions.map((contraction, index) => (
-                <div key={contraction.id} className="flex items-center justify-between py-2 border-b">
-                  <div>
-                    <div className="text-sm font-medium">
-                      {format(contraction.start, "h:mm a")}
-                    </div>
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3 mr-1" />
-                      Duration: {formatDuration(contraction.duration || 0)}
-                      {contraction.interval && (
-                        <span className="ml-2">Interval: {formatDuration(contraction.interval)}</span>
-                      )}
-                    </div>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => removeContraction(contraction.id)}
-                    className="h-6 w-6 p-0"
-                  >
-                    <XCircle className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+        ) : isTracking ? (
+          <div className="space-y-5">
+            <div className="text-center">
+              <div className="text-4xl font-bold tracking-tighter mb-1">
+                {formatTime(elapsed)}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Contraction in progress...
+              </p>
             </div>
+            
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium mb-1">When contraction ends, select intensity:</p>
+              <div className="grid grid-cols-3 gap-2">
+                <Button 
+                  variant="outline" 
+                  className="border-yellow-300 hover:bg-yellow-50"
+                  onClick={() => stopContraction('mild')}
+                >
+                  Mild
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="border-orange-400 hover:bg-orange-50"
+                  onClick={() => stopContraction('moderate')}
+                >
+                  Moderate
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="border-red-500 hover:bg-red-50"
+                  onClick={() => stopContraction('strong')}
+                >
+                  Strong
+                </Button>
+              </div>
+              <Button 
+                variant="ghost" 
+                className="mt-2" 
+                onClick={cancelTracking}
+              >
+                <TimerReset className="mr-2 h-4 w-4" />
+                Cancel Timing
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <Button 
+              className="w-full py-6 text-lg" 
+              onClick={startContraction}
+              disabled={saveContractionMutation.isPending}
+            >
+              <PlayCircle className="mr-2 h-5 w-5" />
+              Start Timing Contraction
+            </Button>
+            
+            {contractions.length > 0 && (
+              <div className="grid grid-cols-2 gap-4 bg-muted/30 p-4 rounded-md">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Avg. Duration</p>
+                  <p className="font-bold">{formatTime(averageDuration)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Avg. Time Between</p>
+                  <p className="font-bold">{calculateTimeBetween()}</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
       
-      <CardFooter className="flex flex-col items-start text-xs text-muted-foreground">
-        <div>
-          <strong>Early Labor:</strong> Contractions every 5-30 minutes lasting 30-45 seconds
-        </div>
-        <div>
-          <strong>Active Labor:</strong> Contractions every 2-3 minutes lasting 60+ seconds
-        </div>
-        <div>
-          <strong>When to go to the hospital:</strong> Contractions 5 minutes apart lasting 1 minute for 1 hour (5-1-1 rule)
-        </div>
-      </CardFooter>
+      {contractions.length > 0 && (
+        <CardFooter className="flex flex-col items-stretch border-t pt-4">
+          <p className="font-medium mb-2">Recent Contractions</p>
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {contractions.slice(0, 5).map((contraction, i) => (
+              <div key={i} className="flex justify-between items-center bg-muted/20 p-2 rounded-md text-sm">
+                <div className="flex items-center">
+                  <StopCircle className={cn(
+                    "h-4 w-4 mr-2",
+                    contraction.intensity === 'mild' ? "text-yellow-500" :
+                    contraction.intensity === 'moderate' ? "text-orange-500" : 
+                    "text-red-500"
+                  )} />
+                  <span>{format(new Date(contraction.startTime), "h:mm a")}</span>
+                  <span className="mx-2 text-muted-foreground">•</span>
+                  <span>{formatTime(contraction.duration || 0)}</span>
+                </div>
+                <Badge variant={
+                  contraction.intensity === 'mild' ? "outline" :
+                  contraction.intensity === 'moderate' ? "default" : 
+                  "destructive"
+                }>
+                  {contraction.intensity}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </CardFooter>
+      )}
     </Card>
   );
 }

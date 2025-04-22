@@ -154,9 +154,10 @@ export default function RegistryPage() {
   // Create registry mutation
   const createRegistryMutation = useMutation({
     mutationFn: async (data: RegistryFormValues) => {
-      // Only include childId if it's provided
+      // Only include childId if it's provided and map name to title
       const payload = {
-        ...data,
+        title: data.name, // Map name to title field for server
+        description: data.description,
         childId: data.childId ? parseInt(data.childId) : undefined,
       };
       const response = await apiRequest("POST", "/api/registries", payload);
@@ -184,7 +185,13 @@ export default function RegistryPage() {
   const addItemMutation = useMutation({
     mutationFn: async (data: RegistryItemFormValues) => {
       const response = await apiRequest("POST", "/api/registry-items", {
-        ...data,
+        title: data.name, // Map name to title field for server
+        description: data.description,
+        url: data.url,
+        category: data.category,
+        priority: data.priority,
+        quantity: data.quantity,
+        price: data.price,
         registryId: parseInt(registryId as string),
       });
       return response.json();

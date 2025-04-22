@@ -185,11 +185,13 @@ export default function MilestonesPage() {
     // If there's an image, we need to use FormData to submit
     if (selectedImage) {
       const formData = new FormData();
+      formData.append('childId', data.childId.toString());
       formData.append('title', data.title);
       formData.append('date', data.date);
       formData.append('description', data.description || '');
       formData.append('category', data.category);
       formData.append('image', selectedImage);
+      formData.append('imageData', ''); // Add empty imageData field to prevent server error
       
       // Custom fetch to handle file upload
       fetch(`/api/children/${data.childId}/milestones`, {
