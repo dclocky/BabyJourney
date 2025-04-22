@@ -175,7 +175,7 @@ export default function AppointmentsPage() {
         date: new Date(`${data.date}T${data.time}`),
         location: data.location || "",
         notes: data.notes || "",
-        childId: data.type === 'child' && data.childId ? data.childId : null,
+        childId: data.type === 'child' && data.childId ? data.childId : undefined,
         status: "scheduled",
         // Doctor mode fields
         doctorName: data.isDoctorMode ? data.doctorName || null : null,
@@ -188,48 +188,31 @@ export default function AppointmentsPage() {
         vitals: data.isDoctorMode ? data.vitals : {},
       };
       
+      // Use the apiRequest function instead of fetch directly to avoid JSON parsing issues
       if (data.type === 'child' && data.childId) {
-        const res = await fetch(`/api/children/${data.childId}/appointments`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(newAppointment)
-        });
-        
-        if (!res.ok) {
-          let errorMsg = 'Failed to create appointment';
-          try {
-            const errorData = await res.json();
-            errorMsg = errorData.message || errorMsg;
-          } catch {
-            // If the response is not JSON, use a generic error message
-          }
-          throw new Error(errorMsg);
+        try {
+          const response = await apiRequest(
+            'POST',
+            `/api/children/${data.childId}/appointments`,
+            newAppointment
+          );
+          return await response.json();
+        } catch (error) {
+          console.error('Error creating appointment:', error);
+          throw new Error('Failed to create appointment');
         }
-        
-        return await res.json();
       } else if (data.type === 'pregnancy' && data.pregnancyId) {
-        const res = await fetch(`/api/pregnancies/${data.pregnancyId}/appointments`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(newAppointment)
-        });
-        
-        if (!res.ok) {
-          let errorMsg = 'Failed to create appointment';
-          try {
-            const errorData = await res.json();
-            errorMsg = errorData.message || errorMsg;
-          } catch {
-            // If the response is not JSON, use a generic error message
-          }
-          throw new Error(errorMsg);
+        try {
+          const response = await apiRequest(
+            'POST',
+            `/api/pregnancies/${data.pregnancyId}/appointments`,
+            newAppointment
+          );
+          return await response.json();
+        } catch (error) {
+          console.error('Error creating appointment:', error);
+          throw new Error('Failed to create appointment');
         }
-        
-        return await res.json();
       } else {
         throw new Error("Missing child or pregnancy ID");
       }

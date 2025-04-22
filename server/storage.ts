@@ -19,7 +19,7 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import { db, pool } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
-import { pgTable, text, serial, integer, boolean, timestamp, json, uniqueIndex, varchar, type Json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json, uniqueIndex, varchar, jsonb } from "drizzle-orm/pg-core";
 import connectPg from "connect-pg-simple";
 
 const MemoryStore = createMemoryStore(session);
