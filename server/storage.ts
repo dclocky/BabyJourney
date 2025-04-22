@@ -152,6 +152,7 @@ export class MemStorage implements IStorage {
   private registryItems: Map<number, RegistryItem>;
   private contractions: Map<number, Contraction>;
   private cravings: Map<number, Craving>;
+  private babyNames: Map<number, BabyName>;
   public sessionStore: session.Store;
 
   private userIdCounter: number = 1;
@@ -168,6 +169,7 @@ export class MemStorage implements IStorage {
   private registryItemIdCounter: number = 1;
   private contractionIdCounter: number = 1;
   private cravingIdCounter: number = 1;
+  private babyNameIdCounter: number = 1;
 
   constructor() {
     this.users = new Map();
@@ -184,6 +186,7 @@ export class MemStorage implements IStorage {
     this.registryItems = new Map();
     this.contractions = new Map();
     this.cravings = new Map();
+    this.babyNames = new Map();
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // 24 hours
     });
@@ -787,6 +790,64 @@ export class MemStorage implements IStorage {
   
   async deleteCraving(id: number): Promise<boolean> {
     return this.cravings.delete(id);
+  }
+  
+  // Baby Names methods
+  async getBabyNames(userId: number, childId?: number): Promise<BabyName[]> {
+    return Array.from(this.babyNames.values()).filter(
+      (babyName) => {
+        // If childId is provided, filter by both userId and childId
+        if (childId) {
+          return babyName.userId === userId && babyName.childId === childId;
+        }
+        // Otherwise, just filter by userId
+        return babyName.userId === userId;
+      }
+    ).sort((a, b) => {
+      // Sort by favorite status first (favorites at the top)
+      if (a.isFavorite && !b.isFavorite) return -1;
+      if (!a.isFavorite && b.isFavorite) return 1;
+      
+      // Then sort by rating (highest rating first)
+      if (a.rating !== b.rating) {
+        return b.rating - a.rating;
+      }
+      
+      // Finally, sort by creation date (newest first)
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    });
+  }
+
+  async getBabyName(id: number): Promise<BabyName | undefined> {
+    return this.babyNames.get(id);
+  }
+
+  async createBabyName(babyName: InsertBabyName): Promise<BabyName> {
+    const id = this.babyNameIdCounter++;
+    const newBabyName: BabyName = {
+      ...babyName,
+      id,
+      createdAt: new Date()
+    };
+    this.babyNames.set(id, newBabyName);
+    return newBabyName;
+  }
+
+  async updateBabyName(id: number, updates: Partial<BabyName>): Promise<BabyName | undefined> {
+    const babyName = this.babyNames.get(id);
+    if (!babyName) return undefined;
+    
+    const updatedBabyName: BabyName = {
+      ...babyName,
+      ...updates
+    };
+    
+    this.babyNames.set(id, updatedBabyName);
+    return updatedBabyName;
+  }
+
+  async deleteBabyName(id: number): Promise<boolean> {
+    return this.babyNames.delete(id);
   }
 }
 
@@ -1467,6 +1528,67 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(cravings)
       .where(eq(cravings.id, id));
+    return result.rowCount > 0;
+  }
+  
+  // Baby Names methods
+  async getBabyNames(userId: number, childId?: number): Promise<BabyName[]> {
+    let query = db
+      .select()
+      .from(babyNames)
+      .where(eq(babyNames.userId, userId));
+      
+    if (childId) {
+      query = db
+        .select()
+        .from(babyNames)
+        .where(and(
+          eq(babyNames.userId, userId),
+          eq(babyNames.childId, childId)
+        ));
+    }
+    
+    const names = await query.orderBy(
+      desc(babyNames.isFavorite),
+      desc(babyNames.rating),
+      desc(babyNames.createdAt)
+    );
+    
+    return names;
+  }
+
+  async getBabyName(id: number): Promise<BabyName | undefined> {
+    const [name] = await db
+      .select()
+      .from(babyNames)
+      .where(eq(babyNames.id, id));
+    return name;
+  }
+
+  async createBabyName(babyName: InsertBabyName): Promise<BabyName> {
+    const [newName] = await db
+      .insert(babyNames)
+      .values({
+        ...babyName,
+        createdAt: new Date()
+      })
+      .returning();
+    return newName;
+  }
+
+  async updateBabyName(id: number, updates: Partial<BabyName>): Promise<BabyName | undefined> {
+    const [updatedName] = await db
+      .update(babyNames)
+      .set(updates)
+      .where(eq(babyNames.id, id))
+      .returning();
+    return updatedName;
+  }
+
+  async deleteBabyName(id: number): Promise<boolean> {
+    const result = await db
+      .delete(babyNames)
+      .where(eq(babyNames.id, id));
     return result.rowCount > 0;
   }
 }
