@@ -133,7 +133,10 @@ export default function MilestonesPage() {
       return await res.json();
     },
     onSuccess: () => {
+      // Invalidate all milestone-related queries to ensure consistency
       queryClient.invalidateQueries({ queryKey: ["/api/children", selectedChild, "milestones"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/children", selectedChild, "milestones/recent"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/milestones"] });
       toast({
         title: "Milestone added",
         description: "Your baby's milestone has been saved!",
@@ -203,8 +206,9 @@ export default function MilestonesPage() {
         return res.json();
       })
       .then(() => {
-        // Invalidate both the specific child milestones and the general milestones list
+        // Invalidate all milestone-related queries to ensure consistency
         queryClient.invalidateQueries({ queryKey: ["/api/children", selectedChild, "milestones"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/children", selectedChild, "milestones/recent"] });
         queryClient.invalidateQueries({ queryKey: ["/api/milestones"] });
         toast({
           title: "Milestone added",
