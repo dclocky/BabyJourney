@@ -573,45 +573,8 @@ function MilestonesCard({ childId }: MilestonesCardProps) {
     enabled: !!childId,
   });
 
-  // For MVP demo, show some placeholder milestones if none are found
-  const displayMilestones: Milestone[] =
-    milestones.length > 0
-      ? milestones
-      : [
-          {
-            id: 1,
-            childId: 1,
-            userId: 1,
-            title: "First Kicks Felt!",
-            date: new Date("2023-04-02"),
-            description:
-              "Felt the baby's first movements during evening rest. It was like little bubbles or flutters!",
-            category: "pregnancy",
-            createdAt: new Date(),
-          },
-          {
-            id: 2,
-            childId: 1,
-            userId: 1,
-            title: "20-Week Ultrasound",
-            date: new Date("2023-03-26"),
-            description:
-              "Anatomy scan looked perfect! Baby is measuring right on track.",
-            category: "pregnancy",
-            createdAt: new Date(),
-          },
-          {
-            id: 3,
-            childId: 1,
-            userId: 1,
-            title: "Gender Reveal",
-            date: new Date("2023-03-12"),
-            description:
-              "It's a girl! We're so excited to welcome our daughter in a few months.",
-            category: "pregnancy",
-            createdAt: new Date(),
-          },
-        ];
+  // Use actual milestones from the API
+  const displayMilestones: Milestone[] = milestones;
 
   const handleAddMilestone = () => {
     setShowAddMilestoneDialog(true);

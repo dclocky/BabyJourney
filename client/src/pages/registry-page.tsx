@@ -868,7 +868,7 @@ function ItemsTable({
             </TableCell>
             <TableCell>
               <Badge variant="outline">
-                {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
+                {item.category ? (item.category.charAt(0).toUpperCase() + item.category.slice(1)) : 'Other'}
               </Badge>
             </TableCell>
             <TableCell>
