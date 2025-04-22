@@ -40,7 +40,7 @@ export function AppTabs({ activeTab }: AppTabsProps) {
     { name: "Appointments", path: "/appointments" },
     { name: "Memories", path: "/memories", premium: !isPremium },
     { name: "Family", path: "/family" },
-    { name: "Registry", path: "/registry" }
+    { name: "Extras", path: "/extras" }
   ];
 
   return (

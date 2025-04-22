@@ -299,25 +299,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/children/:id/milestones", requireAuth, upload.single('image'), async (req, res, next) => {
     try {
+      console.log("Creating milestone with data:", req.body);
+      
       const childId = parseInt(req.params.id);
+      if (isNaN(childId)) {
+        return res.status(400).json({ message: "Invalid child ID" });
+      }
+      
       const child = await storage.getChild(childId);
+      console.log("Child found:", child);
 
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
+      }
+
+      // Validate date
+      let milestoneDate;
+      try {
+        milestoneDate = req.body.date ? new Date(req.body.date) : new Date();
+        if (isNaN(milestoneDate.getTime())) {
+          return res.status(400).json({ message: "Invalid date format" });
+        }
+      } catch (dateError) {
+        console.error("Date parsing error:", dateError);
+        return res.status(400).json({ message: "Invalid date format" });
       }
 
       // Get milestone data from either FormData or JSON
       const milestoneData = req.file 
         ? { 
             title: req.body.title,
-            description: req.body.description,
-            category: req.body.category,
-            date: new Date(req.body.date),
+            description: req.body.description || null,
+            category: req.body.category || "other",
+            date: milestoneDate,
             // Add image data if available
             imageData: req.file.buffer.toString('base64'),
             imageType: req.file.mimetype
           } 
-        : { ...req.body, date: new Date(req.body.date) };
+        : { 
+            ...req.body, 
+            date: milestoneDate,
+            description: req.body.description || null,
+            category: req.body.category || "other"
+          };
+
+      console.log("Prepared milestone data:", { 
+        ...milestoneData, 
+        imageData: milestoneData.imageData ? "Image data present" : "No image data" 
+      });
 
       const milestone = await storage.createMilestone({
         ...milestoneData,
@@ -328,7 +357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(milestone);
     } catch (err) {
       console.error("Error creating milestone:", err);
-      next(err);
+      res.status(500).json({ message: "Failed to create milestone", error: err.message });
     }
   });
 
@@ -407,23 +436,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/children/:id/appointments", requireAuth, async (req, res, next) => {
     try {
+      console.log("Creating appointment with data:", req.body);
+      
       const childId = parseInt(req.params.id);
+      if (isNaN(childId)) {
+        return res.status(400).json({ message: "Invalid child ID" });
+      }
+      
       const child = await storage.getChild(childId);
+      console.log("Child found:", child);
 
       if (!child || child.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized" });
       }
 
-      const appointment = await storage.createAppointment({
+      // Validate date
+      let appointmentDate;
+      try {
+        appointmentDate = req.body.date ? new Date(req.body.date) : new Date();
+        if (isNaN(appointmentDate.getTime())) {
+          return res.status(400).json({ message: "Invalid date format" });
+        }
+      } catch (dateError) {
+        console.error("Date parsing error:", dateError);
+        return res.status(400).json({ message: "Invalid date format" });
+      }
+
+      // Validate required fields
+      if (!req.body.name) {
+        return res.status(400).json({ message: "Appointment name is required" });
+      }
+
+      const appointmentData = {
         ...req.body,
         childId,
         userId: req.user.id,
-        date: new Date(req.body.date)
-      });
+        date: appointmentDate,
+        notes: req.body.notes || null,
+        severity: req.body.severity || null
+      };
+
+      console.log("Prepared appointment data:", appointmentData);
+
+      const appointment = await storage.createAppointment(appointmentData);
 
       res.status(201).json(appointment);
     } catch (err) {
-      next(err);
+      console.error("Error creating appointment:", err);
+      res.status(500).json({ message: "Failed to create appointment", error: err.message });
     }
   });
 
@@ -731,14 +791,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new registry
   app.post("/api/registries", requireAuth, async (req, res, next) => {
     try {
-      const registry = await storage.createRegistry({
+      console.log("Creating registry with data:", req.body);
+      
+      // Validate required fields
+      if (!req.body.name) {
+        return res.status(400).json({ message: "Registry name is required" });
+      }
+      
+      // Make childId optional if it's present but null or undefined
+      const registryData = {
         ...req.body,
-        userId: req.user.id
-      });
+        userId: req.user.id,
+        childId: req.body.childId && !isNaN(parseInt(req.body.childId)) ? parseInt(req.body.childId) : null,
+        description: req.body.description || null
+      };
+      
+      console.log("Prepared registry data:", registryData);
+      
+      const registry = await storage.createRegistry(registryData);
       
       res.status(201).json(registry);
     } catch (err) {
-      next(err);
+      console.error("Error creating registry:", err);
+      res.status(500).json({ message: "Failed to create registry", error: err.message });
     }
   });
 
@@ -819,8 +894,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add an item to a registry
   app.post("/api/registry-items", requireAuth, async (req, res, next) => {
     try {
+      console.log("Creating registry item with data:", req.body);
+      
+      if (!req.body.registryId) {
+        return res.status(400).json({ message: "Registry ID is required" });
+      }
+      
       const registryId = parseInt(req.body.registryId);
+      if (isNaN(registryId)) {
+        return res.status(400).json({ message: "Invalid registry ID" });
+      }
+      
       const registry = await storage.getRegistry(registryId);
+      console.log("Registry found:", registry);
       
       if (!registry) {
         return res.status(404).json({ message: "Registry not found" });
@@ -830,10 +916,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Not authorized" });
       }
       
-      const item = await storage.createRegistryItem(req.body);
+      // Validate required fields
+      if (!req.body.name) {
+        return res.status(400).json({ message: "Item name is required" });
+      }
+      
+      if (!req.body.price && req.body.price !== 0) {
+        return res.status(400).json({ message: "Item price is required" });
+      }
+      
+      const itemData = {
+        registryId,
+        name: req.body.name,
+        price: parseFloat(req.body.price),
+        category: req.body.category || "other",
+        priority: req.body.priority || "medium",
+        quantity: parseInt(req.body.quantity) || 1,
+        url: req.body.url || null,
+        imageUrl: req.body.imageUrl || null,
+        description: req.body.description || null,
+        status: "available"
+      };
+      
+      console.log("Prepared registry item data:", itemData);
+      
+      const item = await storage.createRegistryItem(itemData);
       res.status(201).json(item);
     } catch (err) {
-      next(err);
+      console.error("Error creating registry item:", err);
+      res.status(500).json({ message: "Failed to create registry item", error: err.message });
     }
   });
 
