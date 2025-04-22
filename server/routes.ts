@@ -5,6 +5,18 @@ import { setupAuth, hashPassword, comparePasswords } from "./auth";
 import multer from "multer";
 import { randomBytes } from "crypto";
 import { format } from "date-fns";
+import { 
+  insertUserSchema, userSchema, loginSchema, 
+  insertFamilyMemberSchema, insertChildSchema, 
+  insertPregnancyJournalSchema, insertSymptomSchema, 
+  insertMilestoneSchema, insertGrowthRecordSchema, 
+  insertAppointmentSchema, insertPhotoSchema,
+  insertVaccinationSchema, insertRegistrySchema, 
+  insertRegistryItemSchema, insertContractionSchema,
+  insertCravingSchema, insertBabyNameSchema,
+  type Child
+} from "@shared/schema";
+import { fromZodError } from "zod-validation-error";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
@@ -1320,6 +1332,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (err) {
       console.error("Error deleting craving:", err);
       res.status(500).json({ message: "Failed to delete craving", error: err.message });
+    }
+  });
+  
+  // Get all baby names for a user
+  app.get("/api/baby-names", requireAuth, async (req, res, next) => {
+    try {
+      // Optional childId parameter
+      const childId = req.query.childId ? parseInt(req.query.childId as string) : undefined;
+      const names = await storage.getBabyNames(req.user.id, childId);
+      res.json(names);
+    } catch (err) {
+      console.error("Error fetching baby names:", err);
+      res.status(500).json({ message: "Failed to fetch baby names", error: err.message });
+    }
+  });
+  
+  // Get a specific baby name
+  app.get("/api/baby-names/:id", requireAuth, async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      const babyName = await storage.getBabyName(id);
+      
+      if (!babyName) {
+        return res.status(404).json({ message: "Baby name not found" });
+      }
+      
+      // Check ownership
+      if (babyName.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      res.json(babyName);
+    } catch (err) {
+      console.error("Error fetching baby name:", err);
+      res.status(500).json({ message: "Failed to fetch baby name", error: err.message });
+    }
+  });
+  
+  // Create a new baby name
+  app.post("/api/baby-names", requireAuth, async (req, res, next) => {
+    try {
+      // Add userId to the baby name data
+      const babyNameData = {
+        ...req.body,
+        userId: req.user.id
+      };
+      
+      // Validate the baby name data
+      insertBabyNameSchema.parse(babyNameData);
+      
+      const newBabyName = await storage.createBabyName(babyNameData);
+      res.status(201).json(newBabyName);
+    } catch (err) {
+      console.error("Error creating baby name:", err);
+      
+      if (err.name === 'ZodError') {
+        return res.status(400).json({ 
+          message: "Invalid baby name data", 
+          errors: fromZodError(err).message 
+        });
+      }
+      
+      res.status(500).json({ message: "Failed to create baby name", error: err.message });
+    }
+  });
+  
+  // Update a baby name
+  app.patch("/api/baby-names/:id", requireAuth, async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      const babyName = await storage.getBabyName(id);
+      
+      if (!babyName) {
+        return res.status(404).json({ message: "Baby name not found" });
+      }
+      
+      // Check ownership
+      if (babyName.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      // Update the baby name
+      const updatedBabyName = await storage.updateBabyName(id, req.body);
+      res.json(updatedBabyName);
+    } catch (err) {
+      console.error("Error updating baby name:", err);
+      res.status(500).json({ message: "Failed to update baby name", error: err.message });
+    }
+  });
+  
+  // Delete a baby name
+  app.delete("/api/baby-names/:id", requireAuth, async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      const babyName = await storage.getBabyName(id);
+      
+      if (!babyName) {
+        return res.status(404).json({ message: "Baby name not found" });
+      }
+      
+      // Check ownership
+      if (babyName.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      await storage.deleteBabyName(id);
+      res.status(204).end();
+    } catch (err) {
+      console.error("Error deleting baby name:", err);
+      res.status(500).json({ message: "Failed to delete baby name", error: err.message });
     }
   });
 
