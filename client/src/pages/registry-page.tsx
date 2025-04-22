@@ -594,7 +594,7 @@ export default function RegistryPage() {
               
               <TabsContent value="reserved">
                 <ItemsTable 
-                  items={(registryItems || []).filter(item => item.status === "reserved")} 
+                  items={registryItems.filter(item => item.status === "reserved")} 
                   isLoading={itemsLoading} 
                   onDelete={(id) => deleteItemMutation.mutate(id)}
                   isDeleting={deleteItemMutation.isPending}
@@ -603,7 +603,7 @@ export default function RegistryPage() {
               
               <TabsContent value="purchased">
                 <ItemsTable 
-                  items={(registryItems || []).filter(item => item.status === "purchased")} 
+                  items={registryItems.filter(item => item.status === "purchased")} 
                   isLoading={itemsLoading}
                   onDelete={(id) => deleteItemMutation.mutate(id)}
                   isDeleting={deleteItemMutation.isPending}
