@@ -49,7 +49,27 @@ import { useForm } from "react-hook-form";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format, addWeeks, differenceInWeeks } from "date-fns";
-import { Loader2, Calendar, PlusCircle, Baby, Clock, Clipboard } from "lucide-react";
+import { 
+  Loader2, 
+  Calendar, 
+  PlusCircle, 
+  Baby, 
+  Clock, 
+  Clipboard, 
+  Activity,
+  CalendarPlus,
+  Edit,
+  Trash,
+  MapPin,
+  Plus
+} from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent
+} from "@/components/ui/collapsible";
 
 export default function PregnancyPage() {
   const { toast } = useToast();
