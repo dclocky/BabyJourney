@@ -47,7 +47,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Child, Pregnancy, Appointment, InsertAppointment, Symptom } from "@shared/schema";
+import { Child, Appointment, InsertAppointment, Symptom } from "@shared/schema";
+// Define a type for pregnancy (using Child with isPregnancy=true is the pregnancy model)
+type Pregnancy = Child & { isPregnancy: true };
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -183,10 +185,26 @@ export default function AppointmentsPage() {
         doctorNotes: data.isDoctorMode ? data.doctorNotes || null : null,
         vitals: data.isDoctorMode ? data.vitals : {},
       };
-      const res = await apiRequest("POST", "/api/appointments", newAppointment);
-      return await res.json();
+      // Use the correct endpoint path with the childId if it's a child appointment
+      if (data.type === 'child' && data.childId) {
+        const res = await apiRequest("POST", `/api/children/${data.childId}/appointments`, newAppointment);
+        return await res.json();
+      } else if (data.type === 'pregnancy' && data.pregnancyId) {
+        // For pregnancy appointments
+        const res = await apiRequest("POST", `/api/pregnancies/${data.pregnancyId}/appointments`, newAppointment);
+        return await res.json();
+      } else {
+        throw new Error("Missing child or pregnancy ID");
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      // Invalidate both specific child/pregnancy appointments and the general appointments list
+      if (variables.type === 'child' && variables.childId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/children", variables.childId, "appointments"] });
+      } else if (variables.type === 'pregnancy' && variables.pregnancyId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/pregnancies", variables.pregnancyId, "appointments"] });
+      }
+      // Also invalidate the general appointments endpoint if it exists
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
       toast({
         title: "Appointment added",
