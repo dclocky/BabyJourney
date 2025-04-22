@@ -14,6 +14,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import {
   Form,
@@ -40,15 +41,16 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ContractionTimer } from "@/components/contraction-timer";
 import { BirthPlanner } from "@/components/birth-planner";
-import { Child } from "@shared/schema";
+import { Child, Craving } from "@shared/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { format, addWeeks, differenceInWeeks } from "date-fns";
+import { format, addWeeks, differenceInWeeks, parseISO } from "date-fns";
 import { 
   Loader2, 
   Calendar, 
@@ -61,15 +63,345 @@ import {
   Edit,
   Trash,
   MapPin,
-  Plus
+  Check,
+  X,
+  Plus,
+  AlertCircle
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Collapsible,
   CollapsibleTrigger,
   CollapsibleContent
 } from "@/components/ui/collapsible";
+
+// Form schema for adding a new craving
+const cravingSchema = z.object({
+  foodName: z.string().min(1, "Please enter what you're craving"),
+  intensity: z.string().transform(val => parseInt(val)),
+  satisfied: z.boolean().default(false),
+  notes: z.string().optional(),
+  date: z.string().refine(date => !isNaN(Date.parse(date)), {
+    message: "Please enter a valid date",
+  })
+});
+
+// Component for adding a new craving
+function CravingForm({ pregnancyId, onSuccess }: { pregnancyId: number, onSuccess: () => void }) {
+  const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(true);
+
+  const form = useForm<z.infer<typeof cravingSchema>>({
+    resolver: zodResolver(cravingSchema),
+    defaultValues: {
+      foodName: "",
+      intensity: "3",
+      satisfied: false,
+      notes: "",
+      date: format(new Date(), "yyyy-MM-dd"),
+    },
+  });
+
+  const addCravingMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof cravingSchema>) => {
+      const res = await apiRequest("POST", `/api/pregnancies/${pregnancyId}/cravings`, {
+        ...data,
+        date: new Date(data.date),
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      onSuccess();
+      toast({
+        title: "Craving added",
+        description: "Your craving has been recorded!",
+      });
+      form.reset({
+        foodName: "",
+        intensity: "3",
+        satisfied: false,
+        notes: "",
+        date: format(new Date(), "yyyy-MM-dd"),
+      });
+      setIsDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to add craving",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: z.infer<typeof cravingSchema>) => {
+    addCravingMutation.mutate(data);
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="foodName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Food Name</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., Pickles, Ice Cream, Spicy Food" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="intensity"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Intensity (1-5)</FormLabel>
+              <Select 
+                onValueChange={field.onChange} 
+                defaultValue={field.value?.toString()}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select intensity" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="1">1 - Mild</SelectItem>
+                  <SelectItem value="2">2 - Light</SelectItem>
+                  <SelectItem value="3">3 - Moderate</SelectItem>
+                  <SelectItem value="4">4 - Strong</SelectItem>
+                  <SelectItem value="5">5 - Intense</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="date"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Date</FormLabel>
+              <FormControl>
+                <Input type="date" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="satisfied"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-2 rounded-md border">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>Satisfied</FormLabel>
+                <FormDescription>
+                  Check this if you've satisfied this craving
+                </FormDescription>
+              </div>
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Notes (Optional)</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="Additional details about your craving..." 
+                  className="resize-none" 
+                  {...field} 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <DialogFooter>
+          <Button type="submit" disabled={addCravingMutation.isPending}>
+            {addCravingMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save Craving"
+            )}
+          </Button>
+        </DialogFooter>
+      </form>
+    </Form>
+  );
+}
+
+// Component for displaying cravings
+function CravingsList({ pregnancyId }: { pregnancyId: number }) {
+  const { toast } = useToast();
+  
+  const { data: cravings = [], isLoading } = useQuery<Craving[]>({
+    queryKey: [`/api/pregnancies/${pregnancyId}/cravings`],
+  });
+
+  const deleteCravingMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/cravings/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/pregnancies/${pregnancyId}/cravings`] });
+      toast({
+        title: "Craving deleted",
+        description: "The craving has been removed from your list",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to delete craving",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const toggleSatisfiedMutation = useMutation({
+    mutationFn: async ({ id, satisfied }: { id: number, satisfied: boolean }) => {
+      const res = await apiRequest("PUT", `/api/cravings/${id}`, { satisfied });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/pregnancies/${pregnancyId}/cravings`] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to update craving",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="py-8 flex justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+      </div>
+    );
+  }
+
+  if (cravings.length === 0) {
+    return (
+      <Card>
+        <CardContent className="pt-6 text-center">
+          <div className="py-8">
+            <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">No Cravings Recorded</h3>
+            <p className="text-muted-foreground">
+              Start tracking your pregnancy cravings! Add your first craving using the button above.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        <div className="space-y-4">
+          {cravings.map((craving) => (
+            <div 
+              key={craving.id} 
+              className={`border rounded-md p-4 ${craving.satisfied ? 'bg-muted/30' : ''}`}
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="flex items-center">
+                    <h4 className="font-medium">{craving.foodName}</h4>
+                    {craving.satisfied && (
+                      <Badge className="ml-2 bg-green-100 text-green-800 hover:bg-green-100">
+                        <Check className="h-3 w-3 mr-1" />
+                        Satisfied
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {craving.date ? format(new Date(craving.date), "MMMM d, yyyy") : ""}
+                  </p>
+                  {craving.notes && (
+                    <p className="mt-2 text-sm">{craving.notes}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="py-1">
+                    Intensity: {craving.intensity || 0}/5
+                  </Badge>
+                </div>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => toggleSatisfiedMutation.mutate({ 
+                    id: craving.id, 
+                    satisfied: !craving.satisfied 
+                  })}
+                  disabled={toggleSatisfiedMutation.isPending}
+                >
+                  {craving.satisfied ? (
+                    <>
+                      <X className="h-3 w-3 mr-1" />
+                      Mark Unsatisfied
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-3 w-3 mr-1" />
+                      Mark Satisfied
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  onClick={() => deleteCravingMutation.mutate(craving.id)}
+                  disabled={deleteCravingMutation.isPending}
+                >
+                  <Trash className="h-3 w-3 mr-1" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function PregnancyPage() {
   const { toast } = useToast();
@@ -227,7 +559,7 @@ export default function PregnancyPage() {
         ) : (
           <div className="space-y-8">
             <Tabs defaultValue="progress" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="progress" className="flex items-center gap-1.5">
                   <Baby className="h-4 w-4" />
                   Progress
@@ -235,6 +567,12 @@ export default function PregnancyPage() {
                 <TabsTrigger value="symptoms" className="flex items-center gap-1.5">
                   <Activity className="h-4 w-4" />
                   Symptoms
+                </TabsTrigger>
+                <TabsTrigger value="cravings" className="flex items-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.5 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+                  </svg>
+                  Cravings
                 </TabsTrigger>
                 <TabsTrigger value="appointments" className="flex items-center gap-1.5">
                   <Calendar className="h-4 w-4" />
@@ -393,6 +731,39 @@ export default function PregnancyPage() {
                         </div>
                       </CardContent>
                     </Card>
+                  </div>
+                ))}
+              </TabsContent>
+              
+              <TabsContent value="cravings" className="mt-6">
+                {pregnancies.map((pregnancy) => (
+                  <div key={`cravings-${pregnancy.id}`} className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-lg font-semibold">{pregnancy.name}'s Cravings</h3>
+                      
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Craving
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Log New Craving</DialogTitle>
+                            <DialogDescription>
+                              Keep track of your food cravings throughout your pregnancy journey.
+                            </DialogDescription>
+                          </DialogHeader>
+                          
+                          <CravingForm pregnancyId={pregnancy.id} onSuccess={() => {
+                            queryClient.invalidateQueries({ queryKey: [`/api/pregnancies/${pregnancy.id}/cravings`] });
+                          }} />
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                    
+                    <CravingsList pregnancyId={pregnancy.id} />
                   </div>
                 ))}
               </TabsContent>

@@ -1200,6 +1200,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cravings Routes
+  
+  // Get cravings for a pregnancy
+  app.get("/api/pregnancies/:pregnancyId/cravings", requireAuth, async (req, res, next) => {
+    try {
+      const pregnancyId = parseInt(req.params.pregnancyId);
+      
+      const pregnancy = await storage.getPregnancy(pregnancyId);
+      
+      if (!pregnancy) {
+        return res.status(404).json({ message: "Pregnancy not found" });
+      }
+      
+      if (pregnancy.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      const cravings = await storage.getCravings(pregnancyId);
+      res.json(cravings);
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  // Record a new craving
+  app.post("/api/pregnancies/:pregnancyId/cravings", requireAuth, async (req, res, next) => {
+    try {
+      const pregnancyId = parseInt(req.params.pregnancyId);
+      
+      const pregnancy = await storage.getPregnancy(pregnancyId);
+      
+      if (!pregnancy) {
+        return res.status(404).json({ message: "Pregnancy not found" });
+      }
+      
+      if (pregnancy.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      // Basic validation
+      if (!req.body.foodName) {
+        return res.status(400).json({ message: "Food name is required" });
+      }
+      
+      // Prepare the craving data
+      const cravingData = {
+        pregnancyId,
+        userId: req.user.id,
+        foodName: req.body.foodName,
+        intensity: req.body.intensity || null,
+        satisfied: req.body.satisfied || false,
+        notes: req.body.notes || null,
+        date: req.body.date ? new Date(req.body.date) : new Date()
+      };
+      
+      const craving = await storage.createCraving(cravingData);
+      res.status(201).json(craving);
+    } catch (err) {
+      console.error("Error recording craving:", err);
+      res.status(500).json({ message: "Failed to record craving", error: err.message });
+    }
+  });
+  
+  // Update a craving
+  app.put("/api/cravings/:id", requireAuth, async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      const craving = await storage.getCraving(id);
+      
+      if (!craving) {
+        return res.status(404).json({ message: "Craving not found" });
+      }
+      
+      // Get the pregnancy to check ownership
+      const pregnancy = await storage.getPregnancy(craving.pregnancyId);
+      
+      if (!pregnancy || pregnancy.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      // Update the craving
+      const updates = {
+        foodName: req.body.foodName || craving.foodName,
+        intensity: req.body.intensity !== undefined ? req.body.intensity : craving.intensity,
+        satisfied: req.body.satisfied !== undefined ? req.body.satisfied : craving.satisfied,
+        notes: req.body.notes !== undefined ? req.body.notes : craving.notes,
+        date: req.body.date ? new Date(req.body.date) : craving.date
+      };
+      
+      const updatedCraving = await storage.updateCraving(id, updates);
+      res.json(updatedCraving);
+    } catch (err) {
+      console.error("Error updating craving:", err);
+      res.status(500).json({ message: "Failed to update craving", error: err.message });
+    }
+  });
+  
+  // Delete a craving
+  app.delete("/api/cravings/:id", requireAuth, async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      const craving = await storage.getCraving(id);
+      
+      if (!craving) {
+        return res.status(404).json({ message: "Craving not found" });
+      }
+      
+      // Get the pregnancy to check ownership
+      const pregnancy = await storage.getPregnancy(craving.pregnancyId);
+      
+      if (!pregnancy || pregnancy.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      await storage.deleteCraving(id);
+      res.status(204).end();
+    } catch (err) {
+      console.error("Error deleting craving:", err);
+      res.status(500).json({ message: "Failed to delete craving", error: err.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
