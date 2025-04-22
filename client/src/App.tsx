@@ -13,6 +13,7 @@ import RegistryPage from "@/pages/registry-page";
 import RegistrySharePage from "@/pages/registry-share-page";
 import ExtrasPage from "@/pages/extras-page";
 import BabyPoolPage from "@/pages/baby-pool-page";
+import BabyNamesPage from "@/pages/baby-names-page";
 import SettingsPage from "@/pages/settings-page";
 import { ProtectedRoute } from "./lib/protected-route";
 
@@ -40,6 +41,9 @@ function Router() {
       {/* Baby Pool routes */}
       <ProtectedRoute path="/baby-pool" component={BabyPoolPage} />
       <ProtectedRoute path="/baby-pool/:id" component={BabyPoolPage} />
+      
+      {/* Baby Names routes */}
+      <ProtectedRoute path="/baby-names" component={BabyNamesPage} />
       
       <ProtectedRoute path="/settings" component={SettingsPage} />
       <Route path="*" component={NotFound} />

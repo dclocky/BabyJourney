@@ -5,7 +5,7 @@ import { AppHeader } from "@/components/app-header";
 import { AppTabs } from "@/components/app-tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { PackageOpen, Gift, Dices, Users } from "lucide-react";
+import { PackageOpen, Gift, Dices, FileHeart } from "lucide-react";
 
 export default function ExtrasPage() {
   const { user } = useAuth();
@@ -66,25 +66,25 @@ export default function ExtrasPage() {
             </CardFooter>
           </Card>
           
-          {/* Coming Soon Card */}
+          {/* Baby Names Card */}
           <Card>
             <CardHeader>
               <div className="flex items-center space-x-2">
-                <Users className="h-5 w-5 text-primary" />
-                <CardTitle>Coming Soon</CardTitle>
+                <FileHeart className="h-5 w-5 text-primary" />
+                <CardTitle>Baby Names</CardTitle>
               </div>
               <CardDescription>
-                More features on the way
+                Collect and organize baby name ideas
               </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                We're working on more exciting features to help you document and celebrate your maternal journey.
+                Keep track of baby name ideas, their meanings, origins, and ratings. Save your favorites and organize them by gender.
               </p>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" disabled className="w-full">
-                Stay Tuned
+              <Button onClick={() => navigate("/baby-names")} className="w-full">
+                Explore Names
               </Button>
             </CardFooter>
           </Card>
