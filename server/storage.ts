@@ -164,6 +164,7 @@ export class MemStorage implements IStorage {
     this.vaccinations = new Map();
     this.registries = new Map();
     this.registryItems = new Map();
+    this.contractions = new Map();
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // 24 hours
     });
@@ -682,6 +683,52 @@ export class MemStorage implements IStorage {
     }
     
     return this.updateRegistryItem(id, updates);
+  }
+  
+  // Helper method for getting a pregnancy (child record that is_pregnancy=true)
+  async getPregnancy(id: number): Promise<Child | undefined> {
+    const child = await this.getChild(id);
+    if (!child || !child.isPregnancy) return undefined;
+    return child;
+  }
+  
+  // Contraction methods
+  async getContractions(pregnancyId: number): Promise<Contraction[]> {
+    return Array.from(this.contractions.values())
+      .filter(contraction => contraction.pregnancyId === pregnancyId)
+      .sort((a, b) => b.startTime.getTime() - a.startTime.getTime()); // Most recent first
+  }
+  
+  async getContraction(id: number): Promise<Contraction | undefined> {
+    return this.contractions.get(id);
+  }
+  
+  async createContraction(contraction: InsertContraction): Promise<Contraction> {
+    const id = this.contractionIdCounter++;
+    const newContraction: Contraction = {
+      ...contraction,
+      id,
+      createdAt: new Date()
+    };
+    this.contractions.set(id, newContraction);
+    return newContraction;
+  }
+  
+  async updateContraction(id: number, updates: Partial<Contraction>): Promise<Contraction | undefined> {
+    const contraction = await this.getContraction(id);
+    if (!contraction) return undefined;
+    
+    const updatedContraction: Contraction = {
+      ...contraction,
+      ...updates
+    };
+    
+    this.contractions.set(id, updatedContraction);
+    return updatedContraction;
+  }
+  
+  async deleteContraction(id: number): Promise<boolean> {
+    return this.contractions.delete(id);
   }
 }
 
@@ -1263,6 +1310,62 @@ export class DatabaseStorage implements IStorage {
     }
     
     return this.updateRegistryItem(id, updates);
+  }
+  
+  // Helper method for getting a pregnancy
+  async getPregnancy(id: number): Promise<Child | undefined> {
+    const [pregnancy] = await db
+      .select()
+      .from(children)
+      .where(and(
+        eq(children.id, id),
+        eq(children.isPregnancy, true)
+      ));
+    return pregnancy;
+  }
+  
+  // Contraction methods
+  async getContractions(pregnancyId: number): Promise<Contraction[]> {
+    return db
+      .select()
+      .from(contractions)
+      .where(eq(contractions.pregnancyId, pregnancyId))
+      .orderBy(desc(contractions.startTime));
+  }
+  
+  async getContraction(id: number): Promise<Contraction | undefined> {
+    const [contraction] = await db
+      .select()
+      .from(contractions)
+      .where(eq(contractions.id, id));
+    return contraction;
+  }
+  
+  async createContraction(contraction: InsertContraction): Promise<Contraction> {
+    const [newContraction] = await db
+      .insert(contractions)
+      .values({
+        ...contraction,
+        createdAt: new Date()
+      })
+      .returning();
+    return newContraction;
+  }
+  
+  async updateContraction(id: number, updates: Partial<Contraction>): Promise<Contraction | undefined> {
+    const [updatedContraction] = await db
+      .update(contractions)
+      .set(updates)
+      .where(eq(contractions.id, id))
+      .returning();
+    return updatedContraction;
+  }
+  
+  async deleteContraction(id: number): Promise<boolean> {
+    const result = await db
+      .delete(contractions)
+      .where(eq(contractions.id, id));
+    return result.rowCount > 0;
   }
 }
 
