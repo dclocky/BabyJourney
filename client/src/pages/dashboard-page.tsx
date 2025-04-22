@@ -711,15 +711,9 @@ function AddMilestoneDialog({ open, onClose, childId }: AddMilestoneDialogProps)
       }
     },
     onSuccess: () => {
-      // Invalidate both recent and all milestones to ensure consistent data
+      // Invalidate milestone-related queries
       queryClient.invalidateQueries({
         queryKey: ["/api/children", childId, "milestones/recent"],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["/api/children", childId, "milestones"],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["/api/milestones"],
       });
       toast({
         title: "Milestone added",

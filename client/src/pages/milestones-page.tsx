@@ -59,7 +59,7 @@ export default function MilestonesPage() {
   }
 
   const { data: milestones = [], isLoading: isLoadingMilestones } = useQuery<Milestone[]>({
-    queryKey: ["/api/children", selectedChild, "milestones"],
+    queryKey: ["/api/children", selectedChild, "milestones/recent"],
     enabled: selectedChild !== null,
   });
 
@@ -134,9 +134,7 @@ export default function MilestonesPage() {
     },
     onSuccess: () => {
       // Invalidate all milestone-related queries to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ["/api/children", selectedChild, "milestones"] });
       queryClient.invalidateQueries({ queryKey: ["/api/children", selectedChild, "milestones/recent"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/milestones"] });
       toast({
         title: "Milestone added",
         description: "Your baby's milestone has been saved!",
@@ -206,10 +204,8 @@ export default function MilestonesPage() {
         return res.json();
       })
       .then(() => {
-        // Invalidate all milestone-related queries to ensure consistency
-        queryClient.invalidateQueries({ queryKey: ["/api/children", selectedChild, "milestones"] });
+        // Invalidate milestone-related queries
         queryClient.invalidateQueries({ queryKey: ["/api/children", selectedChild, "milestones/recent"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/milestones"] });
         toast({
           title: "Milestone added",
           description: "Your baby's milestone has been saved with the image!",
