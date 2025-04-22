@@ -432,8 +432,8 @@ export default function BabyNamesPage() {
                   <FormItem>
                     <FormLabel>For child (optional)</FormLabel>
                     <Select 
-                      onValueChange={(value) => field.onChange(value !== "none" ? parseInt(value) : null)} 
-                      value={field.value?.toString() || "none"}
+                      onValueChange={(value) => field.onChange(value ? parseInt(value) : null)} 
+                      value={field.value?.toString() || ""}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -441,7 +441,7 @@ export default function BabyNamesPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="none">No specific child</SelectItem>
+                        <SelectItem value="">No specific child</SelectItem>
                         {children.map((child: any) => (
                           <SelectItem key={child.id} value={child.id.toString()}>
                             {child.name}
@@ -629,8 +629,8 @@ export default function BabyNamesPage() {
                   <FormItem>
                     <FormLabel>For child (optional)</FormLabel>
                     <Select 
-                      onValueChange={(value) => field.onChange(value !== "none" ? parseInt(value) : null)} 
-                      value={field.value?.toString() || "none"}
+                      onValueChange={(value) => field.onChange(value ? parseInt(value) : null)} 
+                      value={field.value?.toString() || ""}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -638,7 +638,7 @@ export default function BabyNamesPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="none">No specific child</SelectItem>
+                        <SelectItem value="">No specific child</SelectItem>
                         {children.map((child: any) => (
                           <SelectItem key={child.id} value={child.id.toString()}>
                             {child.name}
