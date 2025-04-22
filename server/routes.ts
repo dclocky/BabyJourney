@@ -815,16 +815,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Creating registry with data:", req.body);
       
       // Validate required fields
-      if (!req.body.name) {
-        return res.status(400).json({ message: "Registry name is required" });
+      if (!req.body.name && !req.body.title) {
+        return res.status(400).json({ message: "Registry name/title is required" });
       }
       
       // Make childId optional if it's present but null or undefined
       const registryData = {
         userId: req.user.id,
         childId: req.body.childId && !isNaN(parseInt(req.body.childId)) ? parseInt(req.body.childId) : null,
-        name: req.body.name, // Use name field consistently between client and server
-        description: req.body.description || null
+        title: req.body.name || req.body.title, // Accept either name or title to fix inconsistencies
+        description: req.body.description || null,
+        isPublic: req.body.isPublic ?? true
       };
       
       console.log("Prepared registry data:", registryData);
