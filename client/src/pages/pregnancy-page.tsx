@@ -532,7 +532,18 @@ export default function PregnancyPage() {
               </TabsContent>
               
               <TabsContent value="contractions" className="mt-6">
-                <ContractionTimer />
+                {pregnancies.length > 0 && (
+                  <div className="space-y-4">
+                    {pregnancies.map((pregnancy) => (
+                      <ContractionTimer 
+                        key={`contraction-timer-${pregnancy.id}`}
+                        pregnancyId={pregnancy.id} 
+                        pregnancyDue={pregnancy.dueDate ? new Date(pregnancy.dueDate) : null}
+                        existingContractions={[]}
+                      />
+                    ))}
+                  </div>
+                )}
               </TabsContent>
               
               <TabsContent value="birth-plan" className="mt-6">
