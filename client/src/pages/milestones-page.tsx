@@ -121,11 +121,11 @@ export default function MilestonesPage() {
 
   const addMilestoneMutation = useMutation({
     mutationFn: async (data: z.infer<typeof milestoneSchema>) => {
-      const newMilestone: InsertMilestone = {
+      const newMilestone = {
         childId: data.childId,
         userId: 0, // Will be set by server based on authenticated user
         title: data.title,
-        date: new Date(data.date),
+        date: data.date, // Send as string to avoid JSON serialization issues
         description: data.description || "",
         category: data.category,
       };

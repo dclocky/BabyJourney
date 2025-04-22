@@ -147,6 +147,7 @@ export default function RegistryPage() {
       category: "essentials",
       priority: "medium",
       quantity: "1",
+      price: "0.00", // Add price field with default value
     },
   });
   
@@ -202,6 +203,7 @@ export default function RegistryPage() {
         category: "essentials",
         priority: "medium",
         quantity: "1",
+        price: "0.00", // Added price field
       });
     },
     onError: (error) => {

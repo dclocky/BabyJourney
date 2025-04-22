@@ -316,8 +316,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate date
       let milestoneDate;
       try {
-        milestoneDate = req.body.date ? new Date(req.body.date) : new Date();
+        // Check if date is already a Date object or a string
+        if (req.body.date instanceof Date) {
+          milestoneDate = req.body.date;
+        } else if (typeof req.body.date === 'string') {
+          milestoneDate = new Date(req.body.date);
+        } else {
+          milestoneDate = new Date();
+        }
+        
+        // Ensure it's a valid date
         if (isNaN(milestoneDate.getTime())) {
+          console.error("Invalid date value:", req.body.date);
           return res.status(400).json({ message: "Invalid date format" });
         }
       } catch (dateError) {
