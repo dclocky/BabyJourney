@@ -19,6 +19,7 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import { db, pool } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
+import { pgTable, text, serial, integer, boolean, timestamp, json, uniqueIndex, varchar, type Json } from "drizzle-orm/pg-core";
 import connectPg from "connect-pg-simple";
 
 const MemoryStore = createMemoryStore(session);
@@ -1309,6 +1310,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createRegistry(registry: InsertRegistry): Promise<Registry> {
+    // If childId is null, we need to find a child to associate with
+    if (registry.childId === null || registry.childId === undefined) {
+      // Try to get first child for the user
+      const [firstChild] = await db
+        .select()
+        .from(children)
+        .where(eq(children.userId, registry.userId))
+        .limit(1);
+
+      if (firstChild) {
+        registry.childId = firstChild.id;
+      } else {
+        // Create a temporary child if none exists
+        const [newChild] = await db
+          .insert(children)
+          .values({
+            userId: registry.userId,
+            name: "Default Baby",
+            isPregnancy: true,
+            createdAt: new Date()
+          })
+          .returning();
+        registry.childId = newChild.id;
+      }
+    }
+    
     const [newRegistry] = await db
       .insert(registries)
       .values({
