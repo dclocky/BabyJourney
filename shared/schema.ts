@@ -300,6 +300,27 @@ export type InsertRegistryItem = z.infer<typeof insertRegistryItemSchema>;
 export type Contraction = typeof contractions.$inferSelect;
 export type InsertContraction = z.infer<typeof insertContractionSchema>;
 
+// Cravings table
+export const cravings = pgTable("cravings", {
+  id: serial("id").primaryKey(),
+  pregnancyId: integer("pregnancy_id").references(() => children.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  foodName: text("food_name").notNull(),
+  intensity: integer("intensity"),
+  satisfied: boolean("satisfied").default(false),
+  notes: text("notes"),
+  date: timestamp("date").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCravingSchema = createInsertSchema(cravings).omit({
+  id: true,
+  createdAt: true
+});
+
+export type Craving = typeof cravings.$inferSelect;
+export type InsertCraving = z.infer<typeof insertCravingSchema>;
+
 // Extend schemas with validation
 export const userSchema = insertUserSchema.extend({
   password: z.string().min(8, "Password must be at least 8 characters long"),

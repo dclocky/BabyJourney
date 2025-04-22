@@ -11,7 +11,8 @@ import {
   vaccinations, type Vaccination, type InsertVaccination,
   registries, type Registry, type InsertRegistry,
   registryItems, type RegistryItem, type InsertRegistryItem,
-  contractions, type Contraction, type InsertContraction
+  contractions, type Contraction, type InsertContraction,
+  cravings, type Craving, type InsertCraving
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -119,6 +120,13 @@ export interface IStorage {
   
   // Helper method for getting a pregnancy (child record that is_pregnancy=true)
   getPregnancy(id: number): Promise<Child | undefined>;
+  
+  // Cravings methods
+  getCravings(pregnancyId: number): Promise<Craving[]>;
+  getCraving(id: number): Promise<Craving | undefined>;
+  createCraving(craving: InsertCraving): Promise<Craving>;
+  updateCraving(id: number, craving: Partial<Craving>): Promise<Craving | undefined>;
+  deleteCraving(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -135,6 +143,7 @@ export class MemStorage implements IStorage {
   private registries: Map<number, Registry>;
   private registryItems: Map<number, RegistryItem>;
   private contractions: Map<number, Contraction>;
+  private cravings: Map<number, Craving>;
   public sessionStore: session.Store;
 
   private userIdCounter: number = 1;
@@ -150,6 +159,7 @@ export class MemStorage implements IStorage {
   private registryIdCounter: number = 1;
   private registryItemIdCounter: number = 1;
   private contractionIdCounter: number = 1;
+  private cravingIdCounter: number = 1;
 
   constructor() {
     this.users = new Map();
@@ -165,6 +175,7 @@ export class MemStorage implements IStorage {
     this.registries = new Map();
     this.registryItems = new Map();
     this.contractions = new Map();
+    this.cravings = new Map();
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // 24 hours
     });
