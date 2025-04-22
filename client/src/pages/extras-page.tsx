@@ -5,7 +5,7 @@ import { AppHeader } from "@/components/app-header";
 import { AppTabs } from "@/components/app-tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Registry, Gift, Gift2, Dices, Users } from "lucide-react";
+import { PackageOpen, Gift, Dices, Users } from "lucide-react";
 
 export default function ExtrasPage() {
   const { user } = useAuth();

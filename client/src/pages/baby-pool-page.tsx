@@ -339,9 +339,9 @@ export default function BabyPoolPage() {
   const formatGender = (gender: string) => {
     switch (gender) {
       case "boy":
-        return <Badge variant="blue">Boy</Badge>;
+        return <Badge className="bg-blue-500 hover:bg-blue-600 text-white">Boy</Badge>;
       case "girl":
-        return <Badge variant="pink">Girl</Badge>;
+        return <Badge className="bg-pink-500 hover:bg-pink-600 text-white">Girl</Badge>;
       case "surprise":
         return <Badge variant="secondary">Surprise</Badge>;
       default:
@@ -388,7 +388,7 @@ export default function BabyPoolPage() {
                     )}
                   />
                   
-                  {children && children.length > 0 && (
+                  {children && Array.isArray(children) && children.length > 0 && (
                     <FormField
                       control={poolForm.control}
                       name="childId"
@@ -405,7 +405,7 @@ export default function BabyPoolPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {children.map((child: any) => (
+                              {children.map((child: { id: number; name: string }) => (
                                 <SelectItem key={child.id} value={child.id.toString()}>
                                   {child.name}
                                 </SelectItem>
@@ -820,7 +820,7 @@ export default function BabyPoolPage() {
                         />
                       </div>
                       
-                      <Alert variant="warning" className="mt-4">
+                      <Alert className="mt-4 border-yellow-500 bg-yellow-50 text-yellow-900">
                         <AlertTriangle className="h-4 w-4" />
                         <AlertTitle>Important</AlertTitle>
                         <AlertDescription>

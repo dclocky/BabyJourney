@@ -11,6 +11,8 @@ import MemoriesPage from "@/pages/memories-page";
 import FamilyMembersPage from "@/pages/family-members-page";
 import RegistryPage from "@/pages/registry-page";
 import RegistrySharePage from "@/pages/registry-share-page";
+import ExtrasPage from "@/pages/extras-page";
+import BabyPoolPage from "@/pages/baby-pool-page";
 import SettingsPage from "@/pages/settings-page";
 import { ProtectedRoute } from "./lib/protected-route";
 
@@ -25,11 +27,21 @@ function Router() {
       <ProtectedRoute path="/appointments" component={AppointmentsPage} />
       <ProtectedRoute path="/memories" component={MemoriesPage} />
       <ProtectedRoute path="/family" component={FamilyMembersPage} />
+      
+      {/* Extras section */}
+      <ProtectedRoute path="/extras" component={ExtrasPage} />
+      
+      {/* Registry routes */}
       <ProtectedRoute path="/registry" component={RegistryPage} />
       <ProtectedRoute path="/registry/:id" component={RegistryPage} />
-      <ProtectedRoute path="/settings" component={SettingsPage} />
       {/* Public shared registry view - doesn't require authentication */}
       <Route path="/registry/share/:shareCode" component={RegistrySharePage} />
+      
+      {/* Baby Pool routes */}
+      <ProtectedRoute path="/baby-pool" component={BabyPoolPage} />
+      <ProtectedRoute path="/baby-pool/:id" component={BabyPoolPage} />
+      
+      <ProtectedRoute path="/settings" component={SettingsPage} />
       <Route path="*" component={NotFound} />
     </Switch>
   );
