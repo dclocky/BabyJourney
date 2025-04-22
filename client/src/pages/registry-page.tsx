@@ -661,7 +661,7 @@ export default function RegistryPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">No child selected (Pre-pregnancy registry)</SelectItem>
+                          <SelectItem value="0">No child selected (Pre-pregnancy registry)</SelectItem>
                           {childrenLoading ? (
                             <SelectItem value="loading" disabled>
                               Loading...

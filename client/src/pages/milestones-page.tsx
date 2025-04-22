@@ -468,6 +468,10 @@ export default function MilestonesPage() {
                     <CardTitle className="capitalize">
                       {category === "first" ? "First Moments" : 
                        category === "health" ? "Health Milestones" :
+                       category === "pregnancy" ? "Pregnancy Milestones" :
+                       category === "birth" ? "Birth Milestones" :
+                       category === "growth" ? "Growth Milestones" :
+                       category === "other" ? "Other Milestones" :
                        `${category.charAt(0).toUpperCase()}${category.slice(1)} Milestones`}
                     </CardTitle>
                   </div>
