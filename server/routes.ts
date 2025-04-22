@@ -340,7 +340,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...req.body, 
             date: milestoneDate,
             description: req.body.description || null,
-            category: req.body.category || "other"
+            category: req.body.category || "other",
+            imageData: null,
+            imageType: null
           };
 
       console.log("Prepared milestone data:", { 
@@ -463,17 +465,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Validate required fields
-      if (!req.body.name) {
-        return res.status(400).json({ message: "Appointment name is required" });
+      if (!req.body.title) {
+        return res.status(400).json({ message: "Appointment title is required" });
       }
 
       const appointmentData = {
-        ...req.body,
+        title: req.body.title,
         childId,
         userId: req.user.id,
         date: appointmentDate,
+        time: req.body.time || null,
+        location: req.body.location || null,
         notes: req.body.notes || null,
-        severity: req.body.severity || null
+        doctorName: req.body.doctorName || null,
+        doctorSpecialty: req.body.doctorSpecialty || null,
+        diagnosis: req.body.diagnosis || null,
+        treatment: req.body.treatment || null,
+        prescriptions: req.body.prescriptions || null,
+        followUpDate: req.body.followUpDate ? new Date(req.body.followUpDate) : null,
+        doctorNotes: req.body.doctorNotes || null,
+        vitals: req.body.vitals || {}
       };
 
       console.log("Prepared appointment data:", appointmentData);
@@ -928,14 +939,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const itemData = {
         registryId,
         name: req.body.name,
-        price: parseFloat(req.body.price),
+        price: parseFloat(req.body.price) * 100, // Convert to cents
         category: req.body.category || "other",
         priority: req.body.priority || "medium",
         quantity: parseInt(req.body.quantity) || 1,
         url: req.body.url || null,
         imageUrl: req.body.imageUrl || null,
         description: req.body.description || null,
-        status: "available"
+        status: "available" as const
       };
       
       console.log("Prepared registry item data:", itemData);
