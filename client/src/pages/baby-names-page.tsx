@@ -371,12 +371,12 @@ export default function BabyNamesPage() {
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
           <h1 className="text-2xl font-bold">Baby Name Ideas</h1>
           <div className="flex flex-col sm:flex-row gap-2">
-            <Select value={selectedChild?.toString() || ""} onValueChange={(val) => setSelectedChild(val ? parseInt(val) : null)}>
+            <Select value={selectedChild?.toString() || "all"} onValueChange={(val) => setSelectedChild(val !== "all" ? parseInt(val) : null)}>
               <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="All names" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All names</SelectItem>
+                <SelectItem value="all">All names</SelectItem>
                 {children.map((child: any) => (
                   <SelectItem key={child.id} value={child.id.toString()}>
                     {child.name}
