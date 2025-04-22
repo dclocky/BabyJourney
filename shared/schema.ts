@@ -236,12 +236,28 @@ export const insertRegistrySchema = createInsertSchema(registries).omit({
   shareCode: true // System generated
 });
 
+// Contractions table
+export const contractions = pgTable("contractions", {
+  id: serial("id").primaryKey(),
+  pregnancyId: integer("pregnancy_id").references(() => children.id).notNull(),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time"),
+  duration: integer("duration"), // in seconds
+  intensity: text("intensity", { enum: ["mild", "moderate", "strong"] }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertRegistryItemSchema = createInsertSchema(registryItems).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
   reservedAt: true,
   purchasedAt: true
+});
+
+export const insertContractionSchema = createInsertSchema(contractions).omit({
+  id: true,
+  createdAt: true
 });
 
 // Define types
@@ -280,6 +296,9 @@ export type InsertRegistry = z.infer<typeof insertRegistrySchema>;
 
 export type RegistryItem = typeof registryItems.$inferSelect;
 export type InsertRegistryItem = z.infer<typeof insertRegistryItemSchema>;
+
+export type Contraction = typeof contractions.$inferSelect;
+export type InsertContraction = z.infer<typeof insertContractionSchema>;
 
 // Extend schemas with validation
 export const userSchema = insertUserSchema.extend({

@@ -10,7 +10,8 @@ import {
   photos, type Photo, type InsertPhoto,
   vaccinations, type Vaccination, type InsertVaccination,
   registries, type Registry, type InsertRegistry,
-  registryItems, type RegistryItem, type InsertRegistryItem
+  registryItems, type RegistryItem, type InsertRegistryItem,
+  contractions, type Contraction, type InsertContraction
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -108,6 +109,16 @@ export interface IStorage {
   updateRegistryItem(id: number, item: Partial<RegistryItem>): Promise<RegistryItem | undefined>;
   deleteRegistryItem(id: number): Promise<boolean>;
   updateRegistryItemStatus(id: number, status: "available" | "reserved" | "purchased", personInfo: { name?: string; email?: string }): Promise<RegistryItem | undefined>;
+  
+  // Contraction methods
+  getContractions(pregnancyId: number): Promise<Contraction[]>;
+  getContraction(id: number): Promise<Contraction | undefined>;
+  createContraction(contraction: InsertContraction): Promise<Contraction>;
+  updateContraction(id: number, contraction: Partial<Contraction>): Promise<Contraction | undefined>;
+  deleteContraction(id: number): Promise<boolean>;
+  
+  // Helper method for getting a pregnancy (child record that is_pregnancy=true)
+  getPregnancy(id: number): Promise<Child | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -123,6 +134,7 @@ export class MemStorage implements IStorage {
   private vaccinations: Map<number, Vaccination>;
   private registries: Map<number, Registry>;
   private registryItems: Map<number, RegistryItem>;
+  private contractions: Map<number, Contraction>;
   public sessionStore: session.Store;
 
   private userIdCounter: number = 1;
@@ -137,6 +149,7 @@ export class MemStorage implements IStorage {
   private vaccinationIdCounter: number = 1;
   private registryIdCounter: number = 1;
   private registryItemIdCounter: number = 1;
+  private contractionIdCounter: number = 1;
 
   constructor() {
     this.users = new Map();

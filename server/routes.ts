@@ -1139,6 +1139,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // === Contraction Routes ===
+  
+  // Get contractions for a pregnancy
+  app.get("/api/pregnancies/:pregnancyId/contractions", requireAuth, async (req, res, next) => {
+    try {
+      const pregnancyId = parseInt(req.params.pregnancyId);
+      
+      const pregnancy = await storage.getPregnancy(pregnancyId);
+      
+      if (!pregnancy) {
+        return res.status(404).json({ message: "Pregnancy not found" });
+      }
+      
+      if (pregnancy.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      const contractions = await storage.getContractions(pregnancyId);
+      res.json(contractions);
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  // Record a new contraction
+  app.post("/api/pregnancies/:pregnancyId/contractions", requireAuth, async (req, res, next) => {
+    try {
+      const pregnancyId = parseInt(req.params.pregnancyId);
+      
+      const pregnancy = await storage.getPregnancy(pregnancyId);
+      
+      if (!pregnancy) {
+        return res.status(404).json({ message: "Pregnancy not found" });
+      }
+      
+      if (pregnancy.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      // Basic validation
+      if (!req.body.startTime) {
+        return res.status(400).json({ message: "Start time is required" });
+      }
+      
+      // Prepare the contraction data
+      const contractionData = {
+        pregnancyId,
+        startTime: new Date(req.body.startTime),
+        endTime: req.body.endTime ? new Date(req.body.endTime) : null,
+        duration: req.body.duration || null,
+        intensity: req.body.intensity || null
+      };
+      
+      const contraction = await storage.createContraction(contractionData);
+      res.status(201).json(contraction);
+    } catch (err) {
+      console.error("Error recording contraction:", err);
+      res.status(500).json({ message: "Failed to record contraction", error: err.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
