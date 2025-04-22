@@ -823,7 +823,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const registryData = {
         userId: req.user.id,
         childId: req.body.childId && !isNaN(parseInt(req.body.childId)) ? parseInt(req.body.childId) : null,
-        title: req.body.name, // Map name field from form to title field in database
+        name: req.body.name, // Use name field consistently between client and server
         description: req.body.description || null
       };
       
