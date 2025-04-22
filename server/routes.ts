@@ -811,9 +811,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Make childId optional if it's present but null or undefined
       const registryData = {
-        ...req.body,
         userId: req.user.id,
         childId: req.body.childId && !isNaN(parseInt(req.body.childId)) ? parseInt(req.body.childId) : null,
+        title: req.body.name, // Map name field from form to title field in database
         description: req.body.description || null
       };
       

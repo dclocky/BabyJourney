@@ -65,13 +65,24 @@ export default function MilestonesPage() {
 
   // Group milestones by category
   const milestonesByCategory: Record<string, Milestone[]> = {};
+  
+  // Initialize empty arrays for all possible categories
+  const allCategories = ["pregnancy", "birth", "first", "growth", "health", "other"];
+  allCategories.forEach(category => {
+    milestonesByCategory[category] = [];
+  });
 
-  if (milestones.length > 0) {
+  if (milestones && milestones.length > 0) {
     milestones.forEach(milestone => {
-      if (!milestonesByCategory[milestone.category]) {
-        milestonesByCategory[milestone.category] = [];
+      if (milestone && milestone.category) {
+        milestonesByCategory[milestone.category].push(milestone);
+      } else {
+        // If category is missing, put in "other"
+        milestonesByCategory["other"].push({
+          ...milestone,
+          category: "other"
+        });
       }
-      milestonesByCategory[milestone.category].push(milestone);
     });
   }
 
