@@ -321,6 +321,30 @@ export const insertCravingSchema = createInsertSchema(cravings).omit({
 export type Craving = typeof cravings.$inferSelect;
 export type InsertCraving = z.infer<typeof insertCravingSchema>;
 
+// Baby Name Ideas table
+export const babyNames = pgTable("baby_names", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  childId: integer("child_id").references(() => children.id), // Optional - can be for a specific pregnancy or general
+  name: text("name").notNull(),
+  meaning: text("meaning"),
+  origin: text("origin"),
+  gender: text("gender", { enum: ["male", "female", "neutral"] }),
+  rating: integer("rating").default(0), // Rating from 1-5
+  isFavorite: boolean("is_favorite").default(false),
+  notes: text("notes"),
+  suggestedBy: text("suggested_by"), // Who suggested this name?
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertBabyNameSchema = createInsertSchema(babyNames).omit({
+  id: true,
+  createdAt: true
+});
+
+export type BabyName = typeof babyNames.$inferSelect;
+export type InsertBabyName = z.infer<typeof insertBabyNameSchema>;
+
 // Extend schemas with validation
 export const userSchema = insertUserSchema.extend({
   password: z.string().min(8, "Password must be at least 8 characters long"),

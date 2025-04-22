@@ -12,7 +12,8 @@ import {
   registries, type Registry, type InsertRegistry,
   registryItems, type RegistryItem, type InsertRegistryItem,
   contractions, type Contraction, type InsertContraction,
-  cravings, type Craving, type InsertCraving
+  cravings, type Craving, type InsertCraving,
+  babyNames, type BabyName, type InsertBabyName
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -127,6 +128,13 @@ export interface IStorage {
   createCraving(craving: InsertCraving): Promise<Craving>;
   updateCraving(id: number, craving: Partial<Craving>): Promise<Craving | undefined>;
   deleteCraving(id: number): Promise<boolean>;
+  
+  // Baby Names methods
+  getBabyNames(userId: number, childId?: number): Promise<BabyName[]>;
+  getBabyName(id: number): Promise<BabyName | undefined>;
+  createBabyName(babyName: InsertBabyName): Promise<BabyName>;
+  updateBabyName(id: number, babyName: Partial<BabyName>): Promise<BabyName | undefined>;
+  deleteBabyName(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
