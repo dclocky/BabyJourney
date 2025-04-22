@@ -741,6 +741,45 @@ export class MemStorage implements IStorage {
   async deleteContraction(id: number): Promise<boolean> {
     return this.contractions.delete(id);
   }
+
+  // Cravings methods
+  async getCravings(pregnancyId: number): Promise<Craving[]> {
+    return Array.from(this.cravings.values())
+      .filter(craving => craving.pregnancyId === pregnancyId)
+      .sort((a, b) => b.date.getTime() - a.date.getTime());
+  }
+  
+  async getCraving(id: number): Promise<Craving | undefined> {
+    return this.cravings.get(id);
+  }
+  
+  async createCraving(craving: InsertCraving): Promise<Craving> {
+    const id = this.cravingIdCounter++;
+    const newCraving: Craving = {
+      ...craving,
+      id,
+      createdAt: new Date()
+    };
+    this.cravings.set(id, newCraving);
+    return newCraving;
+  }
+  
+  async updateCraving(id: number, updates: Partial<Craving>): Promise<Craving | undefined> {
+    const craving = this.cravings.get(id);
+    if (!craving) return undefined;
+    
+    const updatedCraving: Craving = {
+      ...craving,
+      ...updates
+    };
+    
+    this.cravings.set(id, updatedCraving);
+    return updatedCraving;
+  }
+  
+  async deleteCraving(id: number): Promise<boolean> {
+    return this.cravings.delete(id);
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1376,6 +1415,50 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(contractions)
       .where(eq(contractions.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Cravings methods
+  async getCravings(pregnancyId: number): Promise<Craving[]> {
+    return db
+      .select()
+      .from(cravings)
+      .where(eq(cravings.pregnancyId, pregnancyId))
+      .orderBy(desc(cravings.date));
+  }
+  
+  async getCraving(id: number): Promise<Craving | undefined> {
+    const [craving] = await db
+      .select()
+      .from(cravings)
+      .where(eq(cravings.id, id));
+    return craving;
+  }
+  
+  async createCraving(craving: InsertCraving): Promise<Craving> {
+    const [newCraving] = await db
+      .insert(cravings)
+      .values({
+        ...craving,
+        createdAt: new Date()
+      })
+      .returning();
+    return newCraving;
+  }
+  
+  async updateCraving(id: number, updates: Partial<Craving>): Promise<Craving | undefined> {
+    const [updatedCraving] = await db
+      .update(cravings)
+      .set(updates)
+      .where(eq(cravings.id, id))
+      .returning();
+    return updatedCraving;
+  }
+  
+  async deleteCraving(id: number): Promise<boolean> {
+    const result = await db
+      .delete(cravings)
+      .where(eq(cravings.id, id));
     return result.rowCount > 0;
   }
 }
