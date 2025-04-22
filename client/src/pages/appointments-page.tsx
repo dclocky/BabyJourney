@@ -48,8 +48,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Child, Appointment, InsertAppointment, Symptom } from "@shared/schema";
-// Define a type for pregnancy (using Child with isPregnancy=true is the pregnancy model)
-type Pregnancy = Child & { isPregnancy: true };
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -71,6 +69,9 @@ import {
   ArrowRight
 } from "lucide-react";
 
+// Define a type for pregnancy (using Child with isPregnancy=true is the pregnancy model)
+type Pregnancy = Child & { isPregnancy: true };
+
 export default function AppointmentsPage() {
   const { toast } = useToast();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -91,9 +92,10 @@ export default function AppointmentsPage() {
     queryKey: ["/api/appointments"],
   });
 
-  // Group appointments by type
+  // Filter appointments
+  // Temp fix: since the backend might not have pregnancyId field
   const childAppointments = appointments.filter(app => app.childId !== null);
-  const pregnancyAppointments = appointments.filter(app => app.pregnancyId !== null);
+  const pregnancyAppointments: Appointment[] = []; // This will be populated when the backend supports pregnancy appointments
 
   // State for Doctor Mode toggle
   const [isDoctorMode, setIsDoctorMode] = useState(false);
@@ -173,7 +175,7 @@ export default function AppointmentsPage() {
         date: new Date(`${data.date}T${data.time}`),
         location: data.location || "",
         notes: data.notes || "",
-        childId: data.type === 'child' ? data.childId : null,
+        childId: data.type === 'child' && data.childId ? data.childId : null,
         status: "scheduled",
         // Doctor mode fields
         doctorName: data.isDoctorMode ? data.doctorName || null : null,
@@ -185,13 +187,48 @@ export default function AppointmentsPage() {
         doctorNotes: data.isDoctorMode ? data.doctorNotes || null : null,
         vitals: data.isDoctorMode ? data.vitals : {},
       };
-      // Use the correct endpoint path with the childId if it's a child appointment
+      
       if (data.type === 'child' && data.childId) {
-        const res = await apiRequest("POST", `/api/children/${data.childId}/appointments`, newAppointment);
+        const res = await fetch(`/api/children/${data.childId}/appointments`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(newAppointment)
+        });
+        
+        if (!res.ok) {
+          let errorMsg = 'Failed to create appointment';
+          try {
+            const errorData = await res.json();
+            errorMsg = errorData.message || errorMsg;
+          } catch {
+            // If the response is not JSON, use a generic error message
+          }
+          throw new Error(errorMsg);
+        }
+        
         return await res.json();
       } else if (data.type === 'pregnancy' && data.pregnancyId) {
-        // For pregnancy appointments
-        const res = await apiRequest("POST", `/api/pregnancies/${data.pregnancyId}/appointments`, newAppointment);
+        const res = await fetch(`/api/pregnancies/${data.pregnancyId}/appointments`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(newAppointment)
+        });
+        
+        if (!res.ok) {
+          let errorMsg = 'Failed to create appointment';
+          try {
+            const errorData = await res.json();
+            errorMsg = errorData.message || errorMsg;
+          } catch {
+            // If the response is not JSON, use a generic error message
+          }
+          throw new Error(errorMsg);
+        }
+        
         return await res.json();
       } else {
         throw new Error("Missing child or pregnancy ID");
@@ -237,7 +274,7 @@ export default function AppointmentsPage() {
     onError: (error) => {
       toast({
         title: "Failed to add appointment",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
         variant: "destructive",
       });
     },
@@ -481,190 +518,144 @@ export default function AppointmentsPage() {
 
                   {/* Doctor Mode Fields */}
                   {isDoctorMode && (
-                    <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
-                      <h3 className="font-medium text-sm flex items-center mb-2">
+                    <div className="border rounded-lg p-4 mt-4 space-y-4">
+                      <h3 className="text-sm font-medium mb-2 flex items-center">
                         <Stethoscope className="w-4 h-4 mr-2" />
-                        Medical Information
+                        Medical Details
                       </h3>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="doctorName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Doctor Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Dr. Smith" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="doctorSpecialty"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Specialty</FormLabel>
-                              <FormControl>
-                                <Input placeholder="e.g., Pediatrician, OB/GYN" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      
-                      <Tabs defaultValue="diagnosis" className="w-full">
-                        <TabsList className="grid w-full grid-cols-3">
-                          <TabsTrigger value="diagnosis">Diagnosis</TabsTrigger>
-                          <TabsTrigger value="treatment">Treatment</TabsTrigger>
-                          <TabsTrigger value="followup">Follow-up</TabsTrigger>
-                        </TabsList>
-                        
-                        <TabsContent value="diagnosis" className="space-y-4 pt-4">
-                          <FormField
-                            control={form.control}
-                            name="diagnosis"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Diagnosis</FormLabel>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="Doctor's diagnosis"
-                                    className="min-h-24"
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          {/* Vitals - Future Enhancement */}
-                          <FormField
-                            control={form.control}
-                            name="vitals"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Vitals</FormLabel>
-                                <div className="grid grid-cols-2 gap-2">
-                                  <Input
-                                    type="text"
-                                    placeholder="Blood Pressure (e.g., 120/80)"
-                                    onChange={(e) => {
-                                      const newVitals = {...field.value};
-                                      newVitals['blood_pressure'] = e.target.value;
-                                      field.onChange(newVitals);
-                                    }}
-                                    value={field.value?.['blood_pressure'] || ''}
-                                  />
-                                  <Input
-                                    type="text"
-                                    placeholder="Temperature (e.g., 98.6°F)"
-                                    onChange={(e) => {
-                                      const newVitals = {...field.value};
-                                      newVitals['temperature'] = e.target.value;
-                                      field.onChange(newVitals);
-                                    }}
-                                    value={field.value?.['temperature'] || ''}
-                                  />
-                                </div>
-                              </FormItem>
-                            )}
-                          />
-                        </TabsContent>
-                        
-                        <TabsContent value="treatment" className="space-y-4 pt-4">
-                          <FormField
-                            control={form.control}
-                            name="treatment"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Treatment Plan</FormLabel>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="Recommended treatment plan"
-                                    className="min-h-24"
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name="prescriptions"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Prescriptions</FormLabel>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="List medications prescribed"
-                                    className="min-h-20"
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </TabsContent>
-                        
-                        <TabsContent value="followup" className="space-y-4 pt-4">
-                          <FormField
-                            control={form.control}
-                            name="followUpDate"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Follow-up Date</FormLabel>
-                                <FormControl>
-                                  <Input type="date" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name="doctorNotes"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Doctor's Notes</FormLabel>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="Additional notes from the doctor"
-                                    className="min-h-20"
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </TabsContent>
-                      </Tabs>
+
+                      {/* Doctor Name */}
+                      <FormField
+                        control={form.control}
+                        name="doctorName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Doctor Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Dr. Smith" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Doctor Specialty */}
+                      <FormField
+                        control={form.control}
+                        name="doctorSpecialty"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Specialty</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Pediatrician, OB/GYN, etc." {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Diagnosis */}
+                      <FormField
+                        control={form.control}
+                        name="diagnosis"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Diagnosis</FormLabel>
+                            <FormControl>
+                              <textarea 
+                                className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="Any diagnosis provided by the doctor"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Treatment */}
+                      <FormField
+                        control={form.control}
+                        name="treatment"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Treatment Plan</FormLabel>
+                            <FormControl>
+                              <textarea 
+                                className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="Treatment recommendations"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Prescriptions */}
+                      <FormField
+                        control={form.control}
+                        name="prescriptions"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Prescriptions</FormLabel>
+                            <FormControl>
+                              <textarea 
+                                className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="Medications prescribed"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Follow-up Date */}
+                      <FormField
+                        control={form.control}
+                        name="followUpDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Follow-up Date</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Doctor Notes */}
+                      <FormField
+                        control={form.control}
+                        name="doctorNotes"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Additional Notes</FormLabel>
+                            <FormControl>
+                              <textarea 
+                                className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="Any other notes from the appointment"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
                   )}
 
                   <DialogFooter>
-                    <Button
-                      type="submit"
-                      disabled={addAppointmentMutation.isPending}
-                    >
-                      {addAppointmentMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        "Save Appointment"
+                    <Button variant="outline" type="button" onClick={() => setIsAddDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={addAppointmentMutation.isPending}>
+                      {addAppointmentMutation.isPending && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       )}
+                      Schedule
                     </Button>
                   </DialogFooter>
                 </form>
@@ -673,352 +664,284 @@ export default function AppointmentsPage() {
           </Dialog>
         </div>
 
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
-          </div>
-        ) : (appointments.length === 0) ? (
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <h2 className="text-xl font-bold mb-4">No Appointments Scheduled</h2>
-            <p className="text-muted-foreground mb-6">
-              Schedule doctor visits, checkups, and other important appointments.
-            </p>
-            <Button onClick={() => setIsAddDialogOpen(true)}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add First Appointment
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Upcoming Appointments Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Upcoming Appointments</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {appointments
-                    .filter(apt => new Date(apt.date) >= new Date())
-                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                    .map(appointment => {
-                      const { date, time } = formatDateTime(appointment.date);
-                      return (
-                        <div key={appointment.id} className="border rounded-lg p-4">
-                          <div className="flex justify-between items-start mb-2">
-                            <h3 className="font-medium text-lg">{appointment.title}</h3>
-                            <div className="flex gap-2">
-                              {appointment.doctorName && (
-                                <div className="text-sm bg-blue-50 text-blue-600 px-2 py-1 rounded flex items-center">
-                                  <Stethoscope className="h-3 w-3 mr-1" />
-                                  Doctor
+        {/* Tabs for Different Views */}
+        <Tabs defaultValue="upcoming">
+          <TabsList className="grid w-full grid-cols-2 mb-8">
+            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+            <TabsTrigger value="past">Past</TabsTrigger>
+          </TabsList>
+
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex justify-center my-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          )}
+
+          {/* Upcoming Appointments */}
+          <TabsContent value="upcoming" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {!isLoading && (
+                <>
+                  {/* Child Appointments */}
+                  {appointmentType === 'child' && (
+                    childAppointments
+                      .filter(app => new Date(app.date) >= new Date())
+                      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                      .map(appointment => (
+                        <Card key={appointment.id}>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-lg flex items-center">
+                              <Calendar className="h-4 w-4 mr-2 text-primary" />
+                              {appointment.title}
+                            </CardTitle>
+                            <CardDescription>
+                              For {getChildName(appointment.childId)}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="pb-4">
+                            <div className="space-y-2 text-sm">
+                              <div className="flex items-start">
+                                <Clock className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
+                                <div>
+                                  {formatDateTime(appointment.date.toString()).date}
+                                  <br />
+                                  {appointment.time ? formatDateTime(appointment.date.toString()).time : "Time not specified"}
+                                </div>
+                              </div>
+                              
+                              {appointment.location && (
+                                <div className="flex items-start">
+                                  <MapPin className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
+                                  <div>{appointment.location}</div>
                                 </div>
                               )}
-                              <div className="text-sm bg-primary-50 text-primary-500 px-2 py-1 rounded">
-                                {appointment.childId ? 'Child' : 'Pregnancy'}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4 text-sm">
-                            <div className="flex items-center">
-                              <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                              <span>{date}</span>
-                            </div>
-
-                            <div className="flex items-center">
-                              <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                              <span>{time}</span>
-                            </div>
-
-                            {appointment.location && (
-                              <div className="flex items-center">
-                                <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                                <span>{appointment.location}</span>
-                              </div>
-                            )}
-
-                            {appointment.childId && (
-                              <div className="flex items-center">
-                                <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                                <span>{getChildName(appointment.childId)}</span>
-                              </div>
-                            )}
-                            
-                            {appointment.doctorName && (
-                              <div className="flex items-center">
-                                <Stethoscope className="h-4 w-4 mr-2 text-muted-foreground" />
-                                <span>{appointment.doctorName}</span>
-                                {appointment.doctorSpecialty && (
-                                  <span className="ml-1 text-muted-foreground">({appointment.doctorSpecialty})</span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-
-                          {appointment.notes && (
-                            <div className="mt-2 text-sm text-muted-foreground">
-                              <p>{appointment.notes}</p>
-                            </div>
-                          )}
-                          
-                          {/* Doctor Mode Information */}
-                          {appointment.doctorName && (
-                            <div className="mt-4 pt-4 border-t border-dashed">
-                              <Accordion type="single" collapsible className="w-full">
-                                {appointment.diagnosis && (
-                                  <AccordionItem value="diagnosis">
-                                    <AccordionTrigger className="text-sm font-medium flex items-center py-2">
-                                      <FileText className="h-4 w-4 mr-2 text-blue-500" />
-                                      Diagnosis
-                                    </AccordionTrigger>
-                                    <AccordionContent className="text-sm">
-                                      <p className="p-2 bg-muted/30 rounded-md">{appointment.diagnosis}</p>
-                                      
-                                      {/* Display vitals if available */}
-                                      {appointment.vitals && Object.keys(appointment.vitals).length > 0 && (
-                                        <div className="mt-2">
-                                          <p className="font-medium text-xs mb-1">Vitals:</p>
-                                          <div className="grid grid-cols-2 gap-2 text-xs">
-                                            {Object.entries(appointment.vitals).map(([key, value]) => (
-                                              <div key={key} className="bg-muted/20 p-1 px-2 rounded flex justify-between">
-                                                <span className="capitalize">{key.replace('_', ' ')}</span>
-                                                <span className="font-medium">{value}</span>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </AccordionContent>
-                                  </AccordionItem>
-                                )}
-                                
-                                {appointment.treatment && (
-                                  <AccordionItem value="treatment">
-                                    <AccordionTrigger className="text-sm font-medium flex items-center py-2">
-                                      <ClipboardList className="h-4 w-4 mr-2 text-green-500" />
-                                      Treatment Plan
-                                    </AccordionTrigger>
-                                    <AccordionContent className="text-sm">
-                                      <p className="p-2 bg-muted/30 rounded-md">{appointment.treatment}</p>
-                                      
-                                      {appointment.prescriptions && (
-                                        <div className="mt-2">
-                                          <p className="font-medium text-xs mb-1">Prescribed Medications:</p>
-                                          <div className="bg-muted/20 p-2 rounded text-xs">
-                                            <p>{appointment.prescriptions}</p>
-                                          </div>
-                                        </div>
-                                      )}
-                                    </AccordionContent>
-                                  </AccordionItem>
-                                )}
-                                
-                                {(appointment.followUpDate || appointment.doctorNotes) && (
-                                  <AccordionItem value="followup">
-                                    <AccordionTrigger className="text-sm font-medium flex items-center py-2">
-                                      <ArrowRight className="h-4 w-4 mr-2 text-purple-500" />
-                                      Follow-up
-                                    </AccordionTrigger>
-                                    <AccordionContent className="text-sm">
-                                      {appointment.followUpDate && (
-                                        <div className="flex items-center mb-2">
-                                          <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                                          <span>Follow-up on {format(new Date(appointment.followUpDate), "MMMM d, yyyy")}</span>
-                                        </div>
-                                      )}
-                                      
-                                      {appointment.doctorNotes && (
-                                        <div>
-                                          <p className="font-medium text-xs mb-1">Doctor's Notes:</p>
-                                          <div className="bg-muted/30 p-2 rounded text-xs">
-                                            <p>{appointment.doctorNotes}</p>
-                                          </div>
-                                        </div>
-                                      )}
-                                    </AccordionContent>
-                                  </AccordionItem>
-                                )}
-                              </Accordion>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-
-                  {appointments.filter(apt => new Date(apt.date) >= new Date()).length === 0 && (
-                    <div className="text-center py-4 text-muted-foreground">
-                      No upcoming appointments scheduled
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Past Appointments Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Past Appointments</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {appointments
-                    .filter(apt => new Date(apt.date) < new Date())
-                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                    .map(appointment => {
-                      const { date, time } = formatDateTime(appointment.date);
-                      return (
-                        <div key={appointment.id} className="border rounded-lg p-4 bg-gray-50">
-                          <div className="flex justify-between items-start mb-2">
-                            <h3 className="font-medium text-lg">{appointment.title}</h3>
-                            <div className="flex gap-2">
+                              
                               {appointment.doctorName && (
-                                <div className="text-sm bg-blue-50 text-blue-600 px-2 py-1 rounded flex items-center">
-                                  <Stethoscope className="h-3 w-3 mr-1" />
-                                  Doctor
+                                <div className="flex items-start">
+                                  <User className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
+                                  <div>
+                                    Dr. {appointment.doctorName}
+                                    {appointment.doctorSpecialty && <span className="text-muted-foreground"> ({appointment.doctorSpecialty})</span>}
+                                  </div>
                                 </div>
                               )}
-                              <div className="text-sm bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                                {appointment.childId ? 'Child' : 'Pregnancy'}
-                              </div>
                             </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4 text-sm">
-                            <div className="flex items-center">
-                              <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                              <span>{date}</span>
-                            </div>
-
-                            <div className="flex items-center">
-                              <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                              <span>{time}</span>
-                            </div>
-
-                            {appointment.location && (
-                              <div className="flex items-center">
-                                <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                                <span>{appointment.location}</span>
-                              </div>
-                            )}
-
-                            {appointment.childId && (
-                              <div className="flex items-center">
-                                <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                                <span>{getChildName(appointment.childId)}</span>
-                              </div>
-                            )}
-                            
-                            {appointment.doctorName && (
-                              <div className="flex items-center">
-                                <Stethoscope className="h-4 w-4 mr-2 text-muted-foreground" />
-                                <span>{appointment.doctorName}</span>
-                                {appointment.doctorSpecialty && (
-                                  <span className="ml-1 text-muted-foreground">({appointment.doctorSpecialty})</span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-
-                          {appointment.notes && (
-                            <div className="mt-2 text-sm text-muted-foreground">
-                              <p>{appointment.notes}</p>
-                            </div>
-                          )}
-                          
-                          {/* Doctor Mode Information */}
-                          {appointment.doctorName && (
-                            <div className="mt-4 pt-4 border-t border-dashed">
-                              <Accordion type="single" collapsible className="w-full">
-                                {appointment.diagnosis && (
-                                  <AccordionItem value="diagnosis">
-                                    <AccordionTrigger className="text-sm font-medium flex items-center py-2">
-                                      <FileText className="h-4 w-4 mr-2 text-blue-500" />
-                                      Diagnosis
-                                    </AccordionTrigger>
-                                    <AccordionContent className="text-sm">
-                                      <p className="p-2 bg-muted/30 rounded-md">{appointment.diagnosis}</p>
-                                      
-                                      {/* Display vitals if available */}
-                                      {appointment.vitals && Object.keys(appointment.vitals).length > 0 && (
-                                        <div className="mt-2">
-                                          <p className="font-medium text-xs mb-1">Vitals:</p>
-                                          <div className="grid grid-cols-2 gap-2 text-xs">
-                                            {Object.entries(appointment.vitals).map(([key, value]) => (
-                                              <div key={key} className="bg-muted/20 p-1 px-2 rounded flex justify-between">
-                                                <span className="capitalize">{key.replace('_', ' ')}</span>
-                                                <span className="font-medium">{value}</span>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </AccordionContent>
-                                  </AccordionItem>
-                                )}
-                                
-                                {appointment.treatment && (
-                                  <AccordionItem value="treatment">
-                                    <AccordionTrigger className="text-sm font-medium flex items-center py-2">
-                                      <ClipboardList className="h-4 w-4 mr-2 text-green-500" />
-                                      Treatment Plan
-                                    </AccordionTrigger>
-                                    <AccordionContent className="text-sm">
-                                      <p className="p-2 bg-muted/30 rounded-md">{appointment.treatment}</p>
-                                      
-                                      {appointment.prescriptions && (
-                                        <div className="mt-2">
-                                          <p className="font-medium text-xs mb-1">Prescribed Medications:</p>
-                                          <div className="bg-muted/20 p-2 rounded text-xs">
-                                            <p>{appointment.prescriptions}</p>
-                                          </div>
-                                        </div>
-                                      )}
-                                    </AccordionContent>
-                                  </AccordionItem>
-                                )}
-                                
-                                {(appointment.followUpDate || appointment.doctorNotes) && (
-                                  <AccordionItem value="followup">
-                                    <AccordionTrigger className="text-sm font-medium flex items-center py-2">
-                                      <ArrowRight className="h-4 w-4 mr-2 text-purple-500" />
-                                      Follow-up
-                                    </AccordionTrigger>
-                                    <AccordionContent className="text-sm">
-                                      {appointment.followUpDate && (
-                                        <div className="flex items-center mb-2">
-                                          <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                                          <span>Follow-up on {format(new Date(appointment.followUpDate), "MMMM d, yyyy")}</span>
-                                        </div>
-                                      )}
-                                      
-                                      {appointment.doctorNotes && (
-                                        <div>
-                                          <p className="font-medium text-xs mb-1">Doctor's Notes:</p>
-                                          <div className="bg-muted/30 p-2 rounded text-xs">
-                                            <p>{appointment.doctorNotes}</p>
-                                          </div>
-                                        </div>
-                                      )}
-                                    </AccordionContent>
-                                  </AccordionItem>
-                                )}
-                              </Accordion>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-
-                  {appointments.filter(apt => new Date(apt.date) < new Date()).length === 0 && (
-                    <div className="text-center py-4 text-muted-foreground">
-                      No past appointments
-                    </div>
+                          </CardContent>
+                          <CardFooter className="pt-0">
+                            <Accordion type="single" collapsible className="w-full">
+                              <AccordionItem value="details">
+                                <AccordionTrigger className="text-sm">
+                                  View Details
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                  {appointment.notes && (
+                                    <div className="mb-3">
+                                      <h4 className="text-sm font-semibold mb-1 flex items-center">
+                                        <FileText className="h-3.5 w-3.5 mr-1" /> Notes
+                                      </h4>
+                                      <p className="text-sm text-muted-foreground">{appointment.notes}</p>
+                                    </div>
+                                  )}
+                                  
+                                  {appointment.diagnosis && (
+                                    <div className="mb-3">
+                                      <h4 className="text-sm font-semibold mb-1">Diagnosis</h4>
+                                      <p className="text-sm text-muted-foreground">{appointment.diagnosis}</p>
+                                    </div>
+                                  )}
+                                  
+                                  {appointment.treatment && (
+                                    <div className="mb-3">
+                                      <h4 className="text-sm font-semibold mb-1 flex items-center">
+                                        <Tablet className="h-3.5 w-3.5 mr-1" /> Treatment
+                                      </h4>
+                                      <p className="text-sm text-muted-foreground">{appointment.treatment}</p>
+                                    </div>
+                                  )}
+                                  
+                                  {appointment.prescriptions && (
+                                    <div className="mb-3">
+                                      <h4 className="text-sm font-semibold mb-1">Prescriptions</h4>
+                                      <p className="text-sm text-muted-foreground">{appointment.prescriptions}</p>
+                                    </div>
+                                  )}
+                                  
+                                  {appointment.followUpDate && (
+                                    <div className="mb-3">
+                                      <h4 className="text-sm font-semibold mb-1 flex items-center">
+                                        <Calendar className="h-3.5 w-3.5 mr-1" /> Follow-up
+                                      </h4>
+                                      <p className="text-sm text-muted-foreground">
+                                        {format(new Date(appointment.followUpDate), "MMMM d, yyyy")}
+                                      </p>
+                                    </div>
+                                  )}
+                                  
+                                  {appointment.doctorNotes && (
+                                    <div>
+                                      <h4 className="text-sm font-semibold mb-1">Doctor's Notes</h4>
+                                      <p className="text-sm text-muted-foreground">{appointment.doctorNotes}</p>
+                                    </div>
+                                  )}
+                                </AccordionContent>
+                              </AccordionItem>
+                            </Accordion>
+                          </CardFooter>
+                        </Card>
+                      ))
                   )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                  
+                  {/* Empty State for Upcoming */}
+                  {(appointmentType === 'child' && childAppointments.filter(app => new Date(app.date) >= new Date()).length === 0) ||
+                   (appointmentType === 'pregnancy' && pregnancyAppointments.filter(app => new Date(app.date) >= new Date()).length === 0) ? (
+                    <div className="col-span-2 flex flex-col items-center justify-center py-12 text-center">
+                      <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium mb-1">No Upcoming Appointments</h3>
+                      <p className="text-muted-foreground mb-4">
+                        You don't have any upcoming appointments scheduled.
+                      </p>
+                      <Button onClick={() => setIsAddDialogOpen(true)}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Schedule an Appointment
+                      </Button>
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Past Appointments */}
+          <TabsContent value="past" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {!isLoading && (
+                <>
+                  {/* Child Appointments */}
+                  {appointmentType === 'child' && (
+                    childAppointments
+                      .filter(app => new Date(app.date) < new Date())
+                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) // Most recent first
+                      .map(appointment => (
+                        <Card key={appointment.id}>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-lg flex items-center">
+                              <Calendar className="h-4 w-4 mr-2 text-primary" />
+                              {appointment.title}
+                            </CardTitle>
+                            <CardDescription>
+                              For {getChildName(appointment.childId)}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="pb-4">
+                            <div className="space-y-2 text-sm">
+                              <div className="flex items-start">
+                                <Clock className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
+                                <div>
+                                  {formatDateTime(appointment.date.toString()).date}
+                                  <br />
+                                  {appointment.time ? formatDateTime(appointment.date.toString()).time : "Time not specified"}
+                                </div>
+                              </div>
+                              
+                              {appointment.location && (
+                                <div className="flex items-start">
+                                  <MapPin className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
+                                  <div>{appointment.location}</div>
+                                </div>
+                              )}
+                              
+                              {appointment.doctorName && (
+                                <div className="flex items-start">
+                                  <User className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
+                                  <div>
+                                    Dr. {appointment.doctorName}
+                                    {appointment.doctorSpecialty && <span className="text-muted-foreground"> ({appointment.doctorSpecialty})</span>}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                          <CardFooter className="pt-0">
+                            <Accordion type="single" collapsible className="w-full">
+                              <AccordionItem value="details">
+                                <AccordionTrigger className="text-sm">
+                                  View Details
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                  {appointment.notes && (
+                                    <div className="mb-3">
+                                      <h4 className="text-sm font-semibold mb-1 flex items-center">
+                                        <FileText className="h-3.5 w-3.5 mr-1" /> Notes
+                                      </h4>
+                                      <p className="text-sm text-muted-foreground">{appointment.notes}</p>
+                                    </div>
+                                  )}
+                                  
+                                  {appointment.diagnosis && (
+                                    <div className="mb-3">
+                                      <h4 className="text-sm font-semibold mb-1">Diagnosis</h4>
+                                      <p className="text-sm text-muted-foreground">{appointment.diagnosis}</p>
+                                    </div>
+                                  )}
+                                  
+                                  {appointment.treatment && (
+                                    <div className="mb-3">
+                                      <h4 className="text-sm font-semibold mb-1 flex items-center">
+                                        <Tablet className="h-3.5 w-3.5 mr-1" /> Treatment
+                                      </h4>
+                                      <p className="text-sm text-muted-foreground">{appointment.treatment}</p>
+                                    </div>
+                                  )}
+                                  
+                                  {appointment.prescriptions && (
+                                    <div className="mb-3">
+                                      <h4 className="text-sm font-semibold mb-1">Prescriptions</h4>
+                                      <p className="text-sm text-muted-foreground">{appointment.prescriptions}</p>
+                                    </div>
+                                  )}
+                                  
+                                  {appointment.followUpDate && (
+                                    <div className="mb-3">
+                                      <h4 className="text-sm font-semibold mb-1 flex items-center">
+                                        <Calendar className="h-3.5 w-3.5 mr-1" /> Follow-up
+                                      </h4>
+                                      <p className="text-sm text-muted-foreground">
+                                        {format(new Date(appointment.followUpDate), "MMMM d, yyyy")}
+                                      </p>
+                                    </div>
+                                  )}
+                                  
+                                  {appointment.doctorNotes && (
+                                    <div>
+                                      <h4 className="text-sm font-semibold mb-1">Doctor's Notes</h4>
+                                      <p className="text-sm text-muted-foreground">{appointment.doctorNotes}</p>
+                                    </div>
+                                  )}
+                                </AccordionContent>
+                              </AccordionItem>
+                            </Accordion>
+                          </CardFooter>
+                        </Card>
+                      ))
+                  )}
+                  
+                  {/* Empty State for Past */}
+                  {(appointmentType === 'child' && childAppointments.filter(app => new Date(app.date) < new Date()).length === 0) ||
+                   (appointmentType === 'pregnancy' && pregnancyAppointments.filter(app => new Date(app.date) < new Date()).length === 0) ? (
+                    <div className="col-span-2 flex flex-col items-center justify-center py-12 text-center">
+                      <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium mb-1">No Past Appointments</h3>
+                      <p className="text-muted-foreground">
+                        You don't have any past appointments to view.
+                      </p>
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
 
       <AppFooter />
