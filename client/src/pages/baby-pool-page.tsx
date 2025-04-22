@@ -286,12 +286,82 @@ export default function BabyPoolPage() {
     }, 1000);
   };
   
+  // Helper function to calculate the winner based on the closest guess
+  const calculateWinner = (actualData: BabyResultsFormValues, allGuesses: BabyGuess[]) => {
+    if (!allGuesses.length) return "No participants";
+    
+    // Calculate scores for each guess (lower is better)
+    const guessScores = allGuesses.map(guess => {
+      let score = 0;
+      
+      // Date difference (in days)
+      const actualDate = new Date(actualData.actualBirthDate);
+      const guessDate = new Date(guess.birthDate);
+      const dateDiff = Math.abs(actualDate.getTime() - guessDate.getTime()) / (1000 * 60 * 60 * 24);
+      score += dateDiff * 10; // Weight date more heavily
+      
+      // Weight difference (convert to ounces for easier comparison)
+      const actualWeightOz = convertWeightToOunces(actualData.actualWeight);
+      const guessWeightOz = convertWeightToOunces(guess.weight);
+      if (actualWeightOz && guessWeightOz) {
+        score += Math.abs(actualWeightOz - guessWeightOz);
+      }
+      
+      // Length difference (in inches)
+      const actualLengthIn = convertLengthToInches(actualData.actualLength);
+      const guessLengthIn = convertLengthToInches(guess.length);
+      if (actualLengthIn && guessLengthIn) {
+        score += Math.abs(actualLengthIn - guessLengthIn) * 5;
+      }
+      
+      // Gender match (0 points if match, 10 if not)
+      if (guess.gender !== 'surprise' && guess.gender !== actualData.actualGender) {
+        score += 10;
+      }
+      
+      // Hair color match (0 points if match, 5 if not)
+      if (guess.hairColor !== 'unknown' && guess.hairColor !== actualData.actualHairColor) {
+        score += 5;
+      }
+      
+      return { name: guess.name, score };
+    });
+    
+    // Find the guess with the lowest score
+    guessScores.sort((a, b) => a.score - b.score);
+    return guessScores[0].name;
+  };
+  
+  // Helper functions to normalize weight and length for comparison
+  const convertWeightToOunces = (weight: string) => {
+    // Handle common formats like "7lbs 8oz" or "7 lbs 8 oz" or "7lb 8oz"
+    const match = weight.toLowerCase().match(/(\d+)\s*(?:lb|lbs)(?:\s*(\d+)\s*(?:oz|ounce|ounces))?/);
+    if (match) {
+      const pounds = parseInt(match[1] || '0');
+      const ounces = parseInt(match[2] || '0');
+      return pounds * 16 + ounces;
+    }
+    return null;
+  };
+  
+  const convertLengthToInches = (length: string) => {
+    // Handle formats like "20 inches" or "20in" or "20\""
+    const match = length.toLowerCase().match(/(\d+(?:\.\d+)?)\s*(?:in|inch|inches|")/);
+    if (match) {
+      return parseFloat(match[1]);
+    }
+    return null;
+  };
+
   const onResultsSubmit = (data: BabyResultsFormValues) => {
     setIsLoading(true);
     
-    // Simulate API request
+    // Process the form submission
     setTimeout(() => {
       if (babyPool) {
+        // Calculate the winner based on the closest guess
+        const winner = calculateWinner(data, guesses);
+        
         const updatedPool: BabyPool = {
           ...babyPool,
           status: 'closed',
@@ -300,7 +370,7 @@ export default function BabyPoolPage() {
           actualLength: data.actualLength,
           actualGender: data.actualGender,
           actualHairColor: data.actualHairColor,
-          winner: "Grandma Jones", // In a real app, we'd calculate the winner
+          winner: winner,
         };
         
         setBabyPool(updatedPool);
@@ -310,7 +380,7 @@ export default function BabyPoolPage() {
         
         toast({
           title: "Results added",
-          description: "Baby Pool has been closed and the winner has been calculated",
+          description: `Baby Pool has been closed and ${winner} is the winner!`,
         });
       }
     }, 1000);
