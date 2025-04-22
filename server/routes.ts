@@ -300,9 +300,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Not authorized" });
       }
 
+      console.log(`Getting recent milestones for child ${childId}, limit: ${limit}`);
       const milestones = await storage.getRecentMilestones(childId, limit);
+      console.log(`Found ${milestones.length} milestones:`, JSON.stringify(milestones));
       res.json(milestones);
     } catch (err) {
+      console.error("Error getting recent milestones:", err);
       next(err);
     }
   });
