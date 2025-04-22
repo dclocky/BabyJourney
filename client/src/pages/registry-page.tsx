@@ -120,10 +120,10 @@ export default function RegistryPage() {
   
   // Get registry items if registry ID is provided
   const {
-    data: registryItems,
+    data: registryItems = [],
     isLoading: itemsLoading,
     isError: itemsError
-  } = useQuery({
+  } = useQuery<any[]>({
     queryKey: ["/api/registries", registryId, "items"],
     enabled: !!registryId,
   });
@@ -576,7 +576,7 @@ export default function RegistryPage() {
               
               <TabsContent value="all">
                 <ItemsTable 
-                  items={registryItems || []} 
+                  items={registryItems} 
                   isLoading={itemsLoading} 
                   onDelete={(id) => deleteItemMutation.mutate(id)}
                   isDeleting={deleteItemMutation.isPending}
@@ -585,7 +585,7 @@ export default function RegistryPage() {
               
               <TabsContent value="available">
                 <ItemsTable 
-                  items={(registryItems || []).filter(item => item.status === "available")} 
+                  items={registryItems.filter(item => item.status === "available")} 
                   isLoading={itemsLoading} 
                   onDelete={(id) => deleteItemMutation.mutate(id)}
                   isDeleting={deleteItemMutation.isPending}

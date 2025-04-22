@@ -906,24 +906,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get items for a registry
   app.get("/api/registries/:registryId/items", async (req, res, next) => {
     try {
+      console.log(`Getting items for registry ID: ${req.params.registryId}`);
       const registryId = parseInt(req.params.registryId);
+      
+      if (isNaN(registryId)) {
+        console.log("Invalid registry ID format");
+        return res.status(400).json({ message: "Invalid registry ID" });
+      }
+      
       const registry = await storage.getRegistry(registryId);
+      console.log("Registry found:", registry);
       
       if (!registry) {
+        console.log("Registry not found");
         return res.status(404).json({ message: "Registry not found" });
       }
       
       // If not the owner, check if share code is valid
       if (!req.isAuthenticated() || registry.userId !== req.user?.id) {
         const shareCode = req.query.shareCode as string;
+        console.log(`Share code check: ${shareCode} vs ${registry.shareCode}`);
         if (!shareCode || registry.shareCode !== shareCode) {
           return res.status(403).json({ message: "Not authorized" });
         }
       }
       
       const items = await storage.getRegistryItems(registryId);
+      console.log(`Found ${items.length} items:`, items);
       res.json(items);
     } catch (err) {
+      console.error("Error getting registry items:", err);
       next(err);
     }
   });
