@@ -380,7 +380,7 @@ export default function AppointmentsPage() {
                             >
                               {pregnancies.map((pregnancy, index) => (
                                 <option key={pregnancy.id} value={pregnancy.id}>
-                                  Pregnancy {index + 1} (Due: {format(new Date(pregnancy.dueDate), "MMM d, yyyy")})
+                                  Pregnancy {index + 1} {pregnancy.dueDate ? `(Due: ${format(new Date(pregnancy.dueDate), "MMM d, yyyy")})` : ""}
                                 </option>
                               ))}
                             </select>
