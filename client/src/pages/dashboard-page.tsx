@@ -438,16 +438,10 @@ function SymptomTrackingDialog({ open, onClose, childId }: SymptomTrackingDialog
 
       // Save each symptom individually
       const results = await Promise.all(
-        symptomsToSave.map(symptom =>
-          fetch(`/api/children/${childId}/symptoms`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(symptom),
-          }).then((res) => {
-            if (!res.ok) throw new Error("Failed to save symptom");
-            return res.json();
-          })
-        )
+        symptomsToSave.map(async (symptom) => {
+          const res = await apiRequest("POST", `/api/children/${childId}/symptoms`, symptom);
+          return await res.json();
+        })
       );
       
       return results;
