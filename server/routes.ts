@@ -1509,6 +1509,287 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== FAMILY GROUPS API ROUTES =====
+  
+  // Import family groups service
+  const { familyGroupService } = await import('./family-groups');
+  
+  // Create a new family group for a child
+  app.post("/api/family-groups", async (req: any, res: any) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { childId, name, description } = req.body;
+      
+      if (!childId || !name) {
+        return res.status(400).json({ message: "Child ID and group name are required" });
+      }
+
+      // Verify user owns the child
+      const child = await storage.getChild(childId);
+      if (!child || child.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to create group for this child" });
+      }
+
+      const group = await familyGroupService.createGroup(childId, req.user.id, name, description);
+      res.json(group);
+    } catch (err: any) {
+      console.error("Error creating family group:", err);
+      res.status(500).json({ message: "Failed to create family group", error: err.message });
+    }
+  });
+
+  // Get family group for a child
+  app.get("/api/family-groups/child/:childId", async (req: any, res: any) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const childId = parseInt(req.params.childId);
+      
+      // Verify user has access to this child
+      const child = await storage.getChild(childId);
+      if (!child || child.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      const group = await storage.getFamilyGroupByChild(childId);
+      if (!group) {
+        return res.status(404).json({ message: "No family group found for this child" });
+      }
+
+      res.json(group);
+    } catch (err: any) {
+      console.error("Error getting family group:", err);
+      res.status(500).json({ message: "Failed to get family group", error: err.message });
+    }
+  });
+
+  // Invite member to family group
+  app.post("/api/family-groups/:groupId/invite", async (req: any, res: any) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const groupId = parseInt(req.params.groupId);
+      const { email, role, customPermissions } = req.body;
+      
+      if (!email || !role) {
+        return res.status(400).json({ message: "Email and role are required" });
+      }
+
+      const invitation = await familyGroupService.inviteMember(
+        groupId, 
+        req.user.id, 
+        email, 
+        role, 
+        customPermissions
+      );
+      
+      res.json(invitation);
+    } catch (err: any) {
+      console.error("Error sending invitation:", err);
+      res.status(500).json({ message: "Failed to send invitation", error: err.message });
+    }
+  });
+
+  // Accept invitation to join family group
+  app.post("/api/family-groups/accept-invitation", async (req: any, res: any) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { token } = req.body;
+      
+      if (!token) {
+        return res.status(400).json({ message: "Invitation token is required" });
+      }
+
+      const member = await familyGroupService.acceptInvitation(token, req.user.id);
+      res.json(member);
+    } catch (err: any) {
+      console.error("Error accepting invitation:", err);
+      res.status(500).json({ message: "Failed to accept invitation", error: err.message });
+    }
+  });
+
+  // Get family group members
+  app.get("/api/family-groups/:groupId/members", async (req: any, res: any) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const groupId = parseInt(req.params.groupId);
+      const members = await familyGroupService.getGroupMembers(groupId, req.user.id);
+      res.json(members);
+    } catch (err: any) {
+      console.error("Error getting group members:", err);
+      res.status(500).json({ message: "Failed to get group members", error: err.message });
+    }
+  });
+
+  // Update member permissions
+  app.patch("/api/family-groups/:groupId/members/:userId", async (req: any, res: any) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const groupId = parseInt(req.params.groupId);
+      const targetUserId = parseInt(req.params.userId);
+      const { permissions } = req.body;
+      
+      if (!permissions) {
+        return res.status(400).json({ message: "Permissions are required" });
+      }
+
+      await familyGroupService.updateMemberPermissions(groupId, targetUserId, req.user.id, permissions);
+      res.json({ message: "Permissions updated successfully" });
+    } catch (err: any) {
+      console.error("Error updating member permissions:", err);
+      res.status(500).json({ message: "Failed to update permissions", error: err.message });
+    }
+  });
+
+  // Remove member from group
+  app.delete("/api/family-groups/:groupId/members/:userId", async (req: any, res: any) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const groupId = parseInt(req.params.groupId);
+      const targetUserId = parseInt(req.params.userId);
+
+      await familyGroupService.removeMember(groupId, targetUserId, req.user.id);
+      res.json({ message: "Member removed successfully" });
+    } catch (err: any) {
+      console.error("Error removing member:", err);
+      res.status(500).json({ message: "Failed to remove member", error: err.message });
+    }
+  });
+
+  // Create activity in group feed
+  app.post("/api/family-groups/:groupId/activities", async (req: any, res: any) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const groupId = parseInt(req.params.groupId);
+      const { activityType, title, description, metadata } = req.body;
+      
+      if (!activityType || !title) {
+        return res.status(400).json({ message: "Activity type and title are required" });
+      }
+
+      const activity = await familyGroupService.createActivity(
+        groupId, 
+        req.user.id, 
+        activityType, 
+        title, 
+        description, 
+        metadata
+      );
+      
+      res.json(activity);
+    } catch (err: any) {
+      console.error("Error creating activity:", err);
+      res.status(500).json({ message: "Failed to create activity", error: err.message });
+    }
+  });
+
+  // Get group activities (feed)
+  app.get("/api/family-groups/:groupId/activities", async (req: any, res: any) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const groupId = parseInt(req.params.groupId);
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      const activities = await familyGroupService.getGroupActivities(groupId, req.user.id, limit, offset);
+      res.json(activities);
+    } catch (err: any) {
+      console.error("Error getting group activities:", err);
+      res.status(500).json({ message: "Failed to get group activities", error: err.message });
+    }
+  });
+
+  // Add comment to activity
+  app.post("/api/family-groups/activities/:activityId/comments", async (req: any, res: any) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const activityId = parseInt(req.params.activityId);
+      const { content } = req.body;
+      
+      if (!content) {
+        return res.status(400).json({ message: "Comment content is required" });
+      }
+
+      const comment = await familyGroupService.addComment(activityId, req.user.id, content);
+      res.json(comment);
+    } catch (err: any) {
+      console.error("Error adding comment:", err);
+      res.status(500).json({ message: "Failed to add comment", error: err.message });
+    }
+  });
+
+  // Add reaction to activity
+  app.post("/api/family-groups/activities/:activityId/reactions", async (req: any, res: any) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const activityId = parseInt(req.params.activityId);
+      const { reactionType } = req.body;
+
+      const reaction = await familyGroupService.addReaction(activityId, req.user.id, reactionType || 'like');
+      res.json(reaction);
+    } catch (err: any) {
+      console.error("Error adding reaction:", err);
+      res.status(500).json({ message: "Failed to add reaction", error: err.message });
+    }
+  });
+
+  // Get audit logs (admin only)
+  app.get("/api/family-groups/:groupId/audit", async (req: any, res: any) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const groupId = parseInt(req.params.groupId);
+      
+      // Check if user has manage permissions
+      const hasPermission = await familyGroupService.hasPermission(groupId, req.user.id, 'canManageGroup');
+      if (!hasPermission) {
+        return res.status(403).json({ message: "Not authorized to view audit logs" });
+      }
+
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      const logs = await storage.getAuditLogs(groupId, limit, offset);
+      res.json(logs);
+    } catch (err: any) {
+      console.error("Error getting audit logs:", err);
+      res.status(500).json({ message: "Failed to get audit logs", error: err.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
