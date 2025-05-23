@@ -15,6 +15,7 @@ import ExtrasPage from "@/pages/extras-page";
 import BabyPoolPage from "@/pages/baby-pool-page";
 import BabyNamesPage from "@/pages/baby-names-page";
 import SettingsPage from "@/pages/settings-page";
+import UpgradePage from "@/pages/upgrade-page";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
@@ -45,6 +46,7 @@ function Router() {
       {/* Baby Names routes */}
       <ProtectedRoute path="/baby-names" component={BabyNamesPage} />
       
+      <ProtectedRoute path="/upgrade" component={UpgradePage} />
       <ProtectedRoute path="/settings" component={SettingsPage} />
       <Route path="*" component={NotFound} />
     </Switch>
