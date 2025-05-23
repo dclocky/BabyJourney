@@ -417,17 +417,40 @@ function SymptomTrackingDialog({ open, onClose, childId }: SymptomTrackingDialog
   const { toast } = useToast();
   
   const trackSymptomsMutation = useMutation({
-    mutationFn: (data: SymptomData) => {
+    mutationFn: async (data: SymptomData) => {
       if (!childId) throw new Error("Child ID is required");
 
-      return fetch(`/api/children/${childId}/symptoms`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      }).then((res) => {
-        if (!res.ok) throw new Error("Failed to save symptoms");
-        return res.json();
-      });
+      // Send individual symptom records for each active symptom
+      const symptomsToSave = [];
+      
+      // Check each symptom and create individual records
+      if (data.backPain) symptomsToSave.push({ name: "Back Pain", severity: 2, date: data.date, notes: data.notes });
+      if (data.nausea) symptomsToSave.push({ name: "Nausea", severity: 2, date: data.date, notes: data.notes });
+      if (data.fatigue) symptomsToSave.push({ name: "Fatigue", severity: 2, date: data.date, notes: data.notes });
+      if (data.heartburn) symptomsToSave.push({ name: "Heartburn", severity: 2, date: data.date, notes: data.notes });
+      if (data.headache) symptomsToSave.push({ name: "Headache", severity: 2, date: data.date, notes: data.notes });
+      if (data.swelling) symptomsToSave.push({ name: "Swelling", severity: 2, date: data.date, notes: data.notes });
+      if (data.insomnia) symptomsToSave.push({ name: "Insomnia", severity: 2, date: data.date, notes: data.notes });
+      
+      if (data.mood) {
+        symptomsToSave.push({ name: "Mood", severity: 1, date: data.date, notes: `Mood: ${data.mood}` });
+      }
+
+      // Save each symptom individually
+      const results = await Promise.all(
+        symptomsToSave.map(symptom =>
+          fetch(`/api/children/${childId}/symptoms`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(symptom),
+          }).then((res) => {
+            if (!res.ok) throw new Error("Failed to save symptom");
+            return res.json();
+          })
+        )
+      );
+      
+      return results;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
