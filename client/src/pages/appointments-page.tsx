@@ -175,8 +175,7 @@ export default function AppointmentsPage() {
         date: new Date(`${data.date}T${data.time}`),
         location: data.location || "",
         notes: data.notes || "",
-        childId: data.type === 'child' && data.childId ? data.childId : undefined,
-        status: "scheduled",
+        childId: (data.type === 'child' && data.childId) ? data.childId : (data.type === 'pregnancy' && data.pregnancyId) ? data.pregnancyId : 1,
         // Doctor mode fields
         doctorName: data.isDoctorMode ? data.doctorName || null : null,
         doctorSpecialty: data.isDoctorMode ? data.doctorSpecialty || null : null,
@@ -205,7 +204,7 @@ export default function AppointmentsPage() {
         try {
           const response = await apiRequest(
             'POST',
-            `/api/pregnancies/${data.pregnancyId}/appointments`,
+            `/api/children/${data.pregnancyId}/appointments`,
             newAppointment
           );
           return await response.json();
@@ -222,7 +221,7 @@ export default function AppointmentsPage() {
       if (variables.type === 'child' && variables.childId) {
         queryClient.invalidateQueries({ queryKey: ["/api/children", variables.childId, "appointments"] });
       } else if (variables.type === 'pregnancy' && variables.pregnancyId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/pregnancies", variables.pregnancyId, "appointments"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/children", variables.pregnancyId, "appointments"] });
       }
       // Also invalidate the general appointments endpoint if it exists
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });

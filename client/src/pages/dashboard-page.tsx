@@ -592,7 +592,7 @@ function MilestonesCard({ childId }: MilestonesCardProps) {
   const [, setLocation] = useLocation();
 
   const { data: milestones = [], isLoading } = useQuery<Milestone[]>({
-    queryKey: ["/api/children", childId, "milestones/recent"],
+    queryKey: ["/api/children", childId, "milestones"],
     enabled: !!childId,
   });
 
@@ -736,7 +736,7 @@ function AddMilestoneDialog({ open, onClose, childId }: AddMilestoneDialogProps)
     onSuccess: () => {
       // Invalidate milestone-related queries
       queryClient.invalidateQueries({
-        queryKey: ["/api/children", childId, "milestones/recent"],
+        queryKey: ["/api/children", childId, "milestones"],
       });
       toast({
         title: "Milestone added",
