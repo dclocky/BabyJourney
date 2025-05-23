@@ -14,6 +14,7 @@ import RegistrySharePage from "@/pages/registry-share-page";
 import ExtrasPage from "@/pages/extras-page";
 import BabyPoolPage from "@/pages/baby-pool-page";
 import BabyNamesPage from "@/pages/baby-names-page";
+import BabyCarePage from "@/pages/baby-care-page";
 import SettingsPage from "@/pages/settings-page";
 import UpgradePage from "@/pages/upgrade-page";
 import { ProtectedRoute } from "./lib/protected-route";
