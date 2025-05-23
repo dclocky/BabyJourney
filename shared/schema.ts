@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json, uniqueIndex, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json, uniqueIndex, varchar, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -320,6 +320,114 @@ export const insertCravingSchema = createInsertSchema(cravings).omit({
 
 export type Craving = typeof cravings.$inferSelect;
 export type InsertCraving = z.infer<typeof insertCravingSchema>;
+
+// ===== BABY TRACKING FEATURES =====
+// Daily Care Tracking Tables
+export const feedingLogs = pgTable("feeding_logs", {
+  id: serial("id").primaryKey(),
+  childId: integer("child_id").references(() => children.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  date: timestamp("date").notNull(),
+  type: varchar("type", { length: 20 }).notNull(), // 'bottle', 'breast', 'solids'
+  amount: integer("amount"), // in ml for bottle, minutes for breast
+  duration: integer("duration"), // in minutes for breastfeeding
+  food: varchar("food", { length: 200 }), // for solids
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const diaperLogs = pgTable("diaper_logs", {
+  id: serial("id").primaryKey(),
+  childId: integer("child_id").references(() => children.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  date: timestamp("date").notNull(),
+  type: varchar("type", { length: 20 }).notNull(), // 'wet', 'dirty', 'both'
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const sleepLogs = pgTable("sleep_logs", {
+  id: serial("id").primaryKey(),
+  childId: integer("child_id").references(() => children.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time"),
+  duration: integer("duration"), // in minutes
+  type: varchar("type", { length: 20 }).notNull(), // 'nap', 'night'
+  quality: varchar("quality", { length: 20 }), // 'good', 'fair', 'poor'
+  location: varchar("location", { length: 50 }), // 'crib', 'bed', 'stroller'
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Growth & Development Tables
+export const developmentalLeaps = pgTable("developmental_leaps", {
+  id: serial("id").primaryKey(),
+  childId: integer("child_id").references(() => children.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  leapNumber: integer("leap_number").notNull(), // Wonder Weeks leap number
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date"),
+  stage: varchar("stage", { length: 50 }).notNull(), // 'stormy', 'sunny', 'completed'
+  behaviors: text("behaviors").array(), // observed behaviors
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const doctorVisits = pgTable("doctor_visits", {
+  id: serial("id").primaryKey(),
+  childId: integer("child_id").references(() => children.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  date: timestamp("date").notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // 'checkup', 'sick_visit', 'vaccination'
+  doctorName: varchar("doctor_name", { length: 100 }),
+  clinic: varchar("clinic", { length: 100 }),
+  weight: varchar("weight", { length: 10 }), // stored as string for simplicity
+  length: varchar("length", { length: 10 }), // stored as string for simplicity
+  notes: text("notes"),
+  concerns: text("concerns"),
+  recommendations: text("recommendations"),
+  nextVisit: timestamp("next_visit"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Insert schemas for new baby tracking features
+export const insertFeedingLogSchema = createInsertSchema(feedingLogs).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertDiaperLogSchema = createInsertSchema(diaperLogs).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertSleepLogSchema = createInsertSchema(sleepLogs).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertDevelopmentalLeapSchema = createInsertSchema(developmentalLeaps).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertDoctorVisitSchema = createInsertSchema(doctorVisits).omit({
+  id: true,
+  createdAt: true
+});
+
+// Types for baby tracking features
+export type InsertFeedingLog = z.infer<typeof insertFeedingLogSchema>;
+export type SelectFeedingLog = typeof feedingLogs.$inferSelect;
+export type InsertDiaperLog = z.infer<typeof insertDiaperLogSchema>;
+export type SelectDiaperLog = typeof diaperLogs.$inferSelect;
+export type InsertSleepLog = z.infer<typeof insertSleepLogSchema>;
+export type SelectSleepLog = typeof sleepLogs.$inferSelect;
+export type InsertDevelopmentalLeap = z.infer<typeof insertDevelopmentalLeapSchema>;
+export type SelectDevelopmentalLeap = typeof developmentalLeaps.$inferSelect;
+export type InsertDoctorVisit = z.infer<typeof insertDoctorVisitSchema>;
+export type SelectDoctorVisit = typeof doctorVisits.$inferSelect;
 
 // Baby Name Ideas table
 export const babyNames = pgTable("baby_names", {
