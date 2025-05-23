@@ -71,6 +71,14 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
+  // Add a specific middleware to handle API routes before Vite catches them
+  app.use("/api/*", (req, res, next) => {
+    // If we reach here, no API route matched, send 404
+    if (!res.headersSent) {
+      res.status(404).json({ message: `API endpoint not found: ${req.path}` });
+    }
+  });
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

@@ -940,7 +940,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add an item to a registry
+  // Add an item to a registry (REST-style endpoint)
+  app.post("/api/registries/:registryId/items", requireAuth, async (req, res, next) => {
+    try {
+      console.log("Creating registry item with data:", req.body);
+      
+      const registryId = parseInt(req.params.registryId);
+      if (isNaN(registryId)) {
+        return res.status(400).json({ message: "Invalid registry ID" });
+      }
+      
+      const registry = await storage.getRegistry(registryId);
+      console.log("Registry found:", registry);
+      
+      if (!registry) {
+        return res.status(404).json({ message: "Registry not found" });
+      }
+      
+      if (registry.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      // Validate required fields
+      if (!req.body.name) {
+        return res.status(400).json({ message: "Item name is required" });
+      }
+      
+      if (!req.body.category) {
+        return res.status(400).json({ message: "Item category is required" });
+      }
+      
+      const item = await storage.createRegistryItem({
+        registryId,
+        name: req.body.name,
+        description: req.body.description || "",
+        url: req.body.url || null,
+        imageUrl: req.body.imageUrl || null,
+        quantity: req.body.quantity || 1,
+        priority: req.body.priority || "medium",
+        category: req.body.category,
+        price: req.body.price || null,
+        status: "available"
+      });
+      
+      res.status(201).json(item);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Add an item to a registry (Legacy endpoint for compatibility)
   app.post("/api/registry-items", requireAuth, async (req, res, next) => {
     try {
       console.log("Creating registry item with data:", req.body);
