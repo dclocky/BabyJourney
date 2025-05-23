@@ -454,7 +454,7 @@ function SymptomTrackingDialog({ open, onClose, childId }: SymptomTrackingDialog
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["/api/children", childId, "symptoms"],
+        queryKey: [`/api/children/${childId}/symptoms`],
       });
       toast({
         title: "Symptoms tracked successfully",
@@ -592,7 +592,7 @@ function MilestonesCard({ childId }: MilestonesCardProps) {
   const [, setLocation] = useLocation();
 
   const { data: milestones = [], isLoading } = useQuery<Milestone[]>({
-    queryKey: ["/api/children", childId, "milestones"],
+    queryKey: [`/api/children/${childId}/milestones`],
     enabled: !!childId,
   });
 
