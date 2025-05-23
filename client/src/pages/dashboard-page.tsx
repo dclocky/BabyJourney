@@ -542,7 +542,7 @@ function SymptomTrackingDialog({ open, onClose, childId }: SymptomTrackingDialog
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" variant="outline" onClick={onClose} className="bg-primary-500 hover:bg-primary-600">
+            <Button type="submit" disabled={trackSymptomsMutation.isPending} className="bg-primary-500 hover:bg-primary-600 text-white">
               {trackSymptomsMutation.isPending ? "Saving..." : "Save Symptoms"}
             </Button>
           </DialogFooter>
@@ -915,7 +915,7 @@ function AddMilestoneDialog({ open, onClose, childId }: AddMilestoneDialogProps)
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" variant="outline" onClick={onClose} className="bg-primary-500 hover:bg-primary-600">
+            <Button type="submit" disabled={addMilestoneMutation.isPending} className="bg-primary-500 hover:bg-primary-600 text-white">
               {addMilestoneMutation.isPending ? "Saving..." : "Save Milestone"}
             </Button>
           </DialogFooter>
