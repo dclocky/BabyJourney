@@ -457,6 +457,7 @@ function SymptomTrackingDialog({ open, onClose, childId }: SymptomTrackingDialog
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Symptoms form submitted:", symptoms);
     trackSymptomsMutation.mutate({
       ...symptoms,
       date: new Date().toISOString(),
