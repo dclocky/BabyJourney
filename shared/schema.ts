@@ -429,6 +429,168 @@ export type SelectDevelopmentalLeap = typeof developmentalLeaps.$inferSelect;
 export type InsertDoctorVisit = z.infer<typeof insertDoctorVisitSchema>;
 export type SelectDoctorVisit = typeof doctorVisits.$inferSelect;
 
+// ===== PRIVATE FAMILY GROUPS FEATURE =====
+// Family Groups - Allow families to share child data with trusted members
+export const familyGroups = pgTable("family_groups", {
+  id: serial("id").primaryKey(),
+  childId: integer("child_id").references(() => children.id).notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  inviteCode: varchar("invite_code", { length: 32 }).unique(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Group Members with Roles and Permissions
+export const groupMembers = pgTable("group_members", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").references(() => familyGroups.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  role: varchar("role", { length: 20 }).notNull(), // 'owner', 'admin', 'contributor', 'viewer'
+  permissions: json("permissions").$type<{
+    canViewPhotos: boolean;
+    canViewMedical: boolean;
+    canViewFeeding: boolean;
+    canViewSleep: boolean;
+    canViewDiapers: boolean;
+    canAddData: boolean;
+    canInviteMembers: boolean;
+    canManageGroup: boolean;
+  }>(),
+  joinedAt: timestamp("joined_at").defaultNow(),
+  invitedBy: integer("invited_by").references(() => users.id),
+});
+
+// Invitation System with Token-based Security
+export const groupInvitations = pgTable("group_invitations", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").references(() => familyGroups.id).notNull(),
+  email: varchar("email", { length: 255 }).notNull(),
+  token: varchar("token", { length: 128 }).unique().notNull(),
+  role: varchar("role", { length: 20 }).notNull(),
+  permissions: json("permissions").$type<{
+    canViewPhotos: boolean;
+    canViewMedical: boolean;
+    canViewFeeding: boolean;
+    canViewSleep: boolean;
+    canViewDiapers: boolean;
+    canAddData: boolean;
+    canInviteMembers: boolean;
+    canManageGroup: boolean;
+  }>(),
+  invitedBy: integer("invited_by").references(() => users.id).notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Activity Feed for Group Updates
+export const groupActivities = pgTable("group_activities", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").references(() => familyGroups.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  activityType: varchar("activity_type", { length: 50 }).notNull(), // 'feeding_added', 'photo_shared', 'milestone_reached'
+  title: varchar("title", { length: 200 }).notNull(),
+  description: text("description"),
+  metadata: json("metadata"), // Store activity-specific data
+  isVisible: boolean("is_visible").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Comments on Activities
+export const activityComments = pgTable("activity_comments", {
+  id: serial("id").primaryKey(),
+  activityId: integer("activity_id").references(() => groupActivities.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  content: text("content").notNull(),
+  isEdited: boolean("is_edited").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Likes/Reactions on Activities
+export const activityLikes = pgTable("activity_likes", {
+  id: serial("id").primaryKey(),
+  activityId: integer("activity_id").references(() => groupActivities.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  reactionType: varchar("reaction_type", { length: 20 }).default("like"), // 'like', 'love', 'laugh'
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Audit Log for Security and Compliance
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").references(() => familyGroups.id),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  action: varchar("action", { length: 100 }).notNull(), // 'member_invited', 'data_accessed', 'permission_changed'
+  resourceType: varchar("resource_type", { length: 50 }), // 'feeding_log', 'photo', 'group_settings'
+  resourceId: integer("resource_id"),
+  oldValues: json("old_values"),
+  newValues: json("new_values"),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Insert schemas for private groups
+export const insertFamilyGroupSchema = createInsertSchema(familyGroups).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  inviteCode: true
+});
+
+export const insertGroupMemberSchema = createInsertSchema(groupMembers).omit({
+  id: true,
+  joinedAt: true
+});
+
+export const insertGroupInvitationSchema = createInsertSchema(groupInvitations).omit({
+  id: true,
+  token: true,
+  createdAt: true,
+  acceptedAt: true
+});
+
+export const insertGroupActivitySchema = createInsertSchema(groupActivities).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertActivityCommentSchema = createInsertSchema(activityComments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  isEdited: true
+});
+
+export const insertActivityLikeSchema = createInsertSchema(activityLikes).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
+  id: true,
+  createdAt: true
+});
+
+// Types for private groups
+export type InsertFamilyGroup = z.infer<typeof insertFamilyGroupSchema>;
+export type SelectFamilyGroup = typeof familyGroups.$inferSelect;
+export type InsertGroupMember = z.infer<typeof insertGroupMemberSchema>;
+export type SelectGroupMember = typeof groupMembers.$inferSelect;
+export type InsertGroupInvitation = z.infer<typeof insertGroupInvitationSchema>;
+export type SelectGroupInvitation = typeof groupInvitations.$inferSelect;
+export type InsertGroupActivity = z.infer<typeof insertGroupActivitySchema>;
+export type SelectGroupActivity = typeof groupActivities.$inferSelect;
+export type InsertActivityComment = z.infer<typeof insertActivityCommentSchema>;
+export type SelectActivityComment = typeof activityComments.$inferSelect;
+export type InsertActivityLike = z.infer<typeof insertActivityLikeSchema>;
+export type SelectActivityLike = typeof activityLikes.$inferSelect;
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type SelectAuditLog = typeof auditLogs.$inferSelect;
+
 // Baby Name Ideas table
 export const babyNames = pgTable("baby_names", {
   id: serial("id").primaryKey(),

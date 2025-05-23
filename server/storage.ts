@@ -13,7 +13,15 @@ import {
   registryItems, type RegistryItem, type InsertRegistryItem,
   contractions, type Contraction, type InsertContraction,
   cravings, type Craving, type InsertCraving,
-  babyNames, type BabyName, type InsertBabyName
+  babyNames, type BabyName, type InsertBabyName,
+  // Family Groups types
+  familyGroups, type SelectFamilyGroup, type InsertFamilyGroup,
+  groupMembers, type SelectGroupMember, type InsertGroupMember,
+  groupInvitations, type SelectGroupInvitation, type InsertGroupInvitation,
+  groupActivities, type SelectGroupActivity, type InsertGroupActivity,
+  activityComments, type SelectActivityComment, type InsertActivityComment,
+  activityLikes, type SelectActivityLike, type InsertActivityLike,
+  auditLogs, type SelectAuditLog, type InsertAuditLog
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -1617,6 +1625,243 @@ export class DatabaseStorage implements IStorage {
       .delete(babyNames)
       .where(eq(babyNames.id, id));
     return result.rowCount > 0;
+  }
+
+  // ===== FAMILY GROUPS STORAGE METHODS =====
+  
+  // Family Groups
+  async createFamilyGroup(data: InsertFamilyGroup): Promise<SelectFamilyGroup> {
+    const [group] = await db.insert(familyGroups).values(data).returning();
+    return group;
+  }
+
+  async getFamilyGroup(id: number): Promise<SelectFamilyGroup | undefined> {
+    const [group] = await db.select().from(familyGroups).where(eq(familyGroups.id, id));
+    return group;
+  }
+
+  async getFamilyGroupByChild(childId: number): Promise<SelectFamilyGroup | undefined> {
+    const [group] = await db.select().from(familyGroups)
+      .where(and(eq(familyGroups.childId, childId), eq(familyGroups.isActive, true)));
+    return group;
+  }
+
+  async updateFamilyGroup(id: number, data: Partial<InsertFamilyGroup>): Promise<SelectFamilyGroup> {
+    const [group] = await db.update(familyGroups)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(familyGroups.id, id))
+      .returning();
+    return group;
+  }
+
+  // Group Members
+  async createGroupMember(data: InsertGroupMember): Promise<SelectGroupMember> {
+    const [member] = await db.insert(groupMembers).values(data).returning();
+    return member;
+  }
+
+  async getGroupMember(groupId: number, userId: number): Promise<SelectGroupMember | undefined> {
+    const [member] = await db.select().from(groupMembers)
+      .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)));
+    return member;
+  }
+
+  async getGroupMembers(groupId: number): Promise<(SelectGroupMember & { user: User })[]> {
+    return db.select({
+      id: groupMembers.id,
+      groupId: groupMembers.groupId,
+      userId: groupMembers.userId,
+      role: groupMembers.role,
+      permissions: groupMembers.permissions,
+      joinedAt: groupMembers.joinedAt,
+      invitedBy: groupMembers.invitedBy,
+      user: {
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        createdAt: users.createdAt,
+        isPremium: users.isPremium,
+        role: users.role,
+      }
+    })
+    .from(groupMembers)
+    .innerJoin(users, eq(groupMembers.userId, users.id))
+    .where(eq(groupMembers.groupId, groupId));
+  }
+
+  async updateGroupMember(id: number, data: Partial<InsertGroupMember>): Promise<SelectGroupMember> {
+    const [member] = await db.update(groupMembers).set(data).where(eq(groupMembers.id, id)).returning();
+    return member;
+  }
+
+  async removeGroupMember(id: number): Promise<void> {
+    await db.delete(groupMembers).where(eq(groupMembers.id, id));
+  }
+
+  // Group Invitations
+  async createGroupInvitation(data: InsertGroupInvitation): Promise<SelectGroupInvitation> {
+    const [invitation] = await db.insert(groupInvitations).values(data).returning();
+    return invitation;
+  }
+
+  async getInvitationByToken(token: string): Promise<SelectGroupInvitation | undefined> {
+    const [invitation] = await db.select().from(groupInvitations)
+      .where(eq(groupInvitations.token, token));
+    return invitation;
+  }
+
+  async getGroupInvitations(groupId: number): Promise<SelectGroupInvitation[]> {
+    return db.select().from(groupInvitations)
+      .where(eq(groupInvitations.groupId, groupId))
+      .orderBy(desc(groupInvitations.createdAt));
+  }
+
+  async updateInvitation(id: number, data: Partial<InsertGroupInvitation>): Promise<SelectGroupInvitation> {
+    const [invitation] = await db.update(groupInvitations).set(data).where(eq(groupInvitations.id, id)).returning();
+    return invitation;
+  }
+
+  // Group Activities
+  async createGroupActivity(data: InsertGroupActivity): Promise<SelectGroupActivity> {
+    const [activity] = await db.insert(groupActivities).values(data).returning();
+    return activity;
+  }
+
+  async getGroupActivity(id: number): Promise<SelectGroupActivity | undefined> {
+    const [activity] = await db.select().from(groupActivities).where(eq(groupActivities.id, id));
+    return activity;
+  }
+
+  async getGroupActivities(groupId: number, limit: number = 20, offset: number = 0): Promise<(SelectGroupActivity & { user: User; comments: (SelectActivityComment & { user: User })[]; likes: SelectActivityLike[]; })[]> {
+    // Get activities with user info
+    const activities = await db.select({
+      id: groupActivities.id,
+      groupId: groupActivities.groupId,
+      userId: groupActivities.userId,
+      activityType: groupActivities.activityType,
+      title: groupActivities.title,
+      description: groupActivities.description,
+      metadata: groupActivities.metadata,
+      isVisible: groupActivities.isVisible,
+      createdAt: groupActivities.createdAt,
+      user: {
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        createdAt: users.createdAt,
+        isPremium: users.isPremium,
+        role: users.role,
+      }
+    })
+    .from(groupActivities)
+    .innerJoin(users, eq(groupActivities.userId, users.id))
+    .where(and(eq(groupActivities.groupId, groupId), eq(groupActivities.isVisible, true)))
+    .orderBy(desc(groupActivities.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+    // Get comments and likes for each activity
+    const result = [];
+    for (const activity of activities) {
+      const comments = await this.getActivityComments(activity.id);
+      const likes = await this.getActivityLikes(activity.id);
+      result.push({ ...activity, comments, likes });
+    }
+
+    return result;
+  }
+
+  // Activity Comments
+  async createActivityComment(data: InsertActivityComment): Promise<SelectActivityComment> {
+    const [comment] = await db.insert(activityComments).values(data).returning();
+    return comment;
+  }
+
+  async getActivityComments(activityId: number): Promise<(SelectActivityComment & { user: User })[]> {
+    return db.select({
+      id: activityComments.id,
+      activityId: activityComments.activityId,
+      userId: activityComments.userId,
+      content: activityComments.content,
+      isEdited: activityComments.isEdited,
+      createdAt: activityComments.createdAt,
+      updatedAt: activityComments.updatedAt,
+      user: {
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        createdAt: users.createdAt,
+        isPremium: users.isPremium,
+        role: users.role,
+      }
+    })
+    .from(activityComments)
+    .innerJoin(users, eq(activityComments.userId, users.id))
+    .where(eq(activityComments.activityId, activityId))
+    .orderBy(activityComments.createdAt);
+  }
+
+  // Activity Likes
+  async createActivityLike(data: InsertActivityLike): Promise<SelectActivityLike> {
+    const [like] = await db.insert(activityLikes).values(data).returning();
+    return like;
+  }
+
+  async getActivityLike(activityId: number, userId: number): Promise<SelectActivityLike | undefined> {
+    const [like] = await db.select().from(activityLikes)
+      .where(and(eq(activityLikes.activityId, activityId), eq(activityLikes.userId, userId)));
+    return like;
+  }
+
+  async getActivityLikes(activityId: number): Promise<SelectActivityLike[]> {
+    return db.select().from(activityLikes)
+      .where(eq(activityLikes.activityId, activityId));
+  }
+
+  async updateActivityLike(id: number, data: Partial<InsertActivityLike>): Promise<SelectActivityLike> {
+    const [like] = await db.update(activityLikes).set(data).where(eq(activityLikes.id, id)).returning();
+    return like;
+  }
+
+  async removeActivityLike(activityId: number, userId: number): Promise<void> {
+    await db.delete(activityLikes)
+      .where(and(eq(activityLikes.activityId, activityId), eq(activityLikes.userId, userId)));
+  }
+
+  // Audit Logs
+  async createAuditLog(data: InsertAuditLog): Promise<SelectAuditLog> {
+    const [log] = await db.insert(auditLogs).values(data).returning();
+    return log;
+  }
+
+  async getAuditLogs(groupId: number, limit: number = 50, offset: number = 0): Promise<(SelectAuditLog & { user: User })[]> {
+    return db.select({
+      id: auditLogs.id,
+      groupId: auditLogs.groupId,
+      userId: auditLogs.userId,
+      action: auditLogs.action,
+      resourceType: auditLogs.resourceType,
+      resourceId: auditLogs.resourceId,
+      oldValues: auditLogs.oldValues,
+      newValues: auditLogs.newValues,
+      ipAddress: auditLogs.ipAddress,
+      userAgent: auditLogs.userAgent,
+      createdAt: auditLogs.createdAt,
+      user: {
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        createdAt: users.createdAt,
+        isPremium: users.isPremium,
+        role: users.role,
+      }
+    })
+    .from(auditLogs)
+    .innerJoin(users, eq(auditLogs.userId, users.id))
+    .where(eq(auditLogs.groupId, groupId))
+    .orderBy(desc(auditLogs.createdAt))
+    .limit(limit)
+    .offset(offset);
   }
 }
 
