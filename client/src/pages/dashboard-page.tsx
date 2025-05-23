@@ -1373,10 +1373,30 @@ function UploadPhotoDialog({ open, onClose, childId }: UploadPhotoDialogProps) {
 }
 
 function PremiumFeaturesCard() {
-  const [, setLocation] = useLocation();
+  const { createPaymentIntentMutation, confirmPremiumUpgradeMutation } = useAuth();
+  const { toast } = useToast();
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
 
-  const handleUpgrade = () => {
-    setLocation("/upgrade");
+  const handleUpgrade = async () => {
+    try {
+      const result = await createPaymentIntentMutation.mutateAsync();
+      setPaymentIntentId(result.clientSecret.split('_')[2]);
+      setShowPaymentDialog(true);
+    } catch (error) {
+      toast({
+        title: "Payment initialization failed",
+        description: "There was an error starting the payment process. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleConfirmPayment = () => {
+    if (paymentIntentId) {
+      confirmPremiumUpgradeMutation.mutate(paymentIntentId);
+      setShowPaymentDialog(false);
+    }
   };
 
   return (
@@ -1410,10 +1430,58 @@ function PremiumFeaturesCard() {
         <Button
           className="w-full mt-6 bg-white text-primary-600 hover:bg-white/90"
           onClick={handleUpgrade}
+          disabled={createPaymentIntentMutation.isPending}
         >
-          Upgrade to Premium
+          {createPaymentIntentMutation.isPending ? "Loading..." : "Upgrade to Premium"}
         </Button>
       </CardContent>
+
+      {/* Payment Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upgrade to Premium</DialogTitle>
+            <DialogDescription>
+              Complete your payment to unlock unlimited features
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-6">
+            <div className="text-center mb-6">
+              <div className="text-3xl font-bold text-primary-600 mb-2">$9.99/month</div>
+              <p className="text-sm text-muted-foreground">Cancel anytime</p>
+            </div>
+            
+            <div className="space-y-4 mb-6">
+              <div className="flex items-center">
+                <Check className="h-4 w-4 text-green-500 mr-2" />
+                <span className="text-sm">Unlimited photo storage</span>
+              </div>
+              <div className="flex items-center">
+                <Check className="h-4 w-4 text-green-500 mr-2" />
+                <span className="text-sm">Track multiple pregnancies</span>
+              </div>
+              <div className="flex items-center">
+                <Check className="h-4 w-4 text-green-500 mr-2" />
+                <span className="text-sm">Advanced analytics</span>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleConfirmPayment}
+              disabled={confirmPremiumUpgradeMutation.isPending}
+              className="bg-primary-600 hover:bg-primary-700"
+            >
+              {confirmPremiumUpgradeMutation.isPending ? "Processing..." : "Complete Payment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
