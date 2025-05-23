@@ -15,6 +15,7 @@ import ExtrasPage from "@/pages/extras-page";
 import BabyPoolPage from "@/pages/baby-pool-page";
 import BabyNamesPage from "@/pages/baby-names-page";
 import BabyCarePage from "@/pages/baby-care-page";
+import GrowthChartsPage from "@/pages/growth-charts-page";
 import SettingsPage from "@/pages/settings-page";
 import UpgradePage from "@/pages/upgrade-page";
 import { ProtectedRoute } from "./lib/protected-route";
@@ -46,6 +47,10 @@ function Router() {
       
       {/* Baby Names routes */}
       <ProtectedRoute path="/baby-names" component={BabyNamesPage} />
+      
+      {/* Baby tracking features */}
+      <ProtectedRoute path="/baby-care" component={BabyCarePage} />
+      <ProtectedRoute path="/growth-charts" component={GrowthChartsPage} />
       
       <ProtectedRoute path="/upgrade" component={UpgradePage} />
       <ProtectedRoute path="/settings" component={SettingsPage} />
