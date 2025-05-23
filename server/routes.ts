@@ -1511,8 +1511,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== FAMILY GROUPS API ROUTES =====
   
-  // Import family groups service
-  const { familyGroupService } = await import('./family-groups');
+  // Import family groups service at the top level
+  const familyGroupsModule = await import('./family-groups');
+  const familyGroupService = familyGroupsModule.familyGroupService;
   
   // Create a new family group for a child
   app.post("/api/family-groups", async (req: any, res: any) => {
