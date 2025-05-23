@@ -393,6 +393,7 @@ function SymptomTrackingDialog({ open, onClose, childId }: SymptomTrackingDialog
   
   const trackSymptomsMutation = useMutation({
     mutationFn: async (data: SymptomData) => {
+      console.log("Starting symptom mutation with data:", data);
       if (!childId) throw new Error("Child ID is required");
 
       // Send individual symptom records for each active symptom
@@ -411,17 +412,29 @@ function SymptomTrackingDialog({ open, onClose, childId }: SymptomTrackingDialog
         symptomsToSave.push({ name: "Mood", severity: 1, date: data.date, notes: `Mood: ${data.mood}` });
       }
 
+      console.log("Symptoms to save:", symptomsToSave);
+
+      if (symptomsToSave.length === 0) {
+        throw new Error("Please select at least one symptom to track");
+      }
+
       // Save each symptom individually
       const results = await Promise.all(
         symptomsToSave.map(async (symptom) => {
+          console.log("Saving symptom:", symptom);
           const res = await apiRequest("POST", `/api/children/${childId}/symptoms`, symptom);
+          if (!res.ok) {
+            throw new Error(`Failed to save symptom: ${res.status}`);
+          }
           return await res.json();
         })
       );
       
+      console.log("All symptoms saved successfully:", results);
       return results;
     },
     onSuccess: () => {
+      console.log("Symptoms saved successfully, invalidating cache");
       queryClient.invalidateQueries({
         queryKey: [`/api/children/${childId}/symptoms`],
       });
@@ -432,9 +445,10 @@ function SymptomTrackingDialog({ open, onClose, childId }: SymptomTrackingDialog
       onClose();
     },
     onError: (error) => {
+      console.error("Error saving symptoms:", error);
       toast({
         title: "Error",
-        description: "Failed to save your symptoms. Please try again.",
+        description: error.message || "Failed to save your symptoms. Please try again.",
         variant: "destructive",
       });
     },
@@ -774,9 +788,20 @@ function AddMilestoneDialog({ open, onClose, childId }: AddMilestoneDialogProps)
       }
     },
     onSuccess: () => {
-      // Invalidate milestone-related queries
+      console.log("Milestone saved successfully, invalidating all milestone caches");
+      // Invalidate ALL milestone-related queries to ensure display updates
       queryClient.invalidateQueries({
         queryKey: ["/api/children", childId, "milestones"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [`/api/children/${childId}/milestones`],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/children", childId, "milestones/recent"],
+      });
+      // Force refetch of dashboard data
+      queryClient.invalidateQueries({
+        queryKey: ["/api/children"],
       });
       toast({
         title: "Milestone added",
