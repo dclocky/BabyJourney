@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
@@ -328,33 +329,7 @@ function PregnancyProgressCard({ child, pregnancyWeek }: PregnancyProgressCardPr
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="border border-secondary-100 rounded-lg p-4">
-            <div className="flex items-center mb-3">
-              <Heart className="text-primary-500 h-4 w-4 mr-2" />
-              <h4 className="font-medium">Recent Symptoms</h4>
-            </div>
-            <ul className="space-y-2 text-sm">
-              <li className="flex items-center">
-                <span className="w-2 h-2 bg-amber-500 rounded-full mr-2"></span>
-                <span>Lower back pain</span>
-              </li>
-              <li className="flex items-center">
-                <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                <span>Increased energy</span>
-              </li>
-              <li className="flex items-center">
-                <span className="w-2 h-2 bg-primary-500 rounded-full mr-2"></span>
-                <span>Occasional heartburn</span>
-              </li>
-            </ul>
-            <Button
-              variant="link"
-              className="p-0 h-auto mt-3 text-primary-500"
-              onClick={handleTrackSymptoms}
-            >
-              Track symptoms
-            </Button>
-          </div>
+          <SymptomsCard childId={child?.id} onTrackSymptoms={handleTrackSymptoms} />
 
           <div className="border border-secondary-100 rounded-lg p-4">
             <div className="flex items-center mb-3">
@@ -579,6 +554,71 @@ function SymptomTrackingDialog({ open, onClose, childId }: SymptomTrackingDialog
 
 interface MilestonesCardProps {
   childId?: number;
+}
+
+interface SymptomsCardProps {
+  childId?: number;
+  onTrackSymptoms: () => void;
+}
+
+interface Symptom {
+  id: number;
+  childId: number;
+  userId: number;
+  date: string;
+  name: string;
+  severity: number;
+  notes?: string;
+  createdAt: string;
+}
+
+function SymptomsCard({ childId, onTrackSymptoms }: SymptomsCardProps) {
+  const { data: symptoms = [], isLoading } = useQuery<Symptom[]>({
+    queryKey: [`/api/children/${childId}/symptoms`],
+    enabled: !!childId,
+  });
+
+  const getSeverityColor = (severity: number) => {
+    if (severity <= 2) return "bg-green-500";
+    if (severity <= 3) return "bg-amber-500";
+    return "bg-red-500";
+  };
+
+  return (
+    <div className="border border-secondary-100 rounded-lg p-4">
+      <div className="flex items-center mb-3">
+        <Heart className="text-primary-500 h-4 w-4 mr-2" />
+        <h4 className="font-medium">Recent Symptoms</h4>
+      </div>
+      
+      {isLoading ? (
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+      ) : symptoms.length > 0 ? (
+        <ul className="space-y-2 text-sm">
+          {symptoms.slice(0, 3).map((symptom) => (
+            <li key={symptom.id} className="flex items-center">
+              <span className={`w-2 h-2 ${getSeverityColor(symptom.severity)} rounded-full mr-2`}></span>
+              <span>{symptom.name}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">No symptoms recorded yet</p>
+      )}
+      
+      <Button
+        variant="link"
+        className="p-0 h-auto mt-3 text-primary-500"
+        onClick={onTrackSymptoms}
+      >
+        Track symptoms
+      </Button>
+    </div>
+  );
 }
 
 function MilestonesCard({ childId }: MilestonesCardProps) {
