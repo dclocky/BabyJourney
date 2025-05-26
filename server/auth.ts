@@ -71,13 +71,27 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
+        console.log("Login attempt for username:", username);
         const user = await storage.getUserByUsername(username);
-        if (!user || !(await comparePasswords(password, user.password))) {
+        console.log("User found:", user ? "Yes" : "No");
+        
+        if (!user) {
+          console.log("User not found");
           return done(null, false);
-        } else {
-          return done(null, user);
         }
+        
+        const passwordMatch = await comparePasswords(password, user.password);
+        console.log("Password match:", passwordMatch);
+        
+        if (!passwordMatch) {
+          console.log("Password does not match");
+          return done(null, false);
+        }
+        
+        console.log("Login successful for user:", user.username);
+        return done(null, user);
       } catch (err) {
+        console.error("Login error:", err);
         return done(err);
       }
     }),
@@ -142,16 +156,38 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    // Force session save before responding
-    req.session.save((err) => {
+  app.post("/api/login", (req, res, next) => {
+    console.log("Login request received:", req.body);
+    passport.authenticate("local", (err, user, info) => {
+      console.log("Passport authenticate callback - err:", err, "user:", user ? "found" : "not found", "info:", info);
+      
       if (err) {
-        console.error("Session save error:", err);
-        return res.status(500).json({ error: "Failed to save session" });
+        console.error("Passport authentication error:", err);
+        return next(err);
       }
-      console.log("Login successful, session saved:", req.sessionID);
-      res.status(200).json(req.user);
-    });
+      
+      if (!user) {
+        console.log("Authentication failed - no user returned");
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      req.logIn(user, (loginErr) => {
+        if (loginErr) {
+          console.error("Login error:", loginErr);
+          return next(loginErr);
+        }
+
+        // Force session save before responding
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error("Session save error:", saveErr);
+            return res.status(500).json({ error: "Failed to save session" });
+          }
+          console.log("Login successful, session saved:", req.sessionID);
+          res.status(200).json(user);
+        });
+      });
+    })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
