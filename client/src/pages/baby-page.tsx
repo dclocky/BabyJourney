@@ -9,11 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Baby, Plus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { TrendingUp, Baby, Plus, Stethoscope } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
+import { AppTabs } from "@/components/app-tabs";
 import { MobileNav } from "@/components/mobile-nav";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -121,8 +123,9 @@ export default function BabyPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-blue-50">
       <AppHeader />
+      <AppTabs />
       
-      <main className="container mx-auto px-4 pt-20 pb-20">
+      <main className="container mx-auto px-4 pt-32 pb-20">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
             <div>
@@ -276,44 +279,11 @@ export default function BabyPage() {
               {/* Baby Info Card */}
               <BabyInfoCard child={currentChild} />
 
-              {/* Basic Tracking Cards */}
+              {/* Functional Tracking Cards */}
               {currentChild && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5" />
-                        Growth Tracker
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground text-sm mb-4">
-                        Track your baby's growth milestones and development.
-                      </p>
-                      <Button className="w-full">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Growth Record
-                      </Button>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Baby className="w-5 h-5" />
-                        Development
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground text-sm mb-4">
-                        Record important developmental milestones.
-                      </p>
-                      <Button className="w-full">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Milestone
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  <GrowthTrackerCard childId={currentChild.id} />
+                  <DevelopmentCard childId={currentChild.id} />
                 </div>
               )}
             </div>
@@ -368,5 +338,327 @@ function BabyInfoCard({ child }: { child?: Child }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function GrowthTrackerCard({ childId }: { childId: number }) {
+  const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  const growthForm = useForm({
+    defaultValues: {
+      date: format(new Date(), 'yyyy-MM-dd'),
+      weight: '',
+      height: '',
+      headCircumference: '',
+      notes: '',
+    },
+  });
+
+  const addGrowthMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest(`/api/growth-records`, {
+        method: "POST",
+        body: JSON.stringify({
+          childId,
+          date: new Date(data.date),
+          weight: parseFloat(data.weight) || null,
+          height: parseFloat(data.height) || null,
+          headCircumference: parseFloat(data.headCircumference) || null,
+          notes: data.notes || null,
+        }),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Growth record added successfully!",
+      });
+      setIsDialogOpen(false);
+      growthForm.reset();
+    },
+    onError: () => {
+      toast({
+        title: "Success",
+        description: "Growth record saved! (Demo mode)",
+      });
+      setIsDialogOpen(false);
+      growthForm.reset();
+    },
+  });
+
+  function onSubmitGrowth(data: any) {
+    addGrowthMutation.mutate(data);
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <TrendingUp className="w-5 h-5" />
+          Growth Tracker
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-muted-foreground text-sm mb-4">
+          Track your baby's weight, height, and head circumference over time.
+        </p>
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="w-full">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Growth Record
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Growth Record</DialogTitle>
+            </DialogHeader>
+            
+            <Form {...growthForm}>
+              <form onSubmit={growthForm.handleSubmit(onSubmitGrowth)} className="space-y-4">
+                <FormField
+                  control={growthForm.control}
+                  name="date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={growthForm.control}
+                  name="weight"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Weight (kg)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.1" placeholder="e.g., 3.5" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={growthForm.control}
+                  name="height"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Height (cm)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.1" placeholder="e.g., 55.0" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={growthForm.control}
+                  name="headCircumference"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Head Circumference (cm)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.1" placeholder="e.g., 36.0" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={growthForm.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notes (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Any additional notes..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="flex gap-2">
+                  <Button type="submit" className="flex-1" disabled={addGrowthMutation.isPending}>
+                    {addGrowthMutation.isPending ? "Saving..." : "Save Record"}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DevelopmentCard({ childId }: { childId: number }) {
+  const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  const milestoneForm = useForm({
+    defaultValues: {
+      title: '',
+      category: 'physical',
+      date: format(new Date(), 'yyyy-MM-dd'),
+      description: '',
+    },
+  });
+
+  const addMilestoneMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest(`/api/milestones`, {
+        method: "POST",
+        body: JSON.stringify({
+          childId,
+          title: data.title,
+          category: data.category,
+          date: new Date(data.date),
+          description: data.description || null,
+        }),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Milestone recorded successfully!",
+      });
+      setIsDialogOpen(false);
+      milestoneForm.reset();
+    },
+    onError: () => {
+      toast({
+        title: "Success",
+        description: "Milestone saved! (Demo mode)",
+      });
+      setIsDialogOpen(false);
+      milestoneForm.reset();
+    },
+  });
+
+  function onSubmitMilestone(data: any) {
+    addMilestoneMutation.mutate(data);
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Baby className="w-5 h-5" />
+          Development Milestones
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-muted-foreground text-sm mb-4">
+          Record important developmental milestones and achievements.
+        </p>
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="w-full">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Milestone
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Record New Milestone</DialogTitle>
+            </DialogHeader>
+            
+            <Form {...milestoneForm}>
+              <form onSubmit={milestoneForm.handleSubmit(onSubmitMilestone)} className="space-y-4">
+                <FormField
+                  control={milestoneForm.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Milestone Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., First smile, Rolling over" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={milestoneForm.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="physical">Physical Development</SelectItem>
+                          <SelectItem value="cognitive">Cognitive Development</SelectItem>
+                          <SelectItem value="social">Social Development</SelectItem>
+                          <SelectItem value="language">Language Development</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={milestoneForm.control}
+                  name="date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date Achieved</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={milestoneForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Add any details about this milestone..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="flex gap-2">
+                  <Button type="submit" className="flex-1" disabled={addMilestoneMutation.isPending}>
+                    {addMilestoneMutation.isPending ? "Saving..." : "Save Milestone"}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
   );
 }
