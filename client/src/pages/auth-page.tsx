@@ -5,6 +5,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Sprout } from "lucide-react";
+import { PostRegistrationModal } from "@/components/PostRegistrationModal";
+import { AddPregnancyModal } from "@/components/AddPregnancyModal";
+import { AddBabyModal } from "@/components/AddBabyModal";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -23,6 +26,12 @@ export default function AuthPage() {
   const [, navigate] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  
+  // Post-registration modal states
+  const [showPostRegModal, setShowPostRegModal] = useState(false);
+  const [showPregnancyModal, setShowPregnancyModal] = useState(false);
+  const [showBabyModal, setShowBabyModal] = useState(false);
+  const [newUserName, setNewUserName] = useState("");
 
   // Redirect if user is already logged in
   if (user) {

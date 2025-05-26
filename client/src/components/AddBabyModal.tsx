@@ -26,14 +26,11 @@ export function AddBabyModal({ open, onClose, onSuccess }: AddBabyModalProps) {
 
   const createBabyMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      return apiRequest("/api/children", {
-        method: "POST",
-        body: JSON.stringify({
-          name: data.name,
-          birthDate: data.birthDate,
-          gender: data.gender || null,
-          isPregnancy: false,
-        }),
+      return apiRequest("POST", "/api/children", {
+        name: data.name,
+        birthDate: data.birthDate,
+        gender: data.gender || null,
+        isPregnancy: false,
       });
     },
     onSuccess: () => {

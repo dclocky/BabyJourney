@@ -26,14 +26,11 @@ export function AddPregnancyModal({ open, onClose, onSuccess }: AddPregnancyModa
 
   const createPregnancyMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      return apiRequest("/api/children", {
-        method: "POST",
-        body: JSON.stringify({
-          name: data.name,
-          dueDate: data.dueDate,
-          gender: data.gender || null,
-          isPregnancy: true,
-        }),
+      return apiRequest("POST", "/api/children", {
+        name: data.name,
+        dueDate: data.dueDate,
+        gender: data.gender || null,
+        isPregnancy: true,
       });
     },
     onSuccess: () => {
