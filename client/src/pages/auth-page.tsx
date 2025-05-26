@@ -8,6 +8,9 @@ import { Sprout } from "lucide-react";
 import { PostRegistrationModal } from "@/components/PostRegistrationModal";
 import { AddPregnancyModal } from "@/components/AddPregnancyModal";
 import { AddBabyModal } from "@/components/AddBabyModal";
+import { LoginModeSelector } from "@/components/LoginModeSelector";
+import { TutorialModal } from "@/components/TutorialModal";
+import { PremiumFeaturesModal } from "@/components/PremiumFeaturesModal";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -27,16 +30,40 @@ export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   
-  // Post-registration modal states
+  // Login mode and modal states
+  const [loginMode, setLoginMode] = useState<"mother" | "family" | null>(null);
+  const [showModeSelector, setShowModeSelector] = useState(false);
   const [showPostRegModal, setShowPostRegModal] = useState(false);
-  const [showPregnancyModal, setShowPregnancyModal] = useState(false);
-  const [showBabyModal, setShowBabyModal] = useState(false);
+  const [showTutorialModal, setShowTutorialModal] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [newUserName, setNewUserName] = useState("");
+  const [userType, setUserType] = useState<"pregnancy" | "baby">("baby");
 
   // Redirect if user is already logged in
   if (user) {
     return <Redirect to="/" />;
   }
+
+  const handleModeSelect = (mode: "mother" | "family") => {
+    setLoginMode(mode);
+  };
+
+  const handlePostRegComplete = (type: "pregnancy" | "baby", name: string) => {
+    setUserType(type);
+    setNewUserName(name);
+    setShowPostRegModal(false);
+    setShowTutorialModal(true);
+  };
+
+  const handleTutorialComplete = () => {
+    setShowTutorialModal(false);
+    setShowPremiumModal(true);
+  };
+
+  const handlePremiumClose = () => {
+    setShowPremiumModal(false);
+    navigate("/");
+  };
 
   return (
     <div className="min-h-screen bg-primary-50/50 flex items-center">
@@ -51,12 +78,19 @@ export default function AuthPage() {
               </div>
             </div>
 
-            <Tabs 
-              defaultValue="login" 
-              value={activeTab} 
-              onValueChange={(v) => setActiveTab(v as "login" | "register")}
-              className="w-full"
-            >
+            {/* Step 1: Login Mode Selection */}
+            {!loginMode && (
+              <LoginModeSelector onModeSelect={handleModeSelect} />
+            )}
+
+            {/* Step 2: Authentication Forms */}
+            {loginMode && (
+              <Tabs 
+                defaultValue="login" 
+                value={activeTab} 
+                onValueChange={(v) => setActiveTab(v as "login" | "register")}
+                className="w-full"
+              >
               <TabsList className="grid grid-cols-2 mb-6">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
@@ -114,6 +148,7 @@ export default function AuthPage() {
                 </Card>
               </TabsContent>
             </Tabs>
+            )}
           </div>
 
           {/* Hero Section - Right Side */}
@@ -151,6 +186,29 @@ export default function AuthPage() {
           </div>
         </div>
       </div>
+
+      {/* All Modals */}
+      <PostRegistrationModal 
+        open={showPostRegModal} 
+        onClose={() => setShowPostRegModal(false)}
+        onComplete={handlePostRegComplete}
+      />
+      
+      <TutorialModal
+        open={showTutorialModal}
+        onClose={() => setShowTutorialModal(false)}
+        onComplete={handleTutorialComplete}
+        userType={userType}
+        userName={newUserName}
+      />
+      
+      <PremiumFeaturesModal
+        open={showPremiumModal}
+        onClose={handlePremiumClose}
+        onUpgrade={handlePremiumClose}
+        userType={userType}
+        userName={newUserName}
+      />
     </div>
   );
 }
