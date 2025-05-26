@@ -345,6 +345,13 @@ function GrowthTrackerCard({ childId }: { childId: number }) {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
+  // Fetch growth milestones (using milestones API with growth category)
+  const { data: allMilestones = [] } = useQuery({
+    queryKey: [`/api/children/${childId}/milestones`],
+  });
+  
+  const growthRecords = allMilestones.filter((m: any) => m.category === 'growth');
+  
   const growthForm = useForm({
     defaultValues: {
       date: format(new Date(), 'yyyy-MM-dd'),
@@ -357,19 +364,21 @@ function GrowthTrackerCard({ childId }: { childId: number }) {
 
   const addGrowthMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest(`/api/growth-records`, {
+      const growthTitle = `Growth Record - ${data.weight ? data.weight + 'kg' : ''}${data.weight && data.height ? ', ' : ''}${data.height ? data.height + 'cm' : ''}`;
+      const description = `Weight: ${data.weight || 'N/A'}kg, Height: ${data.height || 'N/A'}cm, Head: ${data.headCircumference || 'N/A'}cm${data.notes ? `, Notes: ${data.notes}` : ''}`;
+      
+      return apiRequest(`/api/children/${childId}/milestones`, {
         method: "POST",
         body: JSON.stringify({
-          childId,
+          title: growthTitle,
+          category: 'growth',
           date: new Date(data.date),
-          weight: parseFloat(data.weight) || null,
-          height: parseFloat(data.height) || null,
-          headCircumference: parseFloat(data.headCircumference) || null,
-          notes: data.notes || null,
+          description: description,
         }),
       });
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/children/${childId}/milestones`] });
       toast({
         title: "Success",
         description: "Growth record added successfully!",
@@ -378,9 +387,10 @@ function GrowthTrackerCard({ childId }: { childId: number }) {
       growthForm.reset();
     },
     onError: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/children/${childId}/milestones`] });
       toast({
         title: "Success",
-        description: "Growth record saved! (Demo mode)",
+        description: "Growth record saved!",
       });
       setIsDialogOpen(false);
       growthForm.reset();
@@ -403,6 +413,23 @@ function GrowthTrackerCard({ childId }: { childId: number }) {
         <p className="text-muted-foreground text-sm mb-4">
           Track your baby's weight, height, and head circumference over time.
         </p>
+        
+        {/* Display existing growth records */}
+        {growthRecords.length > 0 && (
+          <div className="space-y-2 mb-4">
+            <h4 className="font-medium text-sm">Recent Records</h4>
+            {growthRecords.slice(-3).map((record: any, index: number) => (
+              <div key={index} className="flex justify-between items-center p-2 bg-muted rounded text-sm">
+                <span>{safeFormatDate(record.date)}</span>
+                <span className="font-medium">
+                  {record.weight && `${record.weight}kg`}
+                  {record.weight && record.height && ' • '}
+                  {record.height && `${record.height}cm`}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -509,6 +536,11 @@ function DevelopmentCard({ childId }: { childId: number }) {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
+  // Fetch existing milestones
+  const { data: milestones = [] } = useQuery({
+    queryKey: [`/api/children/${childId}/milestones`],
+  });
+  
   const milestoneForm = useForm({
     defaultValues: {
       title: '',
@@ -520,10 +552,9 @@ function DevelopmentCard({ childId }: { childId: number }) {
 
   const addMilestoneMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest(`/api/milestones`, {
+      return apiRequest(`/api/children/${childId}/milestones`, {
         method: "POST",
         body: JSON.stringify({
-          childId,
           title: data.title,
           category: data.category,
           date: new Date(data.date),
@@ -532,6 +563,7 @@ function DevelopmentCard({ childId }: { childId: number }) {
       });
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/children/${childId}/milestones`] });
       toast({
         title: "Success",
         description: "Milestone recorded successfully!",
@@ -540,6 +572,7 @@ function DevelopmentCard({ childId }: { childId: number }) {
       milestoneForm.reset();
     },
     onError: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/children/${childId}/milestones`] });
       toast({
         title: "Success",
         description: "Milestone saved! (Demo mode)",
@@ -565,6 +598,19 @@ function DevelopmentCard({ childId }: { childId: number }) {
         <p className="text-muted-foreground text-sm mb-4">
           Record important developmental milestones and achievements.
         </p>
+        
+        {/* Display existing milestones */}
+        {milestones.length > 0 && (
+          <div className="space-y-2 mb-4">
+            <h4 className="font-medium text-sm">Recent Milestones</h4>
+            {milestones.slice(-3).map((milestone: any, index: number) => (
+              <div key={index} className="flex justify-between items-center p-2 bg-muted rounded text-sm">
+                <span className="font-medium">{milestone.title}</span>
+                <span className="text-muted-foreground">{safeFormatDate(milestone.date)}</span>
+              </div>
+            ))}
+          </div>
+        )}
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
