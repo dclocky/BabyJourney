@@ -354,7 +354,7 @@ function BabyInfoCard({ child }: { child?: Child }) {
             <div>
               <p className="text-sm text-muted-foreground">Birth Date</p>
               <p className="font-medium">
-                {birthDate ? format(birthDate, 'MMM d, yyyy') : 'Not set'}
+                {isValidDate ? format(birthDate, 'MMM d, yyyy') : 'Not set'}
               </p>
             </div>
             <div>
