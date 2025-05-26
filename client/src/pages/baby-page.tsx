@@ -35,10 +35,24 @@ import { format } from "date-fns";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
+// Safe date formatting function to prevent "Invalid time value" errors
+function safeFormatDate(dateValue: any, formatString: string = 'MMM d, yyyy'): string {
+  try {
+    if (!dateValue) return 'Not set';
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) return 'Invalid date';
+    return format(date, formatString);
+  } catch (error) {
+    console.warn('Date formatting error:', error, 'for value:', dateValue);
+    return 'Invalid date';
+  }
+}
+
 export default function BabyPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedChild, setSelectedChild] = useState<number | null>(null);
+  const [errorInfo, setErrorInfo] = useState<string | null>(null);
 
   const { data: children = [], isLoading: isLoadingChildren } = useQuery<Child[]>({
     queryKey: ["/api/children"],
@@ -354,7 +368,7 @@ function BabyInfoCard({ child }: { child?: Child }) {
             <div>
               <p className="text-sm text-muted-foreground">Birth Date</p>
               <p className="font-medium">
-                {isValidDate ? format(birthDate, 'MMM d, yyyy') : 'Not set'}
+                {safeFormatDate(child.birthDate)}
               </p>
             </div>
             <div>
@@ -598,10 +612,7 @@ function GrowthTrackerCard({ childId }: { childId: number }) {
                   {sortedRecords.slice(0, 5).map((record) => (
                     <tr key={record.id} className="border-b last:border-0">
                       <td className="py-2">
-                        {(() => {
-                          const date = new Date(record.date);
-                          return isNaN(date.getTime()) ? 'Invalid date' : format(date, 'MMM d, yyyy');
-                        })()}
+                        {safeFormatDate(record.date)}
                       </td>
                       <td className="text-right py-2">
                         {record.weight ? `${(record.weight / 1000).toFixed(2)} kg` : '-'}
