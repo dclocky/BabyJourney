@@ -380,10 +380,17 @@ function GrowthTrackerCard({ childId }: { childId: number }) {
     enabled: !!childId,
   });
   
-  // Sort by most recent first
-  const sortedRecords = [...growthData].sort((a, b) => 
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  // Sort by most recent first - with safe date handling
+  const sortedRecords = [...growthData].sort((a, b) => {
+    const dateA = new Date(a.date);
+    const dateB = new Date(b.date);
+    
+    // If either date is invalid, put it at the end
+    if (isNaN(dateA.getTime())) return 1;
+    if (isNaN(dateB.getTime())) return -1;
+    
+    return dateB.getTime() - dateA.getTime();
+  });
   
   // Form for adding new growth record
   const growthRecordSchema = z.object({
@@ -590,7 +597,12 @@ function GrowthTrackerCard({ childId }: { childId: number }) {
                 <tbody>
                   {sortedRecords.slice(0, 5).map((record) => (
                     <tr key={record.id} className="border-b last:border-0">
-                      <td className="py-2">{format(new Date(record.date), 'MMM d, yyyy')}</td>
+                      <td className="py-2">
+                        {(() => {
+                          const date = new Date(record.date);
+                          return isNaN(date.getTime()) ? 'Invalid date' : format(date, 'MMM d, yyyy');
+                        })()}
+                      </td>
                       <td className="text-right py-2">
                         {record.weight ? `${(record.weight / 1000).toFixed(2)} kg` : '-'}
                       </td>
@@ -626,10 +638,17 @@ function VaccinationTrackerCard({ childId }: { childId: number }) {
     enabled: !!childId,
   });
   
-  // Sort by most recent first
-  const sortedVaccinations = [...vaccinations].sort((a, b) => 
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  // Sort by most recent first - with safe date handling
+  const sortedVaccinations = [...vaccinations].sort((a, b) => {
+    const dateA = new Date(a.date);
+    const dateB = new Date(b.date);
+    
+    // If either date is invalid, put it at the end
+    if (isNaN(dateA.getTime())) return 1;
+    if (isNaN(dateB.getTime())) return -1;
+    
+    return dateB.getTime() - dateA.getTime();
+  });
   
   // Form for adding new vaccination
   const vaccinationSchema = z.object({
