@@ -328,7 +328,8 @@ function BabyInfoCard({ child }: { child?: Child }) {
   if (!child) return null;
   
   const birthDate = child.birthDate ? new Date(child.birthDate) : null;
-  const ageInMonths = birthDate 
+  const isValidDate = birthDate && !isNaN(birthDate.getTime());
+  const ageInMonths = isValidDate 
     ? Math.floor((new Date().getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44)) 
     : 0;
   
