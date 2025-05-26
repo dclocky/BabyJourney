@@ -339,7 +339,7 @@ export default function BabyPage() {
 }
 
 function BabyInfoCard({ child }: { child?: Child }) {
-  if (!child) return null;
+  if (!child || !child.name) return null;
   
   const birthDate = child.birthDate ? new Date(child.birthDate) : null;
   const isValidDate = birthDate && !isNaN(birthDate.getTime());
@@ -352,12 +352,12 @@ function BabyInfoCard({ child }: { child?: Child }) {
       <div className="flex flex-col md:flex-row gap-6">
         <div className="flex-shrink-0 w-24 h-24 md:w-32 md:h-32 bg-primary-50 rounded-full flex items-center justify-center text-primary-500">
           <span className="text-2xl font-bold">
-            {child.name.charAt(0).toUpperCase()}
+            {child.name ? child.name.charAt(0).toUpperCase() : 'B'}
           </span>
         </div>
         
         <div className="flex-grow">
-          <h2 className="text-2xl font-bold">{child.name}</h2>
+          <h2 className="text-2xl font-bold">{child.name || 'Baby'}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
             <div>
               <p className="text-sm text-muted-foreground">Age</p>
