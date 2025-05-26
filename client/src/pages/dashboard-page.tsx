@@ -561,7 +561,6 @@ function SymptomTrackingDialog({ open, onClose, childId }: SymptomTrackingDialog
               type="submit" 
               disabled={trackSymptomsMutation.isPending} 
               className="bg-primary-500 hover:bg-primary-600 text-white"
-              onClick={() => console.log("Save Symptoms button clicked!")}
             >
               {trackSymptomsMutation.isPending ? "Saving..." : "Save Symptoms"}
             </Button>
@@ -950,7 +949,6 @@ function AddMilestoneDialog({ open, onClose, childId }: AddMilestoneDialogProps)
               type="submit" 
               disabled={addMilestoneMutation.isPending} 
               className="bg-primary-500 hover:bg-primary-600 text-white"
-              onClick={() => console.log("Save Milestone button clicked!")}
             >
               {addMilestoneMutation.isPending ? "Saving..." : "Save Milestone"}
             </Button>

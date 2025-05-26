@@ -1,0 +1,104 @@
+I want you to implement and fully test the following features and fixes for our app, ensuring smooth UX/UI, complete backend integration, and bug-free operation. Plan and execute everything carefully, test and debug thoroughly, and do not stop until every item below is fully complete, functional, and error-free:
+1. Post-Registration Pop-Up
+
+    After a user registers, show a pop-up with two buttons:
+
+        “Are you pregnant?”
+
+        “Add a child”
+
+    Each button should take the user immediately to the relevant “Add” pop-up, skipping menus or extra steps.
+
+2. Tutorial for New Mothers
+
+    After a baby/child is added, show a tutorial introducing all base (free) features.
+
+    Allow the mother to click into each feature individually.
+
+    Personalize the tutorial based on her situation (e.g., pregnancy vs. baby stage), so only relevant features are shown.
+
+3. Highlight Premium Features
+
+    After the tutorial, show a pop-up highlighting Premium features, with clear visuals and benefits.
+
+4. Premium Payment Integration
+
+    Set up a payment system for upgrading to Premium Lifetime Access.
+
+    Price: €28 one-time payment.
+
+    Use a secure, GDPR-compliant provider like Stripe or Paddle.
+
+5. Fix and Improve the Following Issues
+
+    “Save Symptom” button is not working — fix it.
+
+    When a milestone is saved, it currently does not display anywhere — fix this so it appears in all appropriate locations (timeline, reports, overview pages, etc.).
+
+6. Confirm Implementation of These Features
+
+Ensure the following features are completely built, working, and integrated:
+
+    Fetal Development Tracking
+
+    Feeding Log
+
+    Sleep Tracker
+
+    Diaper Log
+
+    Health Records
+
+    Private Family Group feature allowing users to invite and manage trusted family members (e.g., grandparents, uncles, aunts), who can view and/or contribute to child data.
+
+7. Login Modes
+
+Add two distinct login modes on the login screen:
+Mother Login:
+
+    Full access to all features based on pregnancy or baby/child stage.
+
+Family Login:
+
+    Users in this mode should have access to the following:
+
+        Timeline view showing:
+
+            Uploaded photos
+
+            Saved milestones
+
+        Access to:
+
+            Baby pool
+
+            Registry list of items
+
+            Name suggestion page
+
+        If the family member is tagged as the mother’s husband/partner, they should also have access to the Cravings page.
+
+Ensure permissions and content are tailored to their role and access level.
+8. Complete Testing & Debugging
+
+    Test every interface, display, button, link, pop-up, and database connection.
+
+    Ensure every feature is:
+
+        Displayed in the correct place
+
+        Fully functional across platforms
+
+        Bug-free and stable
+
+    Do not leave any part untested.
+
+Final Instructions
+
+    Plan every step in detail to avoid bugs, delays, or missing logic.
+
+    Test everything end-to-end before considering anything complete.
+
+    You are responsible for ensuring every feature and fix works flawlessly. Do not leave this to me.
+
+    If anything is unclear, list all your questions together at the end.
