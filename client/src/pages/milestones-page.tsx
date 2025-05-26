@@ -40,7 +40,13 @@ import { useForm } from "react-hook-form";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { Loader2, Heart, Award, Baby, Star, Calendar, Image, PlusCircle } from "lucide-react";
+import { Loader2, Heart, Award, Baby, Star, Calendar, Image, PlusCircle, ChevronDown, ChevronRight, TrendingUp } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 export default function MilestonesPage() {
   const { toast } = useToast();
@@ -48,6 +54,14 @@ export default function MilestonesPage() {
   const [selectedChild, setSelectedChild] = useState<number | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  
+  const toggleSection = (category: string) => {
+    setOpenSections(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
+  };
 
   const { data: children = [], isLoading: isLoadingChildren } = useQuery<Child[]>({
     queryKey: ["/api/children"],
@@ -472,57 +486,114 @@ export default function MilestonesPage() {
             </Button>
           </div>
         ) : (
-          <div className="space-y-6">
-            {Object.keys(milestonesByCategory).map(category => (
-              <Card key={category}>
+          <div className="space-y-4">
+            {/* Growth Chart Section - Special case for growth milestones */}
+            {milestonesByCategory["growth"].length > 0 && (
+              <Card className="mb-6">
                 <CardHeader>
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-500 flex items-center justify-center mr-3">
-                      {getCategoryIcon(category)}
-                    </div>
-                    <CardTitle className="capitalize">
-                      {category === "first" ? "First Moments" : 
-                       category === "health" ? "Health Milestones" :
-                       category === "pregnancy" ? "Pregnancy Milestones" :
-                       category === "birth" ? "Birth Milestones" :
-                       category === "growth" ? "Growth Milestones" :
-                       category === "other" ? "Other Milestones" :
-                       `${category.charAt(0).toUpperCase()}${category.slice(1)} Milestones`}
-                    </CardTitle>
-                  </div>
+                  <CardTitle className="flex items-center">
+                    <TrendingUp className="w-5 h-5 mr-2" />
+                    Growth Chart
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {milestonesByCategory[category].map(milestone => (
-                      <div key={milestone.id} className="flex border rounded-md p-4">
-                        <div className="flex flex-col items-center mr-4">
-                          <div className="text-sm font-medium text-center bg-primary-50 text-primary-500 rounded-md px-2 py-1 whitespace-nowrap">
-                            {milestone.date ? format(new Date(milestone.date), "MMM d") : ""}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {milestone.date ? format(new Date(milestone.date), "yyyy") : ""}
-                          </div>
-                        </div>
-                        <div className="flex-grow">
-                          <h3 className="font-medium text-lg">{milestone.title}</h3>
-                          {milestone.description && (
-                            <p className="text-muted-foreground mt-1">{milestone.description}</p>
-                          )}
-                          {milestone.imageData && milestone.imageType && (
-                            <div className="mt-3">
-                              <img 
-                                src={`data:${milestone.imageType};base64,${milestone.imageData}`} 
-                                alt={milestone.title}
-                                className="rounded-md max-h-36 object-cover" 
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={milestonesByCategory["growth"].map((milestone, index) => ({
+                        name: format(new Date(milestone.date), "MMM dd"),
+                        value: index + 1, // Simple progression - could be enhanced with actual measurements
+                        milestone: milestone.title
+                      }))}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="value" stroke="#8884d8" strokeWidth={2} />
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Milestone Category Sections */}
+            {allCategories.map(category => (
+              <Collapsible 
+                key={category} 
+                open={openSections[category]} 
+                onOpenChange={() => toggleSection(category)}
+              >
+                <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="pb-4">
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-500 flex items-center justify-center mr-3">
+                            {getCategoryIcon(category)}
+                          </div>
+                          <CardTitle className="capitalize">
+                            {category === "first" ? "First Moments" : 
+                             category === "health" ? "Health Milestones" :
+                             category === "pregnancy" ? "Pregnancy Milestones" :
+                             category === "birth" ? "Birth Milestones" :
+                             category === "growth" ? "Growth Milestones" :
+                             category === "other" ? "Other Milestones" :
+                             `${category.charAt(0).toUpperCase()}${category.slice(1)} Milestones`}
+                          </CardTitle>
+                        </div>
+                        <div className="flex items-center">
+                          {milestonesByCategory[category].length > 0 && (
+                            <span className="bg-primary-100 text-primary-600 text-sm font-medium px-2 py-1 rounded-full mr-2">
+                              {milestonesByCategory[category].length}
+                            </span>
+                          )}
+                          {openSections[category] ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                        </div>
+                      </div>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  
+                  <CollapsibleContent>
+                    <CardContent className="pt-0">
+                      {milestonesByCategory[category].length > 0 ? (
+                        <div className="space-y-4">
+                          {milestonesByCategory[category].map(milestone => (
+                            <div key={milestone.id} className="flex border rounded-md p-4 bg-gray-50">
+                              <div className="flex flex-col items-center mr-4">
+                                <div className="text-sm font-medium text-center bg-primary-50 text-primary-500 rounded-md px-2 py-1 whitespace-nowrap">
+                                  {milestone.date ? format(new Date(milestone.date), "MMM d") : ""}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {milestone.date ? format(new Date(milestone.date), "yyyy") : ""}
+                                </div>
+                              </div>
+                              <div className="flex-grow">
+                                <h3 className="font-medium text-lg">{milestone.title}</h3>
+                                {milestone.description && (
+                                  <p className="text-muted-foreground mt-1">{milestone.description}</p>
+                                )}
+                                {milestone.imageData && milestone.imageType && (
+                                  <div className="mt-3">
+                                    <img 
+                                      src={`data:${milestone.imageType};base64,${milestone.imageData}`} 
+                                      alt={milestone.title}
+                                      className="rounded-md max-h-36 object-cover" 
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground text-center py-4">
+                          No milestones recorded in this category yet.
+                        </p>
+                      )}
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
             ))}
           </div>
         )}
