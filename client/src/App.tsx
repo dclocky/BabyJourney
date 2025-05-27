@@ -59,6 +59,7 @@ function Router() {
       
       <ProtectedRoute path="/upgrade" component={UpgradePage} />
       <ProtectedRoute path="/settings" component={SettingsPage} />
+      <ProtectedRoute path="/profile" component={ProfilePage} />
       <Route path="*" component={NotFound} />
     </Switch>
   );
