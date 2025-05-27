@@ -559,10 +559,16 @@ export default function PregnancyPage() {
         ) : (
           <div className="space-y-8">
             <Tabs defaultValue="progress" className="w-full">
-              <TabsList className="grid w-full grid-cols-6">
+              <TabsList className="grid w-full grid-cols-7">
                 <TabsTrigger value="progress" className="flex items-center gap-1.5">
                   <Baby className="h-4 w-4" />
                   Progress
+                </TabsTrigger>
+                <TabsTrigger value="self-care" className="flex items-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.5 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+                  </svg>
+                  Self-Care
                 </TabsTrigger>
                 <TabsTrigger value="symptoms" className="flex items-center gap-1.5">
                   <Activity className="h-4 w-4" />
@@ -655,6 +661,30 @@ export default function PregnancyPage() {
                     </CardContent>
                   </Card>
                 ))}
+              </TabsContent>
+              
+              <TabsContent value="self-care" className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Maternal Self-Care & Wellness</CardTitle>
+                    <CardDescription>
+                      Taking care of yourself is essential for a healthy pregnancy and your wellbeing.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground mb-4">
+                      Access comprehensive self-care tracking including mood, sleep, exercise, nutrition, and mental health support.
+                    </p>
+                    <Button asChild className="w-full">
+                      <a href="/self-care">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 h-4 w-4">
+                          <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.5 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+                        </svg>
+                        Open Self-Care Center
+                      </a>
+                    </Button>
+                  </CardContent>
+                </Card>
               </TabsContent>
               
               <TabsContent value="symptoms" className="mt-6">

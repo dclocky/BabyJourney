@@ -5,7 +5,7 @@ import { AppHeader } from "@/components/app-header";
 import { AppTabs } from "@/components/app-tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { PackageOpen, Gift, Dices, FileHeart } from "lucide-react";
+import { PackageOpen, Gift, Dices, FileHeart, Users } from "lucide-react";
 
 export default function ExtrasPage() {
   const { user } = useAuth();
@@ -19,7 +19,7 @@ export default function ExtrasPage() {
       <div className="mt-8">
         <h1 className="text-3xl font-bold mb-6">Extras</h1>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Registry Card */}
           <Card>
             <CardHeader>

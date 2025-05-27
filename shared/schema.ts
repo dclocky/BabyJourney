@@ -33,7 +33,7 @@ export const children = pgTable("children", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
   name: text("name").notNull(),
-  gender: text("gender", { enum: ["male", "female", "other"] }),
+  gender: text("gender", { enum: ["boy", "girl", "unknown"] }),
   birthDate: timestamp("birth_date"),
   dueDate: timestamp("due_date"),
   isPregnancy: boolean("is_pregnancy").default(true).notNull(),
