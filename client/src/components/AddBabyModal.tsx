@@ -63,10 +63,10 @@ export function AddBabyModal({ open, onClose, onSuccess }: AddBabyModalProps) {
       return;
     }
     
-    // Convert birthDate string to Date object
+    // Convert birthDate string to proper format
     const submitData = {
       ...formData,
-      birthDate: new Date(formData.birthDate),
+      birthDate: formData.birthDate,
       isPregnancy: false
     };
     

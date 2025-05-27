@@ -71,19 +71,16 @@ export default function FamilyMembers() {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
-      <div className="container mx-auto px-4 py-6 max-w-2xl">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Family Timeline</h1>
-          <p className="text-muted-foreground">
-            Share your baby's journey with family and friends
-          </p>
-        </div>
-
-        {/* Navigation Tabs */}
-        <div className="mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
-              <button
+      
+      {/* Top Navigation - Consistent with other pages */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="container mx-auto px-4">
+          <div className="py-6">
+            <h1 className="text-3xl font-bold text-foreground mb-2">Family Timeline</h1>
+            <p className="text-muted-foreground">Share your baby's journey with family and friends</p>
+          </div>
+          <nav className="flex space-x-8 -mb-px">
+            <button
                 onClick={() => setActiveTab('timeline')}
                 className={`${activeTab === 'timeline' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm`}
               >
@@ -99,14 +96,17 @@ export default function FamilyMembers() {
               </button>
               <button
                 onClick={() => setActiveTab('settings')}
-                className={`${activeTab === 'settings' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm`}
+                className={`${activeTab === 'settings' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm`}
               >
                 <Settings className="w-4 h-4 mr-2 inline" />
                 Settings
               </button>
-            </nav>
-          </div>
+          </nav>
         </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-6 max-w-2xl">
 
         {/* Timeline Tab */}
         {activeTab === 'timeline' && (
@@ -177,6 +177,7 @@ export default function FamilyMembers() {
           </Card>
         )}
       </div>
+
       <AppTabs />
     </div>
   );
