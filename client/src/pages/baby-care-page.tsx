@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { MobileNav } from "@/components/mobile-nav";
-import { Baby, Clock, Droplets, Moon } from "lucide-react";
+import { Baby, Clock, Droplets, Moon, Heart, Music, ThumbsUp, ThumbsDown, Plus } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 
@@ -44,12 +44,23 @@ interface SleepLog {
   notes?: string;
 }
 
+interface PreferenceLog {
+  id: number;
+  category: 'music' | 'toys' | 'activities' | 'food' | 'books' | 'sounds' | 'other';
+  item: string;
+  preference: 'likes' | 'dislikes' | 'neutral';
+  intensity: 1 | 2 | 3 | 4 | 5; // 1 = mild, 5 = strong
+  notes?: string;
+  date: string;
+}
+
 export default function BabyCare() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showFeedingDialog, setShowFeedingDialog] = useState(false);
   const [showDiaperDialog, setShowDiaperDialog] = useState(false);
   const [showSleepDialog, setShowSleepDialog] = useState(false);
+  const [showPreferenceDialog, setShowPreferenceDialog] = useState(false);
   
   // Get child ID (in a real app, this would come from route params or context)
   const childId = 1; // For demo purposes
@@ -79,6 +90,15 @@ export default function BabyCare() {
     notes: ''
   });
 
+  // Preference log state
+  const [preferenceData, setPreferenceData] = useState({
+    category: 'music' as const,
+    item: '',
+    preference: 'likes' as const,
+    intensity: 3 as const,
+    notes: ''
+  });
+
   // Fetch feeding logs
   const { data: feedingLogs = [] } = useQuery({
     queryKey: [`/api/children/${childId}/feeding-logs`],
@@ -102,6 +122,15 @@ export default function BabyCare() {
     queryKey: [`/api/children/${childId}/sleep-logs`],
     queryFn: async () => {
       const res = await apiRequest("GET", `/api/children/${childId}/sleep-logs`);
+      return await res.json();
+    }
+  });
+
+  // Fetch preference logs
+  const { data: preferenceLogs = [] } = useQuery({
+    queryKey: [`/api/children/${childId}/preferences`],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/children/${childId}/preferences`);
       return await res.json();
     }
   });
