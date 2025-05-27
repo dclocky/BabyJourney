@@ -210,6 +210,35 @@ export default function BabyCare() {
     }
   });
 
+  // Add preference log mutation
+  const addPreferenceMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", `/api/children/${childId}/preferences`, {
+        childId,
+        userId: 1,
+        category: data.category,
+        item: data.item,
+        preference: data.preference,
+        intensity: data.intensity,
+        notes: data.notes,
+        date: format(new Date(), "yyyy-MM-dd'T'HH:mm:ss")
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/children/${childId}/preferences`] });
+      toast({ title: "Preference logged successfully!" });
+      setShowPreferenceDialog(false);
+      setPreferenceData({
+        category: 'music',
+        item: '',
+        preference: 'likes',
+        intensity: 3,
+        notes: ''
+      });
+    }
+  });
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
       <AppHeader />
@@ -218,11 +247,11 @@ export default function BabyCare() {
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Baby Care Tracking</h1>
-          <p className="text-gray-600">Track feeding, diaper changes, and sleep patterns</p>
+          <p className="text-gray-600">Track feeding, diaper changes, sleep patterns, and baby preferences</p>
         </div>
 
         <Tabs defaultValue="feeding" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="feeding" className="flex items-center gap-2">
               <Baby className="h-4 w-4" />
               Feeding
@@ -234,6 +263,10 @@ export default function BabyCare() {
             <TabsTrigger value="sleep" className="flex items-center gap-2">
               <Moon className="h-4 w-4" />
               Sleep
+            </TabsTrigger>
+            <TabsTrigger value="preferences" className="flex items-center gap-2">
+              <Heart className="h-4 w-4" />
+              Likes
             </TabsTrigger>
           </TabsList>
 
@@ -329,6 +362,70 @@ export default function BabyCare() {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          </TabsContent>
+
+          {/* Preferences Tab */}
+          <TabsContent value="preferences" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold">Baby's Likes & Dislikes</h2>
+              <Button onClick={() => setShowPreferenceDialog(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Preference
+              </Button>
+            </div>
+            
+            <div className="grid gap-4">
+              {preferenceLogs.map((log: PreferenceLog) => (
+                <Card key={log.id}>
+                  <CardContent className="pt-4">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-2">
+                          {log.category === 'music' && <Music className="h-4 w-4" />}
+                          {log.preference === 'likes' ? (
+                            <ThumbsUp className="h-4 w-4 text-green-600" />
+                          ) : log.preference === 'dislikes' ? (
+                            <ThumbsDown className="h-4 w-4 text-red-600" />
+                          ) : (
+                            <Heart className="h-4 w-4 text-gray-400" />
+                          )}
+                          <span className="font-medium">{log.item}</span>
+                        </div>
+                        <div className="text-sm text-gray-600 capitalize">
+                          {log.category} • {log.preference}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-sm">Intensity:</span>
+                          {[...Array(5)].map((_, i) => (
+                            <Heart
+                              key={i}
+                              className={`h-3 w-3 ${
+                                i < log.intensity
+                                  ? log.preference === 'likes'
+                                    ? 'text-green-500 fill-current'
+                                    : 'text-red-500 fill-current'
+                                  : 'text-gray-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        {log.notes && <div className="text-sm text-gray-600">{log.notes}</div>}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {format(new Date(log.date), "MMM d, yyyy 'at' h:mm a")}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {preferenceLogs.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <Heart className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No preferences recorded yet</p>
+                  <p className="text-sm">Start tracking what your baby likes and dislikes!</p>
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>
@@ -513,6 +610,86 @@ export default function BabyCare() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowSleepDialog(false)}>Cancel</Button>
               <Button onClick={() => addSleepMutation.mutate(sleepData)}>Add Sleep</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Preference Dialog */}
+        <Dialog open={showPreferenceDialog} onOpenChange={setShowPreferenceDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Baby's Preference</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Category</Label>
+                <Select value={preferenceData.category} onValueChange={(value: any) => setPreferenceData({...preferenceData, category: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="music">🎵 Music</SelectItem>
+                    <SelectItem value="toys">🧸 Toys</SelectItem>
+                    <SelectItem value="activities">🎪 Activities</SelectItem>
+                    <SelectItem value="food">🍼 Food</SelectItem>
+                    <SelectItem value="books">📚 Books</SelectItem>
+                    <SelectItem value="sounds">🔊 Sounds</SelectItem>
+                    <SelectItem value="other">📝 Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label>Item/Activity</Label>
+                <Input 
+                  value={preferenceData.item}
+                  onChange={(e) => setPreferenceData({...preferenceData, item: e.target.value})}
+                  placeholder="e.g. Classical music, Teddy bear, Peek-a-boo"
+                />
+              </div>
+              
+              <div>
+                <Label>Preference</Label>
+                <Select value={preferenceData.preference} onValueChange={(value: any) => setPreferenceData({...preferenceData, preference: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="likes">👍 Likes</SelectItem>
+                    <SelectItem value="dislikes">👎 Dislikes</SelectItem>
+                    <SelectItem value="neutral">😐 Neutral</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label>Intensity (1-5)</Label>
+                <Select value={preferenceData.intensity.toString()} onValueChange={(value: any) => setPreferenceData({...preferenceData, intensity: parseInt(value)})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 - Mild</SelectItem>
+                    <SelectItem value="2">2 - Slight</SelectItem>
+                    <SelectItem value="3">3 - Moderate</SelectItem>
+                    <SelectItem value="4">4 - Strong</SelectItem>
+                    <SelectItem value="5">5 - Very Strong</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label>Notes</Label>
+                <Textarea 
+                  value={preferenceData.notes}
+                  onChange={(e) => setPreferenceData({...preferenceData, notes: e.target.value})}
+                  placeholder="Any observations or additional notes..."
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowPreferenceDialog(false)}>Cancel</Button>
+              <Button onClick={() => addPreferenceMutation.mutate(preferenceData)}>Add Preference</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
