@@ -59,6 +59,7 @@ export default function FamilyMembersPage() {
   const [selectedChild, setSelectedChild] = useState<number | null>(null);
   const [newPostContent, setNewPostContent] = useState("");
   const [commentContent, setCommentContent] = useState<{[key: string]: string}>({});
+  const [activeTab, setActiveTab] = useState<'timeline' | 'members' | 'settings'>('timeline');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -259,21 +260,32 @@ export default function FamilyMembersPage() {
           </p>
         </div>
 
-        {/* Navigation Ribbon */}
+        {/* Navigation Tabs */}
         <div className="mb-6">
-          <div className="flex space-x-1 bg-muted/50 p-1 rounded-lg">
-            <Button variant="default" size="sm" className="bg-primary text-primary-foreground">
-              <Activity className="w-4 h-4 mr-2" />
-              Timeline
-            </Button>
-            <Button variant="ghost" size="sm">
-              <Users className="w-4 h-4 mr-2" />
-              Members
-            </Button>
-            <Button variant="ghost" size="sm">
-              <Settings className="w-4 h-4 mr-2" />
-              Settings
-            </Button>
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => setActiveTab('timeline')}
+                className={`${activeTab === 'timeline' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm`}
+              >
+                <Activity className="w-4 h-4 mr-2 inline" />
+                Timeline
+              </button>
+              <button
+                onClick={() => setActiveTab('members')}
+                className={`${activeTab === 'members' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm`}
+              >
+                <Users className="w-4 h-4 mr-2 inline" />
+                Members
+              </button>
+              <button
+                onClick={() => setActiveTab('settings')}
+                className={`${activeTab === 'settings' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm`}
+              >
+                <Settings className="w-4 h-4 mr-2 inline" />
+                Settings
+              </button>
+            </nav>
           </div>
         </div>
 

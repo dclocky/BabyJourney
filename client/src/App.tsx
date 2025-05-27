@@ -19,6 +19,7 @@ import GrowthChartsPage from "@/pages/growth-charts-page";
 import BabysitterPage from "@/pages/babysitter-page";
 import SelfCarePage from "@/pages/self-care-page";
 import SettingsPage from "@/pages/settings-page";
+import ProfilePage from "@/pages/profile-page";
 import UpgradePage from "@/pages/upgrade-page";
 import { ProtectedRoute } from "./lib/protected-route";
 
