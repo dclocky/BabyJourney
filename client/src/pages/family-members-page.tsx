@@ -291,7 +291,6 @@ export default function FamilyMembersPage() {
 
         {/* Timeline Tab */}
         {activeTab === 'timeline' && (
-          <>
             {childrenLoading ? (
               <div className="flex items-center justify-center h-64">
                 <div className="text-center">
@@ -310,7 +309,7 @@ export default function FamilyMembersPage() {
                 </CardContent>
               </Card>
             ) : (
-          <div className="space-y-6">
+              <div className="space-y-6">
             {/* Child Selection */}
             <Card>
               <CardContent className="p-4">
@@ -571,7 +570,6 @@ export default function FamilyMembersPage() {
               </div>
             )}
           </div>
-          </>
         )}
 
         {/* Members Tab */}
