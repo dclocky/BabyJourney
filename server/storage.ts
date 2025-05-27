@@ -1093,6 +1093,26 @@ export class DatabaseStorage implements IStorage {
     return newSymptom;
   }
 
+  // Symptom methods
+  async getSymptoms(pregnancyId: number): Promise<Symptom[]> {
+    return db
+      .select()
+      .from(symptoms)
+      .where(eq(symptoms.childId, pregnancyId))
+      .orderBy(desc(symptoms.date));
+  }
+
+  async createSymptom(symptom: InsertSymptom): Promise<Symptom> {
+    const [newSymptom] = await db
+      .insert(symptoms)
+      .values({
+        ...symptom,
+        createdAt: new Date()
+      })
+      .returning();
+    return newSymptom;
+  }
+
   async deleteSymptom(id: number): Promise<boolean> {
     const result = await db
       .delete(symptoms)
