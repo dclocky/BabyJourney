@@ -53,24 +53,34 @@ export default function BabyPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedChild, setSelectedChild] = useState<number | null>(null);
+  const [showAddChildDialog, setShowAddChildDialog] = useState(false);
 
-  const { data: children = [], isLoading: isLoadingChildren } = useQuery<Child[]>({
+  const { data: babyProfiles = [], isLoading: isLoadingChildren } = useQuery<Child[]>({
     queryKey: ["/api/children"],
   });
 
-  // Find a non-pregnancy child profile
-  const babyProfiles = children.filter(child => !child.isPregnancy);
+  // Filter to only get baby profiles (not pregnancies)
+  const babies = babyProfiles.filter(child => child.birthDate);
 
-  // If there's a baby profile, show it by default
-  if (babyProfiles.length > 0 && selectedChild === null) {
-    setSelectedChild(babyProfiles[0].id);
+  // Auto-select first baby if none selected
+  if (babies.length > 0 && selectedChild === null) {
+    setSelectedChild(babies[0].id);
   }
 
-  const currentChild = children.find(child => child.id === selectedChild);
+  const currentChild = babies.find(child => child.id === selectedChild);
 
-  const addBabyMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof insertChildSchema>) => {
-      return apiRequest(`/api/children`, {
+  const addChildForm = useForm({
+    resolver: zodResolver(insertChildSchema.omit({ id: true, userId: true })),
+    defaultValues: {
+      name: "",
+      gender: "unknown" as const,
+      birthDate: "",
+    },
+  });
+
+  const addChildMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest("/api/children", {
         method: "POST",
         body: JSON.stringify(data),
       });
@@ -81,6 +91,8 @@ export default function BabyPage() {
         title: "Success",
         description: "Baby profile created successfully!",
       });
+      setShowAddChildDialog(false);
+      addChildForm.reset();
     },
     onError: (error) => {
       toast({
@@ -91,172 +103,134 @@ export default function BabyPage() {
     },
   });
 
-  const form = useForm<z.infer<typeof insertChildSchema>>({
-    resolver: zodResolver(insertChildSchema),
-    defaultValues: {
-      name: "",
-      isPregnancy: false,
-      birthDate: new Date(),
-    },
-  });
-
-  function onAddBaby(data: z.infer<typeof insertChildSchema>) {
-    const newBaby = {
-      ...data,
-      userId: user?.id!,
-      isPregnancy: false,
-    };
-    addBabyMutation.mutate(newBaby);
+  function onAddChild(data: any) {
+    addChildMutation.mutate(data);
   }
 
   if (isLoadingChildren) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading baby profiles...</p>
-        </div>
+      <div className="min-h-screen flex flex-col bg-secondary-50">
+        <AppHeader />
+        <AppTabs />
+        <main className="flex-grow container mx-auto px-4 py-6 pb-20 md:pb-6">
+          <div className="flex justify-center items-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Loading baby profiles...</p>
+            </div>
+          </div>
+        </main>
+        <AppFooter />
+        <MobileNav />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-blue-50">
+    <div className="min-h-screen flex flex-col bg-secondary-50">
       <AppHeader />
       <AppTabs />
       
-      <main className="container mx-auto px-4 pt-32 pb-20">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">Baby Tracker</h1>
-              <p className="text-muted-foreground">
-                Monitor your little one's growth, health, and development milestones
-              </p>
-            </div>
-            
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button className="mt-4 md:mt-0">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Baby Profile
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add New Baby Profile</DialogTitle>
-                </DialogHeader>
-                
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onAddBaby)} className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Baby's Name</FormLabel>
+      <main className="flex-grow container mx-auto px-4 py-6 pb-20 md:pb-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Baby Tracking</h1>
+          <Dialog open={showAddChildDialog} onOpenChange={setShowAddChildDialog}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Baby Profile
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Baby Profile</DialogTitle>
+              </DialogHeader>
+              <Form {...addChildForm}>
+                <form onSubmit={addChildForm.handleSubmit(onAddChild)} className="space-y-4">
+                  <FormField
+                    control={addChildForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Baby's Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter baby's name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={addChildForm.control}
+                    name="gender"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Gender</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
-                            <Input placeholder="Enter baby's name" {...field} />
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select gender" />
+                            </SelectTrigger>
                           </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="birthDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Birth Date</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="date" 
-                              value={field.value ? format(new Date(field.value), 'yyyy-MM-dd') : ''}
-                              onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : new Date())}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <Button type="submit" className="w-full" disabled={addBabyMutation.isPending}>
-                      {addBabyMutation.isPending ? "Creating..." : "Create Baby Profile"}
+                          <SelectContent>
+                            <SelectItem value="boy">Boy</SelectItem>
+                            <SelectItem value="girl">Girl</SelectItem>
+                            <SelectItem value="unknown">Prefer not to say</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={addChildForm.control}
+                    name="birthDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Birth Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="flex gap-2">
+                    <Button type="submit" className="flex-1" disabled={addChildMutation.isPending}>
+                      {addChildMutation.isPending ? "Creating..." : "Create Profile"}
                     </Button>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
-          </div>
+                    <Button type="button" variant="outline" onClick={() => setShowAddChildDialog(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        </div>
 
-          {babyProfiles.length === 0 ? (
+        <div className="space-y-6">
+          {babies.length === 0 ? (
             <Card>
-              <CardContent className="p-12 text-center">
-                <Baby className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">No Baby Profiles Yet</h3>
+              <CardContent className="p-8 text-center">
+                <Baby className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                <h2 className="text-xl font-bold mb-2">No Baby Profiles Yet</h2>
                 <p className="text-muted-foreground mb-6">
-                  Create your first baby profile to start tracking growth and development.
+                  Create your first baby profile to start tracking their development, feeding, health, and more.
                 </p>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Your First Baby
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add New Baby Profile</DialogTitle>
-                    </DialogHeader>
-                    
-                    <Form {...form}>
-                      <form onSubmit={form.handleSubmit(onAddBaby)} className="space-y-4">
-                        <FormField
-                          control={form.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Baby's Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Enter baby's name" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="birthDate"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Birth Date</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="date" 
-                                  value={field.value ? format(new Date(field.value), 'yyyy-MM-dd') : ''}
-                                  onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : new Date())}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <Button type="submit" className="w-full" disabled={addBabyMutation.isPending}>
-                          {addBabyMutation.isPending ? "Creating..." : "Create Baby Profile"}
-                        </Button>
-                      </form>
-                    </Form>
-                  </DialogContent>
-                </Dialog>
+                <Button onClick={() => setShowAddChildDialog(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create First Baby Profile
+                </Button>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-6">
               {/* Baby Selection */}
-              {babyProfiles.length > 1 && (
+              {babies.length > 1 && (
                 <Card>
                   <CardContent className="p-4">
                     <Label className="text-sm font-medium mb-2 block">Select Baby</Label>
@@ -265,7 +239,7 @@ export default function BabyPage() {
                         <SelectValue placeholder="Choose a baby profile" />
                       </SelectTrigger>
                       <SelectContent>
-                        {babyProfiles.map((child) => (
+                        {babies.map((child) => (
                           <SelectItem key={child.id} value={child.id.toString()}>
                             {child.name || 'Unnamed Baby'}
                           </SelectItem>
@@ -279,7 +253,7 @@ export default function BabyPage() {
               {/* Baby Info Card */}
               <BabyInfoCard child={currentChild} />
 
-              {/* Functional Tracking Cards */}
+              {/* Comprehensive Tracking Cards */}
               {currentChild && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -362,7 +336,6 @@ function GrowthTrackerCard({ childId }: { childId: number }) {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
-  // Fetch growth milestones (using milestones API with growth category)
   const { data: allMilestones = [] } = useQuery({
     queryKey: [`/api/children/${childId}/milestones`],
   });
@@ -403,26 +376,13 @@ function GrowthTrackerCard({ childId }: { childId: number }) {
       setIsDialogOpen(false);
       growthForm.reset();
     },
-    onError: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/children/${childId}/milestones`] });
-      toast({
-        title: "Success",
-        description: "Growth record saved!",
-      });
-      setIsDialogOpen(false);
-      growthForm.reset();
-    },
   });
-
-  function onSubmitGrowth(data: any) {
-    addGrowthMutation.mutate(data);
-  }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <TrendingUp className="w-5 h-5" />
+        <CardTitle className="flex items-center">
+          <TrendingUp className="w-5 h-5 mr-2" />
           Growth Tracker
         </CardTitle>
       </CardHeader>
@@ -431,7 +391,6 @@ function GrowthTrackerCard({ childId }: { childId: number }) {
           Track your baby's weight, height, and head circumference over time.
         </p>
         
-        {/* Display existing growth records */}
         {growthRecords.length > 0 && (
           <div className="space-y-2 mb-4">
             <h4 className="font-medium text-sm">Recent Records</h4>
@@ -457,89 +416,33 @@ function GrowthTrackerCard({ childId }: { childId: number }) {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add Growth Record</DialogTitle>
+              <DialogTitle>Record Growth Measurements</DialogTitle>
             </DialogHeader>
-            
             <Form {...growthForm}>
-              <form onSubmit={growthForm.handleSubmit(onSubmitGrowth)} className="space-y-4">
-                <FormField
-                  control={growthForm.control}
-                  name="date"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={growthForm.control}
-                  name="weight"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Weight (kg)</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.1" placeholder="e.g., 3.5" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={growthForm.control}
-                  name="height"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Height (cm)</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.1" placeholder="e.g., 55.0" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={growthForm.control}
-                  name="headCircumference"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Head Circumference (cm)</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.1" placeholder="e.g., 36.0" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={growthForm.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Notes (Optional)</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Any additional notes..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="flex gap-2">
-                  <Button type="submit" className="flex-1" disabled={addGrowthMutation.isPending}>
-                    {addGrowthMutation.isPending ? "Saving..." : "Save Record"}
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancel
-                  </Button>
+              <form onSubmit={growthForm.handleSubmit((data) => addGrowthMutation.mutate(data))} className="space-y-4">
+                <div>
+                  <Label>Date</Label>
+                  <Input type="date" {...growthForm.register('date')} />
                 </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>Weight (kg)</Label>
+                    <Input placeholder="7.5" {...growthForm.register('weight')} />
+                  </div>
+                  <div>
+                    <Label>Height (cm)</Label>
+                    <Input placeholder="68" {...growthForm.register('height')} />
+                  </div>
+                  <div>
+                    <Label>Head (cm)</Label>
+                    <Input placeholder="42" {...growthForm.register('headCircumference')} />
+                  </div>
+                </div>
+                <div>
+                  <Label>Notes</Label>
+                  <Textarea placeholder="Any observations..." {...growthForm.register('notes')} />
+                </div>
+                <Button type="submit" className="w-full">Save Growth Record</Button>
               </form>
             </Form>
           </DialogContent>
@@ -553,15 +456,16 @@ function DevelopmentCard({ childId }: { childId: number }) {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
-  // Fetch existing milestones
   const { data: milestones = [] } = useQuery({
     queryKey: [`/api/children/${childId}/milestones`],
   });
   
+  const developmentMilestones = milestones.filter((m: any) => m.category === 'first' || m.category === 'other');
+  
   const milestoneForm = useForm({
     defaultValues: {
       title: '',
-      category: 'physical',
+      category: 'first',
       date: format(new Date(), 'yyyy-MM-dd'),
       description: '',
     },
@@ -588,26 +492,13 @@ function DevelopmentCard({ childId }: { childId: number }) {
       setIsDialogOpen(false);
       milestoneForm.reset();
     },
-    onError: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/children/${childId}/milestones`] });
-      toast({
-        title: "Success",
-        description: "Milestone saved! (Demo mode)",
-      });
-      setIsDialogOpen(false);
-      milestoneForm.reset();
-    },
   });
-
-  function onSubmitMilestone(data: any) {
-    addMilestoneMutation.mutate(data);
-  }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Baby className="w-5 h-5" />
+        <CardTitle className="flex items-center">
+          <Baby className="w-5 h-5 mr-2" />
           Development Milestones
         </CardTitle>
       </CardHeader>
@@ -616,11 +507,10 @@ function DevelopmentCard({ childId }: { childId: number }) {
           Record important developmental milestones and achievements.
         </p>
         
-        {/* Display existing milestones */}
-        {milestones.length > 0 && (
+        {developmentMilestones.length > 0 && (
           <div className="space-y-2 mb-4">
             <h4 className="font-medium text-sm">Recent Milestones</h4>
-            {milestones.slice(-3).map((milestone: any, index: number) => (
+            {developmentMilestones.slice(-3).map((milestone: any, index: number) => (
               <div key={index} className="flex justify-between items-center p-2 bg-muted rounded text-sm">
                 <span className="font-medium">{milestone.title}</span>
                 <span className="text-muted-foreground">{safeFormatDate(milestone.date)}</span>
@@ -638,85 +528,681 @@ function DevelopmentCard({ childId }: { childId: number }) {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Record New Milestone</DialogTitle>
+              <DialogTitle>Record Development Milestone</DialogTitle>
             </DialogHeader>
-            
             <Form {...milestoneForm}>
-              <form onSubmit={milestoneForm.handleSubmit(onSubmitMilestone)} className="space-y-4">
-                <FormField
-                  control={milestoneForm.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Milestone Title</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., First smile, Rolling over" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={milestoneForm.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="physical">Physical Development</SelectItem>
-                          <SelectItem value="cognitive">Cognitive Development</SelectItem>
-                          <SelectItem value="social">Social Development</SelectItem>
-                          <SelectItem value="language">Language Development</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={milestoneForm.control}
-                  name="date"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date Achieved</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={milestoneForm.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description (Optional)</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Add any details about this milestone..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="flex gap-2">
-                  <Button type="submit" className="flex-1" disabled={addMilestoneMutation.isPending}>
-                    {addMilestoneMutation.isPending ? "Saving..." : "Save Milestone"}
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancel
-                  </Button>
+              <form onSubmit={milestoneForm.handleSubmit((data) => addMilestoneMutation.mutate(data))} className="space-y-4">
+                <div>
+                  <Label>Milestone Title</Label>
+                  <Input placeholder="e.g., First steps, First word" {...milestoneForm.register('title')} />
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Category</Label>
+                    <Select onValueChange={(value) => milestoneForm.setValue('category', value)} defaultValue="first">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="first">First Moments</SelectItem>
+                        <SelectItem value="other">Other Milestone</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Date</Label>
+                    <Input type="date" {...milestoneForm.register('date')} />
+                  </div>
+                </div>
+                <div>
+                  <Label>Description</Label>
+                  <Textarea placeholder="Describe this special moment..." {...milestoneForm.register('description')} />
+                </div>
+                <Button type="submit" className="w-full">Save Milestone</Button>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Feeding Tracker Card
+function FeedingTrackerCard({ childId }: { childId: number }) {
+  const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  const { data: allMilestones = [] } = useQuery({
+    queryKey: [`/api/children/${childId}/milestones`],
+  });
+  
+  const feedingRecords = allMilestones.filter((m: any) => m.category === 'feeding');
+  
+  const feedingForm = useForm({
+    defaultValues: {
+      type: 'bottle',
+      amount: '',
+      duration: '',
+      notes: '',
+      time: format(new Date(), 'yyyy-MM-dd\'T\'HH:mm'),
+    },
+  });
+
+  const addFeedingMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const feedingTitle = `${data.type.charAt(0).toUpperCase() + data.type.slice(1)} feeding`;
+      const description = `Type: ${data.type}, Amount: ${data.amount || 'N/A'}, Duration: ${data.duration || 'N/A'}${data.notes ? `, Notes: ${data.notes}` : ''}`;
+      
+      return apiRequest(`/api/children/${childId}/milestones`, {
+        method: "POST",
+        body: JSON.stringify({
+          title: feedingTitle,
+          category: 'feeding',
+          date: new Date(data.time),
+          description: description,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/children/${childId}/milestones`] });
+      toast({
+        title: "Success",
+        description: "Feeding record added successfully!",
+      });
+      setIsDialogOpen(false);
+      feedingForm.reset();
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <Utensils className="w-5 h-5 mr-2" />
+          Feeding Tracker
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-muted-foreground text-sm mb-4">
+          Track feeding times, amounts, and types.
+        </p>
+        
+        {feedingRecords.length > 0 && (
+          <div className="space-y-2 mb-4">
+            <h4 className="font-medium text-sm">Recent Feedings</h4>
+            {feedingRecords.slice(-3).map((record: any, index: number) => (
+              <div key={index} className="flex justify-between items-center p-2 bg-muted rounded text-sm">
+                <span className="font-medium">{record.title}</span>
+                <span className="text-muted-foreground">{safeFormatDate(record.date, 'HH:mm')}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="w-full">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Feeding
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Record Feeding</DialogTitle>
+            </DialogHeader>
+            <Form {...feedingForm}>
+              <form onSubmit={feedingForm.handleSubmit((data) => addFeedingMutation.mutate(data))} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Feeding Type</Label>
+                    <Select onValueChange={(value) => feedingForm.setValue('type', value)} defaultValue="bottle">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bottle">Bottle</SelectItem>
+                        <SelectItem value="breastfeeding">Breastfeeding</SelectItem>
+                        <SelectItem value="solid">Solid Food</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Time</Label>
+                    <Input 
+                      type="datetime-local" 
+                      {...feedingForm.register('time')}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Amount (ml/oz)</Label>
+                    <Input placeholder="120ml" {...feedingForm.register('amount')} />
+                  </div>
+                  <div>
+                    <Label>Duration (min)</Label>
+                    <Input placeholder="15" {...feedingForm.register('duration')} />
+                  </div>
+                </div>
+                <div>
+                  <Label>Notes</Label>
+                  <Textarea placeholder="Any observations..." {...feedingForm.register('notes')} />
+                </div>
+                <Button type="submit" className="w-full">Save Feeding Record</Button>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Diaper Tracker Card
+function DiaperTrackerCard({ childId }: { childId: number }) {
+  const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  const { data: allMilestones = [] } = useQuery({
+    queryKey: [`/api/children/${childId}/milestones`],
+  });
+  
+  const diaperRecords = allMilestones.filter((m: any) => m.category === 'diaper');
+  
+  const diaperForm = useForm({
+    defaultValues: {
+      type: 'wet',
+      notes: '',
+      time: format(new Date(), 'yyyy-MM-dd\'T\'HH:mm'),
+    },
+  });
+
+  const addDiaperMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const diaperTitle = `Diaper change - ${data.type}`;
+      const description = `Type: ${data.type}${data.notes ? `, Notes: ${data.notes}` : ''}`;
+      
+      return apiRequest(`/api/children/${childId}/milestones`, {
+        method: "POST",
+        body: JSON.stringify({
+          title: diaperTitle,
+          category: 'diaper',
+          date: new Date(data.time),
+          description: description,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/children/${childId}/milestones`] });
+      toast({
+        title: "Success",
+        description: "Diaper change recorded successfully!",
+      });
+      setIsDialogOpen(false);
+      diaperForm.reset();
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <CircleDot className="w-5 h-5 mr-2" />
+          Diaper Changes
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-muted-foreground text-sm mb-4">
+          Track diaper changes and patterns.
+        </p>
+        
+        {diaperRecords.length > 0 && (
+          <div className="space-y-2 mb-4">
+            <h4 className="font-medium text-sm">Recent Changes</h4>
+            {diaperRecords.slice(-3).map((record: any, index: number) => (
+              <div key={index} className="flex justify-between items-center p-2 bg-muted rounded text-sm">
+                <span className="font-medium">{record.title}</span>
+                <span className="text-muted-foreground">{safeFormatDate(record.date, 'HH:mm')}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="w-full">
+              <Plus className="w-4 h-4 mr-2" />
+              Record Change
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Record Diaper Change</DialogTitle>
+            </DialogHeader>
+            <Form {...diaperForm}>
+              <form onSubmit={diaperForm.handleSubmit((data) => addDiaperMutation.mutate(data))} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Type</Label>
+                    <Select onValueChange={(value) => diaperForm.setValue('type', value)} defaultValue="wet">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="wet">Wet</SelectItem>
+                        <SelectItem value="dirty">Dirty</SelectItem>
+                        <SelectItem value="both">Both</SelectItem>
+                        <SelectItem value="dry">Dry (routine change)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Time</Label>
+                    <Input 
+                      type="datetime-local" 
+                      {...diaperForm.register('time')}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label>Notes</Label>
+                  <Textarea placeholder="Any observations about color, texture, etc..." {...diaperForm.register('notes')} />
+                </div>
+                <Button type="submit" className="w-full">Save Diaper Record</Button>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Notes Card
+function NotesCard({ childId }: { childId: number }) {
+  const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  const { data: allMilestones = [] } = useQuery({
+    queryKey: [`/api/children/${childId}/milestones`],
+  });
+  
+  const notes = allMilestones.filter((m: any) => m.category === 'notes');
+  
+  const noteForm = useForm({
+    defaultValues: {
+      title: '',
+      content: '',
+      date: format(new Date(), 'yyyy-MM-dd'),
+    },
+  });
+
+  const addNoteMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest(`/api/children/${childId}/milestones`, {
+        method: "POST",
+        body: JSON.stringify({
+          title: data.title,
+          category: 'notes',
+          date: new Date(data.date),
+          description: data.content,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/children/${childId}/milestones`] });
+      toast({
+        title: "Success",
+        description: "Note saved successfully!",
+      });
+      setIsDialogOpen(false);
+      noteForm.reset();
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <StickyNote className="w-5 h-5 mr-2" />
+          Notes & Observations
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-muted-foreground text-sm mb-4">
+          Keep track of important observations and memories.
+        </p>
+        
+        {notes.length > 0 && (
+          <div className="space-y-2 mb-4">
+            <h4 className="font-medium text-sm">Recent Notes</h4>
+            {notes.slice(-3).map((note: any, index: number) => (
+              <div key={index} className="p-3 bg-muted rounded">
+                <h5 className="font-medium text-sm">{note.title}</h5>
+                <p className="text-xs text-muted-foreground mt-1">{note.description}</p>
+                <p className="text-xs text-muted-foreground mt-1">{safeFormatDate(note.date)}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="w-full">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Note
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Note</DialogTitle>
+            </DialogHeader>
+            <Form {...noteForm}>
+              <form onSubmit={noteForm.handleSubmit((data) => addNoteMutation.mutate(data))} className="space-y-4">
+                <div>
+                  <Label>Title</Label>
+                  <Input placeholder="Note title..." {...noteForm.register('title')} />
+                </div>
+                <div>
+                  <Label>Date</Label>
+                  <Input type="date" {...noteForm.register('date')} />
+                </div>
+                <div>
+                  <Label>Content</Label>
+                  <Textarea 
+                    placeholder="Write your observations, thoughts, or memories..." 
+                    rows={4}
+                    {...noteForm.register('content')} 
+                  />
+                </div>
+                <Button type="submit" className="w-full">Save Note</Button>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Music Preferences Card
+function MusicPreferencesCard({ childId }: { childId: number }) {
+  const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  const { data: allMilestones = [] } = useQuery({
+    queryKey: [`/api/children/${childId}/milestones`],
+  });
+  
+  const musicPreferences = allMilestones.filter((m: any) => m.category === 'music');
+  
+  const musicForm = useForm({
+    defaultValues: {
+      song: '',
+      artist: '',
+      reaction: 'loves',
+      notes: '',
+      date: format(new Date(), 'yyyy-MM-dd'),
+    },
+  });
+
+  const addMusicMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const musicTitle = `${data.reaction} "${data.song}"${data.artist ? ` by ${data.artist}` : ''}`;
+      const description = `Song: ${data.song}, Artist: ${data.artist || 'Unknown'}, Reaction: ${data.reaction}${data.notes ? `, Notes: ${data.notes}` : ''}`;
+      
+      return apiRequest(`/api/children/${childId}/milestones`, {
+        method: "POST",
+        body: JSON.stringify({
+          title: musicTitle,
+          category: 'music',
+          date: new Date(data.date),
+          description: description,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/children/${childId}/milestones`] });
+      toast({
+        title: "Success",
+        description: "Music preference recorded!",
+      });
+      setIsDialogOpen(false);
+      musicForm.reset();
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <Music className="w-5 h-5 mr-2" />
+          Music Preferences
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-muted-foreground text-sm mb-4">
+          Track what music your baby enjoys or dislikes.
+        </p>
+        
+        {musicPreferences.length > 0 && (
+          <div className="space-y-2 mb-4">
+            <h4 className="font-medium text-sm">Music Library</h4>
+            {musicPreferences.slice(-3).map((music: any, index: number) => (
+              <div key={index} className="p-3 bg-muted rounded">
+                <h5 className="font-medium text-sm">{music.title}</h5>
+                <p className="text-xs text-muted-foreground mt-1">{safeFormatDate(music.date)}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="w-full">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Music
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Record Music Preference</DialogTitle>
+            </DialogHeader>
+            <Form {...musicForm}>
+              <form onSubmit={musicForm.handleSubmit((data) => addMusicMutation.mutate(data))} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Song/Music</Label>
+                    <Input placeholder="Song title or type of music..." {...musicForm.register('song')} />
+                  </div>
+                  <div>
+                    <Label>Artist/Source</Label>
+                    <Input placeholder="Artist, album, or source..." {...musicForm.register('artist')} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Baby's Reaction</Label>
+                    <Select onValueChange={(value) => musicForm.setValue('reaction', value)} defaultValue="loves">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="loves">Loves it</SelectItem>
+                        <SelectItem value="likes">Likes it</SelectItem>
+                        <SelectItem value="neutral">Neutral</SelectItem>
+                        <SelectItem value="dislikes">Dislikes</SelectItem>
+                        <SelectItem value="calms">Calms down</SelectItem>
+                        <SelectItem value="energizes">Gets excited</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Date</Label>
+                    <Input type="date" {...musicForm.register('date')} />
+                  </div>
+                </div>
+                <div>
+                  <Label>Notes</Label>
+                  <Textarea placeholder="Describe the baby's reaction..." {...musicForm.register('notes')} />
+                </div>
+                <Button type="submit" className="w-full">Save Music Preference</Button>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Health Tracker Card
+function HealthTrackerCard({ childId }: { childId: number }) {
+  const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  const { data: allMilestones = [] } = useQuery({
+    queryKey: [`/api/children/${childId}/milestones`],
+  });
+  
+  const healthRecords = allMilestones.filter((m: any) => m.category === 'health');
+  
+  const healthForm = useForm({
+    defaultValues: {
+      type: 'checkup',
+      title: '',
+      symptoms: '',
+      treatment: '',
+      doctor: '',
+      temperature: '',
+      notes: '',
+      date: format(new Date(), 'yyyy-MM-dd'),
+    },
+  });
+
+  const addHealthMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const healthTitle = data.title || `${data.type.charAt(0).toUpperCase() + data.type.slice(1)}`;
+      const description = `Type: ${data.type}${data.symptoms ? `, Symptoms: ${data.symptoms}` : ''}${data.treatment ? `, Treatment: ${data.treatment}` : ''}${data.doctor ? `, Doctor: ${data.doctor}` : ''}${data.temperature ? `, Temperature: ${data.temperature}` : ''}${data.notes ? `, Notes: ${data.notes}` : ''}`;
+      
+      return apiRequest(`/api/children/${childId}/milestones`, {
+        method: "POST",
+        body: JSON.stringify({
+          title: healthTitle,
+          category: 'health',
+          date: new Date(data.date),
+          description: description,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/children/${childId}/milestones`] });
+      toast({
+        title: "Success",
+        description: "Health record saved successfully!",
+      });
+      setIsDialogOpen(false);
+      healthForm.reset();
+    },
+  });
+
+  return (
+    <Card className="lg:col-span-2">
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <Stethoscope className="w-5 h-5 mr-2" />
+          Health & Illness Tracking
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-muted-foreground text-sm mb-4">
+          Track health checkups, illnesses, symptoms, and treatments.
+        </p>
+        
+        {healthRecords.length > 0 && (
+          <div className="space-y-2 mb-4">
+            <h4 className="font-medium text-sm">Recent Health Records</h4>
+            {healthRecords.slice(-3).map((record: any, index: number) => (
+              <div key={index} className="p-3 bg-muted rounded">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h5 className="font-medium text-sm">{record.title}</h5>
+                    <p className="text-xs text-muted-foreground mt-1">{record.description}</p>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{safeFormatDate(record.date)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="w-full">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Health Record
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Record Health Information</DialogTitle>
+            </DialogHeader>
+            <Form {...healthForm}>
+              <form onSubmit={healthForm.handleSubmit((data) => addHealthMutation.mutate(data))} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Type</Label>
+                    <Select onValueChange={(value) => healthForm.setValue('type', value)} defaultValue="checkup">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="checkup">Regular Checkup</SelectItem>
+                        <SelectItem value="illness">Illness</SelectItem>
+                        <SelectItem value="vaccination">Vaccination</SelectItem>
+                        <SelectItem value="emergency">Emergency Visit</SelectItem>
+                        <SelectItem value="medication">Medication</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Date</Label>
+                    <Input type="date" {...healthForm.register('date')} />
+                  </div>
+                </div>
+                <div>
+                  <Label>Title/Condition</Label>
+                  <Input placeholder="e.g., Cold, 6-month checkup, First vaccination..." {...healthForm.register('title')} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Symptoms</Label>
+                    <Textarea placeholder="Describe any symptoms..." {...healthForm.register('symptoms')} />
+                  </div>
+                  <div>
+                    <Label>Treatment</Label>
+                    <Textarea placeholder="Medications, procedures, recommendations..." {...healthForm.register('treatment')} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Doctor/Healthcare Provider</Label>
+                    <Input placeholder="Dr. Smith, Pediatrician..." {...healthForm.register('doctor')} />
+                  </div>
+                  <div>
+                    <Label>Temperature (°F/°C)</Label>
+                    <Input placeholder="98.6°F or 37°C..." {...healthForm.register('temperature')} />
+                  </div>
+                </div>
+                <div>
+                  <Label>Additional Notes</Label>
+                  <Textarea 
+                    placeholder="Any additional observations, follow-up instructions, etc..." 
+                    {...healthForm.register('notes')} 
+                  />
+                </div>
+                <Button type="submit" className="w-full">Save Health Record</Button>
               </form>
             </Form>
           </DialogContent>
