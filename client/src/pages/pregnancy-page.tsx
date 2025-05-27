@@ -229,7 +229,7 @@ function SymptomForm({ pregnancyId, onSuccess }: { pregnancyId: number, onSucces
 function SymptomsList({ pregnancyId }: { pregnancyId: number }) {
   const { toast } = useToast();
   
-  const { data: symptoms = [], isLoading } = useQuery<Symptom[]>({
+  const { data: symptoms = [], isLoading } = useQuery<any[]>({
     queryKey: [`/api/pregnancies/${pregnancyId}/symptoms`],
   });
 
