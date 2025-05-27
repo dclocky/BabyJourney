@@ -289,24 +289,27 @@ export default function FamilyMembersPage() {
           </div>
         </div>
 
-        {childrenLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading your children...</p>
-            </div>
-          </div>
-        ) : children.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <Baby className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No babies yet</h3>
-              <p className="text-muted-foreground">
-                Add your first baby to start sharing your journey with family
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
+        {/* Timeline Tab */}
+        {activeTab === 'timeline' && (
+          <>
+            {childrenLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Loading your children...</p>
+                </div>
+              </div>
+            ) : children.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Baby className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No babies yet</h3>
+                  <p className="text-muted-foreground">
+                    Add your first baby to start sharing your journey with family
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
           <div className="space-y-6">
             {/* Child Selection */}
             <Card>
@@ -568,6 +571,70 @@ export default function FamilyMembersPage() {
               </div>
             )}
           </div>
+          </>
+        )}
+
+        {/* Members Tab */}
+        {activeTab === 'members' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Users className="w-5 h-5 mr-2" />
+                Family Members
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>Family member management coming soon</p>
+                <p className="text-sm mt-2">Invite family and friends to follow your baby's journey</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Settings className="w-5 h-5 mr-2" />
+                Family Timeline Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-medium mb-2">Privacy Settings</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Public timeline</span>
+                        <Switch />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Allow comments</span>
+                        <Switch defaultChecked />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-medium mb-2">Notifications</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">New posts</span>
+                        <Switch defaultChecked />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Comments</span>
+                        <Switch defaultChecked />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
       <AppTabs />
