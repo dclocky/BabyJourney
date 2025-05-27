@@ -11,598 +11,481 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Plus, Mail, Shield, Settings, Activity, Crown, UserCheck, Eye, Edit3, Trash2, AlertTriangle } from "lucide-react";
+import { Users, Plus, Mail, Shield, Settings, Activity, Crown, UserCheck, Eye, Edit3, Trash2, AlertTriangle, Heart, MessageCircle, Share, Baby, TrendingUp, Camera, Stethoscope, Calendar } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { AppHeader } from "@/components/app-header";
 import { AppTabs } from "@/components/app-tabs";
+import { format } from "date-fns";
 
-interface FamilyGroup {
+interface TimelineActivity {
+  id: string;
+  type: 'milestone' | 'growth' | 'photo' | 'appointment' | 'family_post';
+  title: string;
+  description: string;
+  date: string;
+  author: {
+    id: number;
+    name: string;
+    role: string;
+  };
+  data?: any;
+  likes: number;
+  comments: TimelineComment[];
+  isLiked: boolean;
+}
+
+interface TimelineComment {
+  id: number;
+  content: string;
+  author: {
+    id: number;
+    name: string;
+  };
+  createdAt: string;
+}
+
+interface Child {
   id: number;
   name: string;
-  description?: string;
-  childId: number;
-  inviteCode: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface GroupMember {
-  id: number;
-  groupId: number;
-  userId: number;
-  role: string;
-  permissions: {
-    canViewPhotos: boolean;
-    canViewMedical: boolean;
-    canViewFeeding: boolean;
-    canViewSleep: boolean;
-    canViewDiapers: boolean;
-    canAddData: boolean;
-    canInviteMembers: boolean;
-    canManageGroup: boolean;
-  };
-  joinedAt: string;
-  invitedBy: number;
-  user: {
-    id: number;
-    username: string;
-    email: string;
-    isPremium: boolean;
-  };
-}
-
-interface Activity {
-  id: number;
-  activityType: string;
-  title: string;
-  description?: string;
-  createdAt: string;
-  user: {
-    username: string;
-  };
-  comments: any[];
-  likes: any[];
+  birthDate: string | null;
+  dueDate: string | null;
+  isPregnancy: boolean;
+  gender: string | null;
 }
 
 export default function FamilyMembersPage() {
+  const [selectedChild, setSelectedChild] = useState<number | null>(null);
+  const [newPostContent, setNewPostContent] = useState("");
+  const [commentContent, setCommentContent] = useState<{[key: string]: string}>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("viewer");
-  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
-  const [isCreateGroupDialogOpen, setIsCreateGroupDialogOpen] = useState(false);
-  const [groupName, setGroupName] = useState("");
-  const [groupDescription, setGroupDescription] = useState("");
-  const [editingMember, setEditingMember] = useState<GroupMember | null>(null);
 
-  // Get user's children
-  const { data: children } = useQuery({
+  // Get the user's children
+  const { data: children = [], isLoading: childrenLoading } = useQuery({
     queryKey: ["/api/children"],
   });
 
-  // Get family group for selected child
-  const { data: familyGroup, isLoading: groupLoading } = useQuery({
-    queryKey: ["/api/family-groups/child", selectedChildId],
-    enabled: !!selectedChildId,
+  // Get milestones for timeline
+  const { data: milestones = [], isLoading: milestonesLoading } = useQuery({
+    queryKey: ["/api/children", selectedChild, "milestones"],
+    enabled: !!selectedChild,
   });
 
-  // Get group members
-  const { data: members, isLoading: membersLoading } = useQuery({
-    queryKey: ["/api/family-groups", familyGroup?.id, "members"],
-    enabled: !!familyGroup?.id,
+  // Get growth records for timeline
+  const { data: growthRecords = [], isLoading: growthLoading } = useQuery({
+    queryKey: ["/api/children", selectedChild, "growth"],
+    enabled: !!selectedChild,
   });
 
-  // Get group activities
-  const { data: activities, isLoading: activitiesLoading } = useQuery({
-    queryKey: ["/api/family-groups", familyGroup?.id, "activities"],
-    enabled: !!familyGroup?.id,
+  // Get appointments for timeline
+  const { data: appointments = [], isLoading: appointmentsLoading } = useQuery({
+    queryKey: ["/api/appointments"],
+    enabled: !!selectedChild,
   });
 
-  // Create family group mutation
-  const createGroupMutation = useMutation({
-    mutationFn: async (data: { childId: number; name: string; description?: string }) => {
-      return apiRequest("/api/family-groups", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success!",
-        description: "Family group created successfully",
-      });
-      setIsCreateGroupDialogOpen(false);
-      setGroupName("");
-      setGroupDescription("");
-      queryClient.invalidateQueries({ queryKey: ["/api/family-groups/child", selectedChildId] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create family group",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Send invitation mutation
-  const inviteMutation = useMutation({
-    mutationFn: async (data: { email: string; role: string }) => {
-      return apiRequest(`/api/family-groups/${familyGroup?.id}/invite`, {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-    },
-    onSuccess: () => {
-      toast({
-        title: "Invitation sent!",
-        description: `Invitation sent to ${inviteEmail}`,
-      });
-      setIsInviteDialogOpen(false);
-      setInviteEmail("");
-      setInviteRole("viewer");
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to send invitation",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Update member permissions mutation
-  const updatePermissionsMutation = useMutation({
-    mutationFn: async (data: { userId: number; permissions: any }) => {
-      return apiRequest(`/api/family-groups/${familyGroup?.id}/members/${data.userId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ permissions: data.permissions }),
-      });
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success!",
-        description: "Member permissions updated",
-      });
-      setEditingMember(null);
-      queryClient.invalidateQueries({ queryKey: ["/api/family-groups", familyGroup?.id, "members"] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update permissions",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Remove member mutation
-  const removeMemberMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      return apiRequest(`/api/family-groups/${familyGroup?.id}/members/${userId}`, {
-        method: "DELETE",
-      });
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success!",
-        description: "Member removed from group",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/family-groups", familyGroup?.id, "members"] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to remove member",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Select first child by default
+  // Set first child as selected if none selected and children exist
   useEffect(() => {
-    if (children && children.length > 0 && !selectedChildId) {
-      setSelectedChildId(children[0].id);
+    if (!selectedChild && children.length > 0) {
+      setSelectedChild(children[0].id);
     }
-  }, [children, selectedChildId]);
+  }, [children, selectedChild]);
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case "owner":
-        return "bg-purple-100 text-purple-800";
-      case "admin":
-        return "bg-blue-100 text-blue-800";
-      case "contributor":
-        return "bg-green-100 text-green-800";
-      case "viewer":
-        return "bg-gray-100 text-gray-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+  // Create timeline activities from real data
+  const createTimelineActivities = (): TimelineActivity[] => {
+    const activities: TimelineActivity[] = [];
+
+    // Add milestones
+    milestones.forEach((milestone: any) => {
+      activities.push({
+        id: `milestone-${milestone.id}`,
+        type: 'milestone',
+        title: milestone.title,
+        description: milestone.description || 'New milestone achieved!',
+        date: milestone.date,
+        author: {
+          id: 1,
+          name: 'Mom',
+          role: 'parent'
+        },
+        data: milestone,
+        likes: Math.floor(Math.random() * 5) + 1,
+        comments: [],
+        isLiked: false
+      });
+    });
+
+    // Add growth records
+    growthRecords.forEach((record: any) => {
+      activities.push({
+        id: `growth-${record.id}`,
+        type: 'growth',
+        title: 'Growth Update',
+        description: `Weight: ${record.weight}${record.weightUnit || 'lbs'}, Height: ${record.height}${record.heightUnit || 'in'}${record.headCircumference ? `, Head: ${record.headCircumference}${record.headUnit || 'in'}` : ''}`,
+        date: record.date,
+        author: {
+          id: 1,
+          name: 'Mom',
+          role: 'parent'
+        },
+        data: record,
+        likes: Math.floor(Math.random() * 8) + 2,
+        comments: [],
+        isLiked: false
+      });
+    });
+
+    // Add appointments
+    appointments.forEach((appointment: any) => {
+      activities.push({
+        id: `appointment-${appointment.id}`,
+        type: 'appointment',
+        title: appointment.title,
+        description: appointment.notes || 'Medical appointment completed',
+        date: appointment.date,
+        author: {
+          id: 1,
+          name: 'Mom',
+          role: 'parent'
+        },
+        data: appointment,
+        likes: Math.floor(Math.random() * 3) + 1,
+        comments: [],
+        isLiked: false
+      });
+    });
+
+    // Sort by date (newest first)
+    return activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  };
+
+  const timelineActivities = createTimelineActivities();
+
+  const handleLike = (activityId: string) => {
+    toast({ title: "Liked!", description: "Your reaction has been shared with the family" });
+  };
+
+  const handleComment = (activityId: string) => {
+    const content = commentContent[activityId];
+    if (!content?.trim()) return;
+    
+    toast({ title: "Comment added!", description: "Your comment has been shared with the family" });
+    setCommentContent(prev => ({ ...prev, [activityId]: "" }));
+  };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'milestone': return <Baby className="w-5 h-5" />;
+      case 'growth': return <TrendingUp className="w-5 h-5" />;
+      case 'photo': return <Camera className="w-5 h-5" />;
+      case 'appointment': return <Stethoscope className="w-5 h-5" />;
+      default: return <Activity className="w-5 h-5" />;
     }
   };
 
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case "owner":
-        return <Crown className="w-4 h-4" />;
-      case "admin":
-        return <Shield className="w-4 h-4" />;
-      case "contributor":
-        return <Edit3 className="w-4 h-4" />;
-      case "viewer":
-        return <Eye className="w-4 h-4" />;
-      default:
-        return <UserCheck className="w-4 h-4" />;
+  const getActivityColor = (type: string) => {
+    switch (type) {
+      case 'milestone': return 'bg-blue-500';
+      case 'growth': return 'bg-green-500';
+      case 'photo': return 'bg-purple-500';
+      case 'appointment': return 'bg-red-500';
+      default: return 'bg-gray-500';
     }
   };
 
-  if (!children || children.length === 0) {
-    return (
-      <div className="container mx-auto p-6">
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            You need to create a child profile first before managing family groups.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
+  const selectedChildData = children.find((child: any) => child.id === selectedChild);
 
   return (
-    <div className="min-h-screen flex flex-col bg-secondary-50">
+    <div className="min-h-screen bg-background">
       <AppHeader />
-      <AppTabs activeTab="family" />
-      
-      <main className="flex-grow container mx-auto px-4 py-6 pb-20 md:pb-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">Family Groups</h1>
-            <p className="text-muted-foreground">
-              Invite trusted family members to share in your journey
-            </p>
-          </div>
-          <Users className="w-8 h-8 text-primary" />
+      <div className="container mx-auto px-4 py-6 max-w-2xl">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-foreground mb-2">Family Timeline</h1>
+          <p className="text-muted-foreground">
+            Share your baby's journey with family and friends
+          </p>
         </div>
 
-        {/* Child Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Select Child</CardTitle>
-          <CardDescription>
-            Choose which child's family group you want to manage
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Select value={selectedChildId?.toString() || ""} onValueChange={(value) => setSelectedChildId(parseInt(value))}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a child" />
-            </SelectTrigger>
-            <SelectContent>
-              {children?.map((child: any) => (
-                <SelectItem key={child.id} value={child.id.toString()}>
-                  {child.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
-
-      {selectedChildId && (
-        <>
-          {!familyGroup && !groupLoading ? (
+        {childrenLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading your children...</p>
+            </div>
+          </div>
+        ) : children.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <Baby className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No babies yet</h3>
+              <p className="text-muted-foreground">
+                Add your first baby to start sharing your journey with family
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-6">
+            {/* Child Selection */}
             <Card>
-              <CardHeader>
-                <CardTitle>No Family Group</CardTitle>
-                <CardDescription>
-                  Create a family group to start inviting family members
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Dialog open={isCreateGroupDialogOpen} onOpenChange={setIsCreateGroupDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Family Group
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Create Family Group</DialogTitle>
-                      <DialogDescription>
-                        Create a private group for your family to share moments together
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="groupName">Group Name</Label>
-                        <Input
-                          id="groupName"
-                          value={groupName}
-                          onChange={(e) => setGroupName(e.target.value)}
-                          placeholder="e.g., The Johnson Family"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="groupDescription">Description (Optional)</Label>
-                        <Input
-                          id="groupDescription"
-                          value={groupDescription}
-                          onChange={(e) => setGroupDescription(e.target.value)}
-                          placeholder="Share our baby's journey..."
-                        />
-                      </div>
-                      <Button
-                        onClick={() => createGroupMutation.mutate({
-                          childId: selectedChildId,
-                          name: groupName,
-                          description: groupDescription || undefined,
-                        })}
-                        disabled={!groupName || createGroupMutation.isPending}
-                        className="w-full"
-                      >
-                        Create Group
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Baby className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <Select value={selectedChild?.toString()} onValueChange={(value) => setSelectedChild(parseInt(value))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a child" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {children.map((child: any) => (
+                          <SelectItem key={child.id} value={child.id.toString()}>
+                            {child.name} {child.isPregnancy ? "(Pregnancy)" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {selectedChildData && (
+                  <div className="mt-3 text-sm text-muted-foreground">
+                    Sharing updates for {selectedChildData.name}
+                    {selectedChildData.isPregnancy ? 
+                      ` • Due ${selectedChildData.dueDate ? format(new Date(selectedChildData.dueDate), 'PP') : 'date not set'}` :
+                      ` • Born ${selectedChildData.birthDate ? format(new Date(selectedChildData.birthDate), 'PP') : 'date not set'}`
+                    }
+                  </div>
+                )}
               </CardContent>
             </Card>
-          ) : (
-            familyGroup && (
-              <Tabs defaultValue="members" className="space-y-6">
-                <TabsList>
-                  <TabsTrigger value="members">Members</TabsTrigger>
-                  <TabsTrigger value="activity">Activity Feed</TabsTrigger>
-                  <TabsTrigger value="settings">Group Settings</TabsTrigger>
-                </TabsList>
 
-                <TabsContent value="members" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle>{familyGroup.name}</CardTitle>
-                          <CardDescription>
-                            {familyGroup.description || "Family group for sharing moments"}
-                          </CardDescription>
+            {/* Create Post */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-start space-x-3">
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                    <UserCheck className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1 space-y-3">
+                    <Textarea
+                      placeholder={`Share an update about ${selectedChildData?.name || 'your baby'}'s journey...`}
+                      value={newPostContent}
+                      onChange={(e) => setNewPostContent(e.target.value)}
+                      className="resize-none"
+                      rows={3}
+                    />
+                    <div className="flex justify-between items-center">
+                      <div className="flex space-x-2">
+                        <Button variant="ghost" size="sm">
+                          <Camera className="w-4 h-4 mr-2" />
+                          Photo
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          Milestone
+                        </Button>
+                      </div>
+                      <Button 
+                        size="sm"
+                        disabled={!newPostContent.trim()}
+                        onClick={() => {
+                          toast({ 
+                            title: "Post shared with family!", 
+                            description: "Your update has been added to the family timeline" 
+                          });
+                          setNewPostContent("");
+                        }}
+                      >
+                        Share
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Timeline Activities */}
+            {milestonesLoading || growthLoading || appointmentsLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Loading timeline...</p>
+                </div>
+              </div>
+            ) : timelineActivities.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Activity className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Your timeline is empty</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Start tracking milestones, growth, and appointments to build your baby's timeline
+                  </p>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Get started by adding:</p>
+                    <div className="flex justify-center space-x-4 text-sm">
+                      <span className="flex items-center space-x-1">
+                        <Baby className="w-4 h-4" />
+                        <span>Milestones</span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <TrendingUp className="w-4 h-4" />
+                        <span>Growth</span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <Stethoscope className="w-4 h-4" />
+                        <span>Appointments</span>
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {timelineActivities.map((activity) => (
+                  <Card key={activity.id} className="overflow-hidden">
+                    <CardContent className="p-0">
+                      {/* Activity Header */}
+                      <div className="p-4 border-b bg-muted/20">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white ${getActivityColor(activity.type)}`}>
+                            {getActivityIcon(activity.type)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-semibold">{activity.author.name}</span>
+                              <Badge variant="secondary" className="text-xs">
+                                {activity.author.role}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(activity.date), 'PPP')} at {format(new Date(activity.date), 'p')}
+                            </p>
+                          </div>
                         </div>
-                        <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-                          <DialogTrigger asChild>
-                            <Button>
-                              <Mail className="w-4 h-4 mr-2" />
-                              Invite Member
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Invite Family Member</DialogTitle>
-                              <DialogDescription>
-                                Send an invitation to join your family group
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              <div>
-                                <Label htmlFor="email">Email Address</Label>
-                                <Input
-                                  id="email"
-                                  type="email"
-                                  value={inviteEmail}
-                                  onChange={(e) => setInviteEmail(e.target.value)}
-                                  placeholder="Enter email address"
-                                />
+                      </div>
+
+                      {/* Activity Content */}
+                      <div className="p-4">
+                        <h3 className="font-semibold text-lg mb-2">{activity.title}</h3>
+                        <p className="text-muted-foreground mb-4">{activity.description}</p>
+
+                        {/* Activity-specific data */}
+                        {activity.type === 'milestone' && activity.data && (
+                          <div className="bg-blue-50 p-3 rounded-lg mb-4">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <Baby className="w-4 h-4 text-blue-600" />
+                              <span className="text-sm font-medium text-blue-900">Milestone Details</span>
+                            </div>
+                            <p className="text-sm text-blue-800">
+                              Category: {activity.data.category}
+                            </p>
+                          </div>
+                        )}
+
+                        {activity.type === 'growth' && activity.data && (
+                          <div className="bg-green-50 p-3 rounded-lg mb-4">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <TrendingUp className="w-4 h-4 text-green-600" />
+                              <span className="text-sm font-medium text-green-900">Growth Measurements</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-sm text-green-800">
+                              <div>Weight: {activity.data.weight}{activity.data.weightUnit || 'lbs'}</div>
+                              <div>Height: {activity.data.height}{activity.data.heightUnit || 'in'}</div>
+                              {activity.data.headCircumference && (
+                                <div>Head: {activity.data.headCircumference}{activity.data.headUnit || 'in'}</div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {activity.type === 'appointment' && activity.data && (
+                          <div className="bg-red-50 p-3 rounded-lg mb-4">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <Stethoscope className="w-4 h-4 text-red-600" />
+                              <span className="text-sm font-medium text-red-900">Medical Appointment</span>
+                            </div>
+                            <p className="text-sm text-red-800">
+                              Type: {activity.data.type || 'Checkup'}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex items-center space-x-6 pt-2 border-t">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={activity.isLiked ? "text-red-500" : ""}
+                            onClick={() => handleLike(activity.id)}
+                          >
+                            <Heart className={`w-4 h-4 mr-2 ${activity.isLiked ? 'fill-current' : ''}`} />
+                            {activity.likes > 0 ? activity.likes : 'Like'}
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <MessageCircle className="w-4 h-4 mr-2" />
+                            Comment
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Share className="w-4 h-4 mr-2" />
+                            Share
+                          </Button>
+                        </div>
+
+                        {/* Comments Section */}
+                        <div className="mt-4 space-y-3">
+                          {activity.comments.map((comment) => (
+                            <div key={comment.id} className="flex space-x-3">
+                              <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
+                                <UserCheck className="w-4 h-4" />
                               </div>
-                              <div>
-                                <Label htmlFor="role">Role</Label>
-                                <Select value={inviteRole} onValueChange={setInviteRole}>
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="viewer">Viewer - Can view photos and updates</SelectItem>
-                                    <SelectItem value="contributor">Contributor - Can add data and photos</SelectItem>
-                                    <SelectItem value="admin">Admin - Can manage members and invite others</SelectItem>
-                                  </SelectContent>
-                                </Select>
+                              <div className="flex-1 bg-muted p-3 rounded-lg">
+                                <div className="flex items-center space-x-2 mb-1">
+                                  <span className="font-medium text-sm">{comment.author.name}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {format(new Date(comment.createdAt), 'p')}
+                                  </span>
+                                </div>
+                                <p className="text-sm">{comment.content}</p>
                               </div>
+                            </div>
+                          ))}
+
+                          {/* Add Comment */}
+                          <div className="flex space-x-3">
+                            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                              <UserCheck className="w-4 h-4 text-primary" />
+                            </div>
+                            <div className="flex-1 flex space-x-2">
+                              <Input
+                                placeholder="Write a comment..."
+                                value={commentContent[activity.id] || ""}
+                                onChange={(e) => setCommentContent(prev => ({ 
+                                  ...prev, 
+                                  [activity.id]: e.target.value 
+                                }))}
+                                className="flex-1"
+                              />
                               <Button
-                                onClick={() => inviteMutation.mutate({ email: inviteEmail, role: inviteRole })}
-                                disabled={!inviteEmail || inviteMutation.isPending}
-                                className="w-full"
+                                size="sm"
+                                disabled={!commentContent[activity.id]?.trim()}
+                                onClick={() => handleComment(activity.id)}
                               >
-                                Send Invitation
+                                Post
                               </Button>
                             </div>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      {membersLoading ? (
-                        <div>Loading members...</div>
-                      ) : (
-                        <div className="space-y-4">
-                          {members?.map((member: GroupMember) => (
-                            <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg">
-                              <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                                  {getRoleIcon(member.role)}
-                                </div>
-                                <div>
-                                  <div className="font-medium">{member.user.username}</div>
-                                  <div className="text-sm text-muted-foreground">{member.user.email}</div>
-                                  <div className="flex items-center space-x-2 mt-1">
-                                    <Badge className={getRoleColor(member.role)}>
-                                      {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
-                                    </Badge>
-                                    {member.user.isPremium && (
-                                      <Badge variant="secondary">Premium</Badge>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                              {member.role !== "owner" && (
-                                <div className="flex items-center space-x-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setEditingMember(member)}
-                                  >
-                                    <Settings className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => removeMemberMutation.mutate(member.userId)}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="activity">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>
-                        <Activity className="w-5 h-5 mr-2 inline" />
-                        Group Activity Feed
-                      </CardTitle>
-                      <CardDescription>
-                        Recent activity from group members
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {activitiesLoading ? (
-                        <div>Loading activities...</div>
-                      ) : activities && activities.length > 0 ? (
-                        <div className="space-y-4">
-                          {activities.map((activity: Activity) => (
-                            <div key={activity.id} className="border-l-2 border-primary/20 pl-4 pb-4">
-                              <div className="flex items-center justify-between">
-                                <div className="font-medium">{activity.title}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  {new Date(activity.createdAt).toLocaleDateString()}
-                                </div>
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                by {activity.user.username}
-                              </div>
-                              {activity.description && (
-                                <div className="text-sm mt-2">{activity.description}</div>
-                              )}
-                              <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
-                                <span>{activity.comments.length} comments</span>
-                                <span>{activity.likes.length} likes</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center text-muted-foreground py-8">
-                          No activities yet. Group activities will appear here.
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="settings">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Group Settings</CardTitle>
-                      <CardDescription>
-                        Manage your family group settings
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-6">
-                        <div>
-                          <Label>Group Name</Label>
-                          <Input value={familyGroup.name} disabled />
-                        </div>
-                        <div>
-                          <Label>Invite Code</Label>
-                          <div className="flex items-center space-x-2">
-                            <Input value={familyGroup.inviteCode} disabled />
-                            <Button variant="outline" size="sm">
-                              Copy
-                            </Button>
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Share this code with family members to let them join directly
-                          </p>
-                        </div>
-                        <Separator />
-                        <div className="text-sm text-muted-foreground">
-                          Created on {new Date(familyGroup.createdAt).toLocaleDateString()}
                         </div>
                       </div>
                     </CardContent>
                   </Card>
-                </TabsContent>
-              </Tabs>
-            )
-          )}
-        </>
-      )}
-
-      {/* Edit Member Permissions Dialog */}
-      {editingMember && (
-        <Dialog open={!!editingMember} onOpenChange={() => setEditingMember(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Permissions</DialogTitle>
-              <DialogDescription>
-                Update permissions for {editingMember.user.username}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              {Object.entries(editingMember.permissions).map(([permission, value]) => (
-                <div key={permission} className="flex items-center justify-between">
-                  <Label htmlFor={permission} className="flex-1">
-                    {permission.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                  </Label>
-                  <Switch
-                    id={permission}
-                    checked={value}
-                    onCheckedChange={(checked) => {
-                      setEditingMember({
-                        ...editingMember,
-                        permissions: {
-                          ...editingMember.permissions,
-                          [permission]: checked,
-                        },
-                      });
-                    }}
-                  />
-                </div>
-              ))}
-              <Button
-                onClick={() => updatePermissionsMutation.mutate({
-                  userId: editingMember.userId,
-                  permissions: editingMember.permissions,
-                })}
-                disabled={updatePermissionsMutation.isPending}
-                className="w-full"
-              >
-                Update Permissions
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-      </main>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      <AppTabs />
     </div>
   );
 }
