@@ -28,6 +28,10 @@ import {
   Crown,
   Plus,
   Clock,
+  Activity,
+  MessageCircle,
+  Share,
+  TrendingUp,
 } from "lucide-react";
 import { Child, Milestone } from "@shared/schema";
 import { format } from "date-fns";
@@ -1577,5 +1581,145 @@ function PremiumFeaturesCard() {
         </DialogContent>
       </Dialog>
     </Card>
+  );
+}
+
+function FamilyTimelineCard({ childId }: { childId?: number }) {
+  const [, setLocation] = useLocation();
+
+  // Get data for timeline
+  const { data: milestones = [] } = useQuery({
+    queryKey: [`/api/children/${childId}/milestones`],
+    enabled: !!childId,
+  });
+
+  const { data: growthRecords = [] } = useQuery({
+    queryKey: [`/api/children/${childId}/growth`],
+    enabled: !!childId,
+  });
+
+  const { data: appointments = [] } = useQuery({
+    queryKey: ["/api/appointments"],
+    enabled: !!childId,
+  });
+
+  // Create timeline activities
+  const createTimelineActivities = () => {
+    const activities: any[] = [];
+
+    // Add recent milestones
+    milestones.slice(0, 3).forEach((milestone: any) => {
+      activities.push({
+        id: `milestone-${milestone.id}`,
+        type: 'milestone',
+        title: milestone.title,
+        description: milestone.description || 'New milestone achieved!',
+        date: milestone.date,
+        icon: Heart,
+        color: 'text-pink-500'
+      });
+    });
+
+    // Add recent growth records
+    growthRecords.slice(0, 2).forEach((record: any) => {
+      activities.push({
+        id: `growth-${record.id}`,
+        type: 'growth',
+        title: 'Growth Update',
+        description: `New measurements recorded`,
+        date: record.date,
+        icon: TrendingUp,
+        color: 'text-blue-500'
+      });
+    });
+
+    // Add recent appointments
+    appointments.slice(0, 2).forEach((appointment: any) => {
+      activities.push({
+        id: `appointment-${appointment.id}`,
+        type: 'appointment',
+        title: appointment.title || 'Medical Appointment',
+        description: appointment.notes || 'Check-up completed',
+        date: appointment.date,
+        icon: CalendarCheck,
+        color: 'text-green-500'
+      });
+    });
+
+    return activities
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5); // Show only 5 most recent
+  };
+
+  const timelineActivities = createTimelineActivities();
+
+  const handleViewFullTimeline = () => {
+    setLocation("/family");
+  };
+
+  if (!childId || timelineActivities.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+      <div className="px-6 py-4 border-b border-secondary-100 flex justify-between items-center">
+        <h3 className="font-bold flex items-center">
+          <Activity className="w-5 h-5 mr-2 text-primary-500" />
+          Family Timeline
+        </h3>
+        <Button
+          variant="link"
+          className="p-0 h-auto text-primary-500"
+          onClick={handleViewFullTimeline}
+        >
+          View all
+        </Button>
+      </div>
+
+      <div className="p-6">
+        <div className="space-y-4">
+          {timelineActivities.map((activity, index) => {
+            const IconComponent = activity.icon;
+            return (
+              <div key={activity.id} className="flex items-start space-x-3">
+                <div className={`rounded-full p-2 ${activity.color} bg-opacity-10`}>
+                  <IconComponent className={`w-4 h-4 ${activity.color}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm">{activity.title}</p>
+                  <p className="text-sm text-muted-foreground">{activity.description}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {activity.date && !isNaN(new Date(activity.date).getTime()) ? 
+                      format(new Date(activity.date), 'MMM d, yyyy') : 
+                      'Date not available'
+                    }
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2 text-muted-foreground">
+                  <button className="p-1 hover:text-primary-500">
+                    <Heart className="w-4 h-4" />
+                  </button>
+                  <button className="p-1 hover:text-primary-500">
+                    <MessageCircle className="w-4 h-4" />
+                  </button>
+                  <button className="p-1 hover:text-primary-500">
+                    <Share className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <Button
+          variant="outline"
+          className="mt-4 w-full border-primary-500 text-primary-500 hover:bg-primary-50"
+          onClick={handleViewFullTimeline}
+        >
+          View Full Timeline
+        </Button>
+      </div>
+    </div>
   );
 }
