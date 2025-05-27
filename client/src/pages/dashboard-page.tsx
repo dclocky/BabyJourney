@@ -168,6 +168,9 @@ export default function DashboardPage() {
 
             {/* Milestones Card */}
             <MilestonesCard childId={activeChild?.id} />
+
+            {/* Family Timeline Card */}
+            <FamilyTimelineCard childId={activeChild?.id} />
           </div>
 
           {/* Right Column */}

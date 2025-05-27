@@ -109,14 +109,14 @@ export function AppHeader() {
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem className="cursor-pointer">
-                  Profile
+                <DropdownMenuItem className="cursor-pointer" asChild>
+                  <Link href="/dashboard">Profile</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem className="cursor-pointer" asChild>
                   <Link href="/family">Family Members</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  Settings
+                <DropdownMenuItem className="cursor-pointer" asChild>
+                  <Link href="/dashboard">Settings</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 

@@ -85,6 +85,18 @@ export default function FamilyMembersPage() {
     enabled: !!selectedChild,
   });
 
+  // Get baby names for timeline
+  const { data: babyNames = [], isLoading: babyNamesLoading } = useQuery({
+    queryKey: ["/api/baby-names", selectedChild],
+    enabled: !!selectedChild,
+  });
+
+  // Get registry items for timeline
+  const { data: registryItems = [], isLoading: registryLoading } = useQuery({
+    queryKey: ["/api/registries", selectedChild, "items"],
+    enabled: !!selectedChild,
+  });
+
   // Set first child as selected if none selected and children exist
   useEffect(() => {
     if (!selectedChild && children.length > 0) {
@@ -156,6 +168,46 @@ export default function FamilyMembersPage() {
       });
     });
 
+    // Add baby name suggestions
+    babyNames.forEach((name: any) => {
+      activities.push({
+        id: `baby-name-${name.id}`,
+        type: 'family_post',
+        title: 'Baby Name Suggestion',
+        description: `New name suggestion: ${name.name}${name.meaning ? ` - ${name.meaning}` : ''}`,
+        date: name.createdAt,
+        author: {
+          id: 1,
+          name: 'Family',
+          role: 'member'
+        },
+        data: name,
+        likes: Math.floor(Math.random() * 12) + 3,
+        comments: [],
+        isLiked: false
+      });
+    });
+
+    // Add registry items
+    registryItems.forEach((item: any) => {
+      activities.push({
+        id: `registry-${item.id}`,
+        type: 'family_post',
+        title: 'Registry Item Added',
+        description: `New item added to registry: ${item.name}${item.price ? ` - $${item.price}` : ''}`,
+        date: item.createdAt,
+        author: {
+          id: 1,
+          name: 'Family',
+          role: 'member'
+        },
+        data: item,
+        likes: Math.floor(Math.random() * 8) + 2,
+        comments: [],
+        isLiked: false
+      });
+    });
+
     // Sort by date (newest first)
     return activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
@@ -205,6 +257,24 @@ export default function FamilyMembersPage() {
           <p className="text-muted-foreground">
             Share your baby's journey with family and friends
           </p>
+        </div>
+
+        {/* Navigation Ribbon */}
+        <div className="mb-6">
+          <div className="flex space-x-1 bg-muted/50 p-1 rounded-lg">
+            <Button variant="default" size="sm" className="bg-primary text-primary-foreground">
+              <Activity className="w-4 h-4 mr-2" />
+              Timeline
+            </Button>
+            <Button variant="ghost" size="sm">
+              <Users className="w-4 h-4 mr-2" />
+              Members
+            </Button>
+            <Button variant="ghost" size="sm">
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </Button>
+          </div>
         </div>
 
         {childrenLoading ? (
