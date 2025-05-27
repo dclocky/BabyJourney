@@ -252,8 +252,8 @@ export default function FamilyMembersPage() {
                   <div className="mt-3 text-sm text-muted-foreground">
                     Sharing updates for {selectedChildData.name}
                     {selectedChildData.isPregnancy ? 
-                      ` • Due ${selectedChildData.dueDate ? format(new Date(selectedChildData.dueDate), 'PP') : 'date not set'}` :
-                      ` • Born ${selectedChildData.birthDate ? format(new Date(selectedChildData.birthDate), 'PP') : 'date not set'}`
+                      ` • Due ${selectedChildData.dueDate && !isNaN(new Date(selectedChildData.dueDate).getTime()) ? format(new Date(selectedChildData.dueDate), 'PP') : 'date not set'}` :
+                      ` • Born ${selectedChildData.birthDate && !isNaN(new Date(selectedChildData.birthDate).getTime()) ? format(new Date(selectedChildData.birthDate), 'PP') : 'date not set'}`
                     }
                   </div>
                 )}
@@ -359,7 +359,10 @@ export default function FamilyMembersPage() {
                               </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground">
-                              {format(new Date(activity.date), 'PPP')} at {format(new Date(activity.date), 'p')}
+                              {activity.date && !isNaN(new Date(activity.date).getTime()) ? 
+                                `${format(new Date(activity.date), 'PPP')} at ${format(new Date(activity.date), 'p')}` : 
+                                'Date not available'
+                              }
                             </p>
                           </div>
                         </div>

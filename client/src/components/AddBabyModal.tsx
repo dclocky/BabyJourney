@@ -62,7 +62,15 @@ export function AddBabyModal({ open, onClose, onSuccess }: AddBabyModalProps) {
       });
       return;
     }
-    createBabyMutation.mutate(formData);
+    
+    // Convert birthDate string to Date object
+    const submitData = {
+      ...formData,
+      birthDate: new Date(formData.birthDate),
+      isPregnancy: false
+    };
+    
+    createBabyMutation.mutate(submitData);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
