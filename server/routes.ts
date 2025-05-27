@@ -1277,6 +1277,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Symptoms Routes
+  
+  // Get symptoms for a pregnancy
+  app.get("/api/pregnancies/:pregnancyId/symptoms", requireAuth, async (req, res, next) => {
+    try {
+      const pregnancyId = parseInt(req.params.pregnancyId);
+      
+      const pregnancy = await storage.getPregnancy(pregnancyId);
+      
+      if (!pregnancy) {
+        return res.status(404).json({ message: "Pregnancy not found" });
+      }
+      
+      if (pregnancy.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      const symptoms = await storage.getSymptoms(pregnancyId);
+      res.json(symptoms);
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  // Record a new symptom
+  app.post("/api/pregnancies/:pregnancyId/symptoms", requireAuth, async (req, res, next) => {
+    try {
+      const pregnancyId = parseInt(req.params.pregnancyId);
+      
+      const pregnancy = await storage.getPregnancy(pregnancyId);
+      
+      if (!pregnancy) {
+        return res.status(404).json({ message: "Pregnancy not found" });
+      }
+      
+      if (pregnancy.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      // Basic validation
+      if (!req.body.name) {
+        return res.status(400).json({ message: "Symptom name is required" });
+      }
+      
+      // Prepare the symptom data
+      const symptomData = {
+        pregnancyId,
+        userId: req.user.id,
+        name: req.body.name,
+        severity: req.body.severity || 3,
+        notes: req.body.notes || null,
+        date: req.body.date ? new Date(req.body.date) : new Date()
+      };
+      
+      const symptom = await storage.createSymptom(symptomData);
+      res.status(201).json(symptom);
+    } catch (err) {
+      console.error("Error recording symptom:", err);
+      res.status(500).json({ message: "Failed to record symptom", error: err.message });
+    }
+  });
+  
+  // Delete a symptom
+  app.delete("/api/symptoms/:id", requireAuth, async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      const symptom = await storage.getSymptom(id);
+      
+      if (!symptom) {
+        return res.status(404).json({ message: "Symptom not found" });
+      }
+      
+      // Get the pregnancy to check ownership
+      const pregnancy = await storage.getPregnancy(symptom.pregnancyId);
+      
+      if (!pregnancy || pregnancy.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      await storage.deleteSymptom(id);
+      res.status(204).end();
+    } catch (err) {
+      console.error("Error deleting symptom:", err);
+      res.status(500).json({ message: "Failed to delete symptom", error: err.message });
+    }
+  });
+
   // Cravings Routes
   
   // Get cravings for a pregnancy

@@ -14,6 +14,8 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Users, Plus, Mail, Shield, Settings, Activity, Crown, UserCheck, Eye, Edit3, Trash2, AlertTriangle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { AppHeader } from "@/components/app-header";
+import { AppTabs } from "@/components/app-tabs";
 
 interface FamilyGroup {
   id: number;
@@ -251,18 +253,22 @@ export default function FamilyMembersPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Family Groups</h1>
-          <p className="text-muted-foreground">
-            Invite trusted family members to share in your journey
-          </p>
+    <div className="min-h-screen flex flex-col bg-secondary-50">
+      <AppHeader />
+      <AppTabs activeTab="family" />
+      
+      <main className="flex-grow container mx-auto px-4 py-6 pb-20 md:pb-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">Family Groups</h1>
+            <p className="text-muted-foreground">
+              Invite trusted family members to share in your journey
+            </p>
+          </div>
+          <Users className="w-8 h-8 text-primary" />
         </div>
-        <Users className="w-8 h-8 text-primary" />
-      </div>
 
-      {/* Child Selection */}
+        {/* Child Selection */}
       <Card>
         <CardHeader>
           <CardTitle>Select Child</CardTitle>
@@ -596,6 +602,7 @@ export default function FamilyMembersPage() {
           </DialogContent>
         </Dialog>
       )}
+      </main>
     </div>
   );
 }

@@ -28,7 +28,7 @@ export function AddBabyModal({ open, onClose, onSuccess }: AddBabyModalProps) {
     mutationFn: async (data: typeof formData) => {
       return apiRequest("POST", "/api/children", {
         name: data.name,
-        birthDate: data.birthDate,
+        birthDate: new Date(data.birthDate),
         gender: data.gender || null,
         isPregnancy: false,
       });
