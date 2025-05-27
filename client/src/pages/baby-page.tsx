@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { TrendingUp, Baby, Plus, Stethoscope } from "lucide-react";
+import { TrendingUp, Baby, Plus, Stethoscope, StickyNote, Music, Heart, Utensils, CircleDot, Clock } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { AppHeader } from "@/components/app-header";
@@ -281,9 +281,26 @@ export default function BabyPage() {
 
               {/* Functional Tracking Cards */}
               {currentChild && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <GrowthTrackerCard childId={currentChild.id} />
-                  <DevelopmentCard childId={currentChild.id} />
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <GrowthTrackerCard childId={currentChild.id} />
+                    <DevelopmentCard childId={currentChild.id} />
+                  </div>
+                  
+                  {/* Daily Care Tracking */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <FeedingTrackerCard childId={currentChild.id} />
+                    <DiaperTrackerCard childId={currentChild.id} />
+                  </div>
+                  
+                  {/* Notes and Preferences */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <NotesCard childId={currentChild.id} />
+                    <MusicPreferencesCard childId={currentChild.id} />
+                  </div>
+                  
+                  {/* Health Tracking */}
+                  <HealthTrackerCard childId={currentChild.id} />
                 </div>
               )}
             </div>
