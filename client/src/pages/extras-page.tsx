@@ -88,6 +88,29 @@ export default function ExtrasPage() {
               </Button>
             </CardFooter>
           </Card>
+          
+          {/* Babysitter Mode Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <Users className="h-5 w-5 text-primary" />
+                <CardTitle>Babysitter Mode</CardTitle>
+              </div>
+              <CardDescription>
+                Share baby care information with caregivers
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Generate a printable care sheet with feeding schedules, sleep routines, emergency contacts, and important notes for babysitters.
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={() => navigate("/babysitter")} className="w-full">
+                Create Care Sheet
+              </Button>
+            </CardFooter>
+          </Card>
         </div>
       </div>
     </div>

@@ -94,6 +94,235 @@ const cravingSchema = z.object({
   })
 });
 
+// Form schema for adding a new symptom
+const symptomSchema = z.object({
+  name: z.string().min(1, "Please enter the symptom name"),
+  severity: z.string().transform(val => parseInt(val)),
+  notes: z.string().optional(),
+  date: z.string().refine(date => !isNaN(Date.parse(date)), {
+    message: "Please enter a valid date",
+  })
+});
+
+// Component for adding a new symptom
+function SymptomForm({ pregnancyId, onSuccess }: { pregnancyId: number, onSuccess: () => void }) {
+  const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(true);
+
+  const form = useForm<z.infer<typeof symptomSchema>>({
+    resolver: zodResolver(symptomSchema),
+    defaultValues: {
+      name: "",
+      severity: "3",
+      notes: "",
+      date: format(new Date(), "yyyy-MM-dd"),
+    },
+  });
+
+  const addSymptomMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof symptomSchema>) => {
+      const res = await apiRequest("POST", `/api/pregnancies/${pregnancyId}/symptoms`, {
+        ...data,
+        date: new Date(data.date),
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      onSuccess();
+      toast({
+        title: "Symptom added",
+        description: "Your symptom has been recorded!",
+      });
+      form.reset({
+        name: "",
+        severity: "3",
+        notes: "",
+        date: format(new Date(), "yyyy-MM-dd"),
+      });
+      setIsDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to add symptom",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: z.infer<typeof symptomSchema>) => {
+    addSymptomMutation.mutate(data);
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Symptom Name</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., Nausea, Fatigue, Backache" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="severity"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Severity (1-5)</FormLabel>
+              <FormControl>
+                <Input type="number" min="1" max="5" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="date"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Date</FormLabel>
+              <FormControl>
+                <Input type="date" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Notes (Optional)</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Any additional details..." {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <Button 
+          type="submit" 
+          disabled={addSymptomMutation.isPending}
+          className="w-full"
+        >
+          {addSymptomMutation.isPending ? "Saving..." : "Save Symptom"}
+        </Button>
+      </form>
+    </Form>
+  );
+}
+
+// Component for displaying symptoms list
+function SymptomsList({ pregnancyId }: { pregnancyId: number }) {
+  const { toast } = useToast();
+  
+  const { data: symptoms = [], isLoading } = useQuery<Symptom[]>({
+    queryKey: [`/api/pregnancies/${pregnancyId}/symptoms`],
+  });
+
+  const deleteSymptomMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/symptoms/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/pregnancies/${pregnancyId}/symptoms`] });
+      toast({
+        title: "Symptom deleted",
+        description: "The symptom has been removed from your records",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to delete symptom",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="py-8 flex justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+      </div>
+    );
+  }
+
+  if (symptoms.length === 0) {
+    return (
+      <Card>
+        <CardContent className="pt-6 text-center">
+          <div className="py-8">
+            <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">No Symptoms Recorded</h3>
+            <p className="text-muted-foreground">
+              Start tracking your pregnancy symptoms! Add your first symptom using the button above.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        <div className="space-y-4">
+          {symptoms.map((symptom) => (
+            <div 
+              key={symptom.id} 
+              className="border rounded-md p-4"
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="flex items-center">
+                    <h4 className="font-medium">{symptom.name}</h4>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {symptom.date ? format(new Date(symptom.date), "MMMM d, yyyy") : ""}
+                  </p>
+                  {symptom.notes && (
+                    <p className="mt-2 text-sm">{symptom.notes}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="py-1">
+                    Severity: {symptom.severity || 0}/5
+                  </Badge>
+                </div>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  onClick={() => deleteSymptomMutation.mutate(symptom.id)}
+                  disabled={deleteSymptomMutation.isPending}
+                >
+                  <Trash className="h-3 w-3 mr-1" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // Component for adding a new craving
 function CravingForm({ pregnancyId, onSuccess }: { pregnancyId: number, onSuccess: () => void }) {
   const { toast } = useToast();
@@ -708,59 +937,14 @@ export default function PregnancyPage() {
                             </DialogDescription>
                           </DialogHeader>
                           
-                          {/* Symptom form would go here */}
-                          <div className="grid gap-4 py-4">
-                            <div>
-                              <Label htmlFor="symptom-name">Symptom</Label>
-                              <Input id="symptom-name" placeholder="e.g., Nausea, Fatigue, Backache" />
-                            </div>
-                            <div>
-                              <Label htmlFor="symptom-severity">Severity (1-5)</Label>
-                              <Input id="symptom-severity" type="number" min="1" max="5" defaultValue="3" />
-                            </div>
-                            <div>
-                              <Label htmlFor="symptom-date">Date</Label>
-                              <Input id="symptom-date" type="date" defaultValue={format(new Date(), "yyyy-MM-dd")} />
-                            </div>
-                            <div>
-                              <Label htmlFor="symptom-notes">Notes</Label>
-                              <Textarea id="symptom-notes" placeholder="Add any additional details..." />
-                            </div>
-                          </div>
-                          
-                          <DialogFooter>
-                            <Button>Save Symptom</Button>
-                          </DialogFooter>
+                          <SymptomForm pregnancyId={pregnancy.id} onSuccess={() => {
+                            queryClient.invalidateQueries({ queryKey: [`/api/pregnancies/${pregnancy.id}/symptoms`] });
+                          }} />
                         </DialogContent>
                       </Dialog>
                     </div>
                     
-                    {/* Display symptoms if they exist */}
-                    <Card>
-                      <CardContent className="p-6">
-                        <div className="space-y-4">
-                          <p className="text-sm text-muted-foreground">Most common symptoms will be shown here. Log your first symptom to get started!</p>
-                          
-                          {/* Sample symptom list (would be populated from API) */}
-                          <div className="border rounded-md divide-y">
-                            <div className="flex justify-between items-center p-3">
-                              <div>
-                                <p className="font-medium">Morning Sickness</p>
-                                <p className="text-sm text-muted-foreground">April 15, 2025</p>
-                              </div>
-                              <Badge variant="outline">Severity: 4</Badge>
-                            </div>
-                            <div className="flex justify-between items-center p-3">
-                              <div>
-                                <p className="font-medium">Fatigue</p>
-                                <p className="text-sm text-muted-foreground">April 16, 2025</p>
-                              </div>
-                              <Badge variant="outline">Severity: 3</Badge>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <SymptomsList pregnancyId={pregnancy.id} />
                   </div>
                 ))}
               </TabsContent>
