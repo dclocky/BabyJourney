@@ -16,6 +16,8 @@ import BabyPoolPage from "@/pages/baby-pool-page";
 import BabyNamesPage from "@/pages/baby-names-page";
 import BabyCarePage from "@/pages/baby-care-page";
 import GrowthChartsPage from "@/pages/growth-charts-page";
+import BabysitterPage from "@/pages/babysitter-page";
+import SelfCarePage from "@/pages/self-care-page";
 import SettingsPage from "@/pages/settings-page";
 import UpgradePage from "@/pages/upgrade-page";
 import { ProtectedRoute } from "./lib/protected-route";
@@ -27,6 +29,8 @@ function Router() {
       <ProtectedRoute path="/" component={DashboardPage} />
       <ProtectedRoute path="/pregnancy" component={PregnancyPage} />
       <ProtectedRoute path="/baby" component={BabyPage} />
+      <ProtectedRoute path="/babysitter" component={BabysitterPage} />
+      <ProtectedRoute path="/self-care" component={SelfCarePage} />
       <ProtectedRoute path="/milestones" component={MilestonesPage} />
       <ProtectedRoute path="/appointments" component={AppointmentsPage} />
       <ProtectedRoute path="/memories" component={MemoriesPage} />

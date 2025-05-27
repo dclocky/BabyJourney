@@ -36,6 +36,8 @@ export function AppTabs({ activeTab }: AppTabsProps) {
     { name: "Dashboard", path: "/" },
     { name: "Pregnancy", path: "/pregnancy" },
     { name: "Baby", path: "/baby" },
+    { name: "Babysitter", path: "/babysitter" },
+    { name: "Self-Care", path: "/self-care" },
     { name: "Milestones", path: "/milestones" },
     { name: "Appointments", path: "/appointments" },
     { name: "Memories", path: "/memories", premium: !isPremium },
