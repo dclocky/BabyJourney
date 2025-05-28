@@ -520,6 +520,7 @@ export class MemStorage implements IStorage {
       location: appointment.location ?? null,
       doctorName: appointment.doctorName ?? null,
       doctorSpecialty: null,
+      doctorNotes: null,
       diagnosis: null,
       treatment: null,
       prescriptions: null,
@@ -713,15 +714,24 @@ export class MemStorage implements IStorage {
     const id = this.registryItemIdCounter++;
     
     const newItem: RegistryItem = {
-      ...item,
       id,
-      status: "available",
-      reserverName: null,
-      reserverEmail: null,
-      reservedAt: null,
-      purchasedAt: null,
+      name: item.name,
       createdAt: new Date(),
-      updatedAt: new Date()
+      status: "available",
+      description: item.description ?? null,
+      category: item.category,
+      updatedAt: new Date(),
+      registryId: item.registryId,
+      url: item.url ?? null,
+      price: item.price ?? null,
+      quantity: item.quantity ?? 1,
+      priority: item.priority ?? "medium",
+      imageUrl: item.imageUrl ?? null,
+      purchasedBy: null,
+      reservedBy: null,
+      reservedByEmail: null,
+      reservedAt: null,
+      purchasedAt: null
     };
     
     this.registryItems.set(id, newItem);
@@ -761,18 +771,18 @@ export class MemStorage implements IStorage {
     };
     
     if (status === "available") {
-      updates.reserverName = null;
-      updates.reserverEmail = null;
+      updates.reservedBy = null;
+      updates.reservedByEmail = null;
       updates.reservedAt = null;
       updates.purchasedAt = null;
     } else if (status === "reserved") {
-      updates.reserverName = personInfo.name || null;
-      updates.reserverEmail = personInfo.email || null;
+      updates.reservedBy = personInfo.name || null;
+      updates.reservedByEmail = personInfo.email || null;
       updates.reservedAt = now;
       updates.purchasedAt = null;
     } else if (status === "purchased") {
-      updates.reserverName = personInfo.name || item.reserverName;
-      updates.reserverEmail = personInfo.email || item.reserverEmail;
+      updates.reservedBy = personInfo.name || item.reservedBy;
+      updates.reservedByEmail = personInfo.email || item.reservedByEmail;
       updates.purchasedAt = now;
     }
     
