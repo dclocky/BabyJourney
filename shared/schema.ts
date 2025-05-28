@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json, uniqueIndex, varchar, decimal } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json, uniqueIndex, varchar, decimal, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -648,3 +648,112 @@ export const loginSchema = z.object({
 });
 
 export type LoginData = z.infer<typeof loginSchema>;
+
+// Conception Tracking Tables
+export const ovulationCycles = pgTable("ovulation_cycles", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  cycleStartDate: date("cycle_start_date").notNull(),
+  cycleLength: integer("cycle_length").default(28).notNull(),
+  ovulationDate: date("ovulation_date"),
+  lutealPhaseLength: integer("luteal_phase_length"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const fertilitySymptoms = pgTable("fertility_symptoms", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  cycleId: integer("cycle_id").references(() => ovulationCycles.id),
+  date: date("date").notNull(),
+  basalBodyTemp: decimal("basal_body_temp", { precision: 4, scale: 2 }),
+  cervicalMucus: text("cervical_mucus", { enum: ["dry", "sticky", "creamy", "watery", "egg_white"] }),
+  cervicalPosition: text("cervical_position", { enum: ["low", "medium", "high"] }),
+  cervicalFirmness: text("cervical_firmness", { enum: ["firm", "medium", "soft"] }),
+  ovulationPain: boolean("ovulation_pain").default(false),
+  breastTenderness: boolean("breast_tenderness").default(false),
+  mood: text("mood", { enum: ["happy", "neutral", "sad", "irritable", "anxious"] }),
+  energyLevel: integer("energy_level"), // 1-5 scale
+  libido: integer("libido"), // 1-5 scale
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const ovulationTests = pgTable("ovulation_tests", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  cycleId: integer("cycle_id").references(() => ovulationCycles.id),
+  date: date("date").notNull(),
+  testTime: text("test_time").notNull(),
+  result: text("result", { enum: ["negative", "positive", "peak"] }).notNull(),
+  testBrand: text("test_brand"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const intimacyTracking = pgTable("intimacy_tracking", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  cycleId: integer("cycle_id").references(() => ovulationCycles.id),
+  date: date("date").notNull(),
+  wasProtected: boolean("was_protected").default(false).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const conceptionGoals = pgTable("conception_goals", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  targetConceptionDate: date("target_conception_date"),
+  vitaminsSupplement: boolean("vitamins_supplement").default(false),
+  folicAcidDaily: boolean("folic_acid_daily").default(false),
+  exerciseRoutine: text("exercise_routine"),
+  dietaryChanges: text("dietary_changes"),
+  stressManagement: text("stress_management"),
+  sleepHours: integer("sleep_hours"),
+  caffeineLimit: boolean("caffeine_limit").default(false),
+  alcoholLimit: boolean("alcohol_limit").default(false),
+  smokingCessation: boolean("smoking_cessation").default(false),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Conception tracking insert schemas
+export const insertOvulationCycleSchema = createInsertSchema(ovulationCycles).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertFertilitySymptomSchema = createInsertSchema(fertilitySymptoms).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertOvulationTestSchema = createInsertSchema(ovulationTests).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertIntimacyTrackingSchema = createInsertSchema(intimacyTracking).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertConceptionGoalSchema = createInsertSchema(conceptionGoals).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+// Conception tracking types
+export type OvulationCycle = typeof ovulationCycles.$inferSelect;
+export type InsertOvulationCycle = z.infer<typeof insertOvulationCycleSchema>;
+export type FertilitySymptom = typeof fertilitySymptoms.$inferSelect;
+export type InsertFertilitySymptom = z.infer<typeof insertFertilitySymptomSchema>;
+export type OvulationTest = typeof ovulationTests.$inferSelect;
+export type InsertOvulationTest = z.infer<typeof insertOvulationTestSchema>;
+export type IntimacyTracking = typeof intimacyTracking.$inferSelect;
+export type InsertIntimacyTracking = z.infer<typeof insertIntimacyTrackingSchema>;
+export type ConceptionGoal = typeof conceptionGoals.$inferSelect;
+export type InsertConceptionGoal = z.infer<typeof insertConceptionGoalSchema>;

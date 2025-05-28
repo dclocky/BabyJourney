@@ -1986,5 +1986,197 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-// Switch from MemStorage to DatabaseStorage
+}
+
+// Add conception tracking methods to the storage interface
+export interface IConceptionTracking {
+  // Ovulation cycle methods
+  getOvulationCycles(userId: number): Promise<OvulationCycle[]>;
+  getCurrentCycle(userId: number): Promise<OvulationCycle | undefined>;
+  createOvulationCycle(cycle: InsertOvulationCycle): Promise<OvulationCycle>;
+  
+  // Fertility symptom methods
+  getFertilitySymptoms(userId: number, cycleId?: number): Promise<FertilitySymptom[]>;
+  createFertilitySymptom(symptom: InsertFertilitySymptom): Promise<FertilitySymptom>;
+  
+  // Ovulation test methods
+  getOvulationTests(userId: number, cycleId?: number): Promise<OvulationTest[]>;
+  createOvulationTest(test: InsertOvulationTest): Promise<OvulationTest>;
+  
+  // Intimacy tracking methods
+  getIntimacyTracking(userId: number, cycleId?: number): Promise<IntimacyTracking[]>;
+  createIntimacyTracking(tracking: InsertIntimacyTracking): Promise<IntimacyTracking>;
+  
+  // Conception goals methods
+  getConceptionGoals(userId: number): Promise<ConceptionGoal | undefined>;
+  createOrUpdateConceptionGoals(goals: InsertConceptionGoal): Promise<ConceptionGoal>;
+}
+
+// Extend IStorage to include conception tracking
+declare module "./storage" {
+  interface IStorage extends IConceptionTracking {}
+}
+
+// Add conception tracking to DatabaseStorage class
+export class ConceptionTrackingMixin {
+  
+  // Ovulation Cycles
+  async getOvulationCycles(userId: number): Promise<OvulationCycle[]> {
+    return Array.from(this.ovulationCycles.values())
+      .filter(cycle => cycle.userId === userId)
+      .sort((a, b) => new Date(b.cycleStartDate).getTime() - new Date(a.cycleStartDate).getTime());
+  }
+
+  async getCurrentCycle(userId: number): Promise<OvulationCycle | undefined> {
+    const cycles = await this.getOvulationCycles(userId);
+    return cycles[0]; // Most recent cycle
+  }
+
+  async createOvulationCycle(cycle: InsertOvulationCycle): Promise<OvulationCycle> {
+    const id = this.cycleIdCounter++;
+    const newCycle: OvulationCycle = {
+      id,
+      userId: cycle.userId,
+      cycleStartDate: cycle.cycleStartDate,
+      cycleLength: cycle.cycleLength ?? 28,
+      ovulationDate: cycle.ovulationDate || null,
+      lutealPhaseLength: cycle.lutealPhaseLength || null,
+      notes: cycle.notes || null,
+      createdAt: new Date()
+    };
+    this.ovulationCycles.set(id, newCycle);
+    return newCycle;
+  }
+
+  // Fertility Symptoms
+  async getFertilitySymptoms(userId: number, cycleId?: number): Promise<FertilitySymptom[]> {
+    return Array.from(this.fertilitySymptoms.values())
+      .filter(symptom => {
+        if (symptom.userId !== userId) return false;
+        if (cycleId && symptom.cycleId !== cycleId) return false;
+        return true;
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  async createFertilitySymptom(symptom: InsertFertilitySymptom): Promise<FertilitySymptom> {
+    const id = this.symptomIdCounter++;
+    const newSymptom: FertilitySymptom = {
+      id,
+      userId: symptom.userId,
+      cycleId: symptom.cycleId || null,
+      date: symptom.date,
+      basalBodyTemp: symptom.basalBodyTemp || null,
+      cervicalMucus: symptom.cervicalMucus || null,
+      cervicalPosition: symptom.cervicalPosition || null,
+      cervicalFirmness: symptom.cervicalFirmness || null,
+      ovulationPain: symptom.ovulationPain ?? false,
+      breastTenderness: symptom.breastTenderness ?? false,
+      mood: symptom.mood || null,
+      energyLevel: symptom.energyLevel || null,
+      libido: symptom.libido || null,
+      notes: symptom.notes || null,
+      createdAt: new Date()
+    };
+    this.fertilitySymptoms.set(id, newSymptom);
+    return newSymptom;
+  }
+
+  // Ovulation Tests
+  async getOvulationTests(userId: number, cycleId?: number): Promise<OvulationTest[]> {
+    return Array.from(this.ovulationTests.values())
+      .filter(test => {
+        if (test.userId !== userId) return false;
+        if (cycleId && test.cycleId !== cycleId) return false;
+        return true;
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  async createOvulationTest(test: InsertOvulationTest): Promise<OvulationTest> {
+    const id = this.testIdCounter++;
+    const newTest: OvulationTest = {
+      id,
+      userId: test.userId,
+      cycleId: test.cycleId || null,
+      date: test.date,
+      testTime: test.testTime,
+      result: test.result,
+      testBrand: test.testBrand || null,
+      notes: test.notes || null,
+      createdAt: new Date()
+    };
+    this.ovulationTests.set(id, newTest);
+    return newTest;
+  }
+
+  // Intimacy Tracking
+  async getIntimacyTracking(userId: number, cycleId?: number): Promise<IntimacyTracking[]> {
+    return Array.from(this.intimacyTracking.values())
+      .filter(tracking => {
+        if (tracking.userId !== userId) return false;
+        if (cycleId && tracking.cycleId !== cycleId) return false;
+        return true;
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  async createIntimacyTracking(tracking: InsertIntimacyTracking): Promise<IntimacyTracking> {
+    const id = this.intimacyIdCounter++;
+    const newTracking: IntimacyTracking = {
+      id,
+      userId: tracking.userId,
+      cycleId: tracking.cycleId || null,
+      date: tracking.date,
+      wasProtected: tracking.wasProtected ?? false,
+      notes: tracking.notes || null,
+      createdAt: new Date()
+    };
+    this.intimacyTracking.set(id, newTracking);
+    return newTracking;
+  }
+
+  // Conception Goals
+  async getConceptionGoals(userId: number): Promise<ConceptionGoal | undefined> {
+    return Array.from(this.conceptionGoals.values())
+      .find(goal => goal.userId === userId);
+  }
+
+  async createOrUpdateConceptionGoals(goals: InsertConceptionGoal): Promise<ConceptionGoal> {
+    const existing = await this.getConceptionGoals(goals.userId);
+    
+    if (existing) {
+      const updated: ConceptionGoal = {
+        ...existing,
+        ...goals,
+        updatedAt: new Date()
+      };
+      this.conceptionGoals.set(existing.id, updated);
+      return updated;
+    } else {
+      const id = this.goalsIdCounter++;
+      const newGoals: ConceptionGoal = {
+        id,
+        userId: goals.userId,
+        targetConceptionDate: goals.targetConceptionDate || null,
+        vitaminsSupplement: goals.vitaminsSupplement ?? false,
+        folicAcidDaily: goals.folicAcidDaily ?? false,
+        exerciseRoutine: goals.exerciseRoutine || null,
+        dietaryChanges: goals.dietaryChanges || null,
+        stressManagement: goals.stressManagement || null,
+        sleepHours: goals.sleepHours || null,
+        caffeineLimit: goals.caffeineLimit ?? false,
+        alcoholLimit: goals.alcoholLimit ?? false,
+        smokingCessation: goals.smokingCessation ?? false,
+        notes: goals.notes || null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      this.conceptionGoals.set(id, newGoals);
+      return newGoals;
+    }
+  }
+}
+
+// Switch from MemStorage to DatabaseStorage  
 export const storage = new DatabaseStorage();
