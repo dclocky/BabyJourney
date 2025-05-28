@@ -815,7 +815,7 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
       pregnancyId: contraction.pregnancyId,
       startTime: contraction.startTime,
-      endTime: contraction.endTime ?? null,
+      endTime: contraction.endTime || null,
       duration: contraction.duration ?? null,
       intensity: contraction.intensity ?? null
     };
@@ -922,7 +922,7 @@ export class MemStorage implements IStorage {
       name: babyName.name,
       createdAt: new Date(),
       userId: babyName.userId,
-      gender: babyName.gender ?? null,
+      gender: babyName.gender || null,
       childId: babyName.childId ?? null,
       notes: babyName.notes ?? null,
       meaning: babyName.meaning ?? null,
@@ -1073,7 +1073,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(familyMembers)
       .where(eq(familyMembers.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Child methods
@@ -1123,7 +1123,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(children)
       .where(eq(children.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Pregnancy journal methods
@@ -1186,31 +1186,13 @@ export class DatabaseStorage implements IStorage {
     return newSymptom;
   }
 
-  // Symptom methods
-  async getSymptoms(pregnancyId: number): Promise<Symptom[]> {
-    return db
-      .select()
-      .from(symptoms)
-      .where(eq(symptoms.childId, pregnancyId))
-      .orderBy(desc(symptoms.date));
-  }
 
-  async createSymptom(symptom: InsertSymptom): Promise<Symptom> {
-    const [newSymptom] = await db
-      .insert(symptoms)
-      .values({
-        ...symptom,
-        createdAt: new Date()
-      })
-      .returning();
-    return newSymptom;
-  }
 
   async deleteSymptom(id: number): Promise<boolean> {
     const result = await db
       .delete(symptoms)
       .where(eq(symptoms.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Milestone methods
@@ -1255,7 +1237,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(milestones)
       .where(eq(milestones.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Growth record methods
@@ -1333,7 +1315,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(appointments)
       .where(eq(appointments.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Photo methods
@@ -1368,7 +1350,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(photos)
       .where(eq(photos.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Vaccination methods
@@ -1395,7 +1377,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(vaccinations)
       .where(eq(vaccinations.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Registry methods
@@ -1491,7 +1473,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(registries)
       .where(eq(registries.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Registry item methods
@@ -1516,8 +1498,10 @@ export class DatabaseStorage implements IStorage {
       .values({
         ...item,
         status: "available",
-        reservedByName: null,
+        reservedBy: null,
         reservedByEmail: null,
+        purchasedBy: null,
+        purchasedByEmail: null,
         reservedAt: null,
         purchasedAt: null,
         createdAt: new Date(),
@@ -1543,7 +1527,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(registryItems)
       .where(eq(registryItems.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async updateRegistryItemStatus(
@@ -1561,18 +1545,18 @@ export class DatabaseStorage implements IStorage {
     };
     
     if (status === "available") {
-      updates.reservedByName = null;
+      updates.reservedBy = null;
       updates.reservedByEmail = null;
       updates.reservedAt = null;
       updates.purchasedAt = null;
     } else if (status === "reserved") {
-      updates.reservedByName = personInfo.name || null;
+      updates.reservedBy = personInfo.name || null;
       updates.reservedByEmail = personInfo.email || null;
       updates.reservedAt = now;
       updates.purchasedAt = null;
     } else if (status === "purchased") {
-      updates.reservedByName = personInfo.name || item.reservedByName;
-      updates.reservedByEmail = personInfo.email || item.reservedByEmail;
+      updates.purchasedBy = personInfo.name || item.reservedBy;
+      updates.purchasedByEmail = personInfo.email || item.reservedByEmail;
       updates.purchasedAt = now;
     }
     
@@ -1632,7 +1616,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(contractions)
       .where(eq(contractions.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Cravings methods
@@ -1676,7 +1660,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(cravings)
       .where(eq(cravings.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
   
   // Baby Names methods
@@ -1737,7 +1721,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(babyNames)
       .where(eq(babyNames.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // ===== FAMILY GROUPS STORAGE METHODS =====
