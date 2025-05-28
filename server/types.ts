@@ -4,7 +4,7 @@ import { User } from '@shared/schema';
 export interface AuthenticatedRequest extends Request {
   user?: User;
   isAuthenticated(): boolean;
-  login(user: User, callback: (err?: any) => void): void;
+  login(user: any, callback?: (err?: any) => void): void;
   logout(callback?: (err?: any) => void): void;
 }
 

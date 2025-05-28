@@ -509,20 +509,21 @@ export class MemStorage implements IStorage {
   async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
     const id = this.appointmentIdCounter++;
     const newAppointment: Appointment = {
-      date: appointment.date,
       id,
       createdAt: new Date(),
-      childId: appointment.childId,
+      date: appointment.date,
       userId: appointment.userId,
+      childId: appointment.childId,
       title: appointment.title,
       notes: appointment.notes ?? null,
       time: appointment.time ?? null,
       location: appointment.location ?? null,
       doctorName: appointment.doctorName ?? null,
-      appointmentType: appointment.appointmentType ?? null,
-      duration: appointment.duration ?? null,
-      reminderTime: appointment.reminderTime ?? null,
-      status: appointment.status ?? null,
+      doctorSpecialty: null,
+      diagnosis: null,
+      treatment: null,
+      prescriptions: null,
+      followUpDate: null,
       vitals: appointment.vitals ?? null
     };
     this.appointments.set(id, newAppointment);
@@ -588,9 +589,13 @@ export class MemStorage implements IStorage {
   async createVaccination(vaccination: InsertVaccination): Promise<Vaccination> {
     const id = this.vaccinationIdCounter++;
     const newVaccination: Vaccination = {
-      ...vaccination,
+      date: vaccination.date,
       id,
-      createdAt: new Date()
+      name: vaccination.name,
+      createdAt: new Date(),
+      childId: vaccination.childId,
+      userId: vaccination.userId,
+      notes: vaccination.notes ?? null
     };
     this.vaccinations.set(id, newVaccination);
     return newVaccination;
@@ -610,10 +615,14 @@ export class MemStorage implements IStorage {
   async createPregnancy(pregnancy: InsertChild): Promise<Child> {
     const id = this.childIdCounter++;
     const child: Child = {
-      ...pregnancy,
       id,
-      isPregnancy: true,
-      createdAt: new Date()
+      name: pregnancy.name,
+      createdAt: new Date(),
+      userId: pregnancy.userId,
+      gender: pregnancy.gender ?? null,
+      birthDate: pregnancy.birthDate ?? null,
+      dueDate: pregnancy.dueDate ?? null,
+      isPregnancy: true
     };
     this.children.set(id, child);
     return child;
@@ -647,10 +656,14 @@ export class MemStorage implements IStorage {
     const shareCode = Math.random().toString(36).substring(2, 10);
     
     const newRegistry: Registry = {
-      ...registry,
       id,
-      shareCode,
       createdAt: new Date(),
+      userId: registry.userId,
+      childId: registry.childId ?? null,
+      title: registry.title,
+      description: registry.description ?? null,
+      isPublic: registry.isPublic ?? false,
+      shareCode,
       updatedAt: new Date()
     };
     
