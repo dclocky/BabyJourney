@@ -63,11 +63,11 @@ export function AddBabyModal({ open, onClose, onSuccess }: AddBabyModalProps) {
       return;
     }
     
-    // Convert birthDate string to proper format
+    // Convert birthDate to proper string format for API
     const submitData = {
-      ...formData,
-      birthDate: formData.birthDate,
-      isPregnancy: false
+      name: formData.name,
+      birthDate: formData.birthDate, // Already a string from input
+      gender: formData.gender
     };
     
     createBabyMutation.mutate(submitData);

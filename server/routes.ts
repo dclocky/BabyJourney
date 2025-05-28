@@ -1920,6 +1920,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Baby Preferences API endpoints
+  app.get("/api/children/:childId/preferences", requireAuth, async (req, res) => {
+    try {
+      const childId = parseInt(req.params.childId);
+      const preferences = await storage.getChildPreferences(childId, req.user!.id);
+      res.json(preferences);
+    } catch (err: any) {
+      res.status(500).json({ message: "Failed to fetch preferences", error: err.message });
+    }
+  });
+
+  app.post("/api/children/:childId/preferences", requireAuth, async (req, res) => {
+    try {
+      const childId = parseInt(req.params.childId);
+      const preferenceData = {
+        ...req.body,
+        childId,
+        userId: req.user!.id
+      };
+      
+      const preference = await storage.createChildPreference(preferenceData);
+      res.status(201).json(preference);
+    } catch (err: any) {
+      res.status(500).json({ message: "Failed to create preference", error: err.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -21,7 +21,8 @@ import {
   groupActivities, type SelectGroupActivity, type InsertGroupActivity,
   activityComments, type SelectActivityComment, type InsertActivityComment,
   activityLikes, type SelectActivityLike, type InsertActivityLike,
-  auditLogs, type SelectAuditLog, type InsertAuditLog
+  auditLogs, type SelectAuditLog, type InsertAuditLog,
+  babyPreferences, type SelectBabyPreference, type InsertBabyPreference
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -1882,6 +1883,19 @@ export class DatabaseStorage implements IStorage {
     .orderBy(desc(auditLogs.createdAt))
     .limit(limit)
     .offset(offset);
+  }
+
+  // Baby Preferences
+  async getChildPreferences(childId: number, userId: number): Promise<SelectBabyPreference[]> {
+    return db.select()
+      .from(babyPreferences)
+      .where(and(eq(babyPreferences.childId, childId), eq(babyPreferences.userId, userId)))
+      .orderBy(desc(babyPreferences.createdAt));
+  }
+
+  async createChildPreference(data: InsertBabyPreference): Promise<SelectBabyPreference> {
+    const [preference] = await db.insert(babyPreferences).values(data).returning();
+    return preference;
   }
 }
 

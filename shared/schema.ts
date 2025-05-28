@@ -247,6 +247,24 @@ export const contractions = pgTable("contractions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Baby preferences table
+export const babyPreferences = pgTable("baby_preferences", {
+  id: serial("id").primaryKey(),
+  childId: integer("child_id").references(() => children.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  category: text("category", { enum: ["music", "toys", "activities", "food", "books", "sounds", "other"] }).notNull(),
+  item: text("item").notNull(),
+  preference: text("preference", { enum: ["likes", "dislikes", "neutral"] }).notNull(),
+  intensity: integer("intensity").notNull(), // 1-5 scale
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertBabyPreferenceSchema = createInsertSchema(babyPreferences).omit({
+  id: true,
+  createdAt: true
+});
+
 export const insertRegistryItemSchema = createInsertSchema(registryItems).omit({
   id: true,
   createdAt: true,
@@ -614,6 +632,9 @@ export const insertBabyNameSchema = createInsertSchema(babyNames).omit({
 
 export type BabyName = typeof babyNames.$inferSelect;
 export type InsertBabyName = z.infer<typeof insertBabyNameSchema>;
+
+export type SelectBabyPreference = typeof babyPreferences.$inferSelect;
+export type InsertBabyPreference = z.infer<typeof insertBabyPreferenceSchema>;
 
 // Extend schemas with validation
 export const userSchema = insertUserSchema.extend({
