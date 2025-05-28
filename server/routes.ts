@@ -1890,36 +1890,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // === Appointments API Routes ===
   
   // Get appointments for user
-  app.get("/api/appointments", requireAuth, async (req, res, next) => {
+  app.get("/api/appointments", requireAuth, async (req: AuthenticatedRequest, res, next) => {
     try {
-      const appointments = await storage.getAppointments(req.user.id);
+      const user = getAuthenticatedUser(req);
+      const appointments = await storage.getAppointments(user.id);
       res.json(appointments);
     } catch (err) {
-      console.error("Error getting appointments:", err);
-      res.status(500).json({ message: "Failed to get appointments", error: err.message });
+      const errorInfo = handleError(err);
+      res.status(errorInfo.statusCode).json({ error: errorInfo.message });
     }
   });
 
   // Create new appointment
-  app.post("/api/appointments", requireAuth, async (req, res, next) => {
+  app.post("/api/appointments", requireAuth, async (req: AuthenticatedRequest, res, next) => {
     try {
+      const user = getAuthenticatedUser(req);
       const appointmentData = {
         ...req.body,
-        userId: req.user.id
+        userId: user.id
       };
       
       insertAppointmentSchema.parse(appointmentData);
       const appointment = await storage.createAppointment(appointmentData);
       res.status(201).json(appointment);
     } catch (err) {
-      console.error("Error creating appointment:", err);
-      if (err.name === 'ZodError') {
-        return res.status(400).json({ 
-          message: "Invalid appointment data", 
-          errors: fromZodError(err).message 
-        });
-      }
-      res.status(500).json({ message: "Failed to create appointment", error: err.message });
+      const errorInfo = handleError(err);
+      res.status(errorInfo.statusCode).json({ error: errorInfo.message });
     }
   });
 

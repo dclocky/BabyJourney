@@ -309,9 +309,14 @@ export class MemStorage implements IStorage {
   async createChild(insertChild: InsertChild): Promise<Child> {
     const id = this.childIdCounter++;
     const child: Child = {
-      ...insertChild,
       id,
-      createdAt: new Date()
+      name: insertChild.name,
+      createdAt: new Date(),
+      userId: insertChild.userId,
+      gender: insertChild.gender ?? null,
+      birthDate: insertChild.birthDate ?? null,
+      dueDate: insertChild.dueDate ?? null,
+      isPregnancy: insertChild.isPregnancy ?? false
     };
     this.children.set(id, child);
     return child;
