@@ -1796,9 +1796,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Group Invitations
-  async createGroupInvitation(data: InsertGroupInvitation): Promise<SelectGroupInvitation> {
-    const [invitation] = await db.insert(groupInvitations).values(data).returning();
-    return invitation;
+  async createGroupInvitation(invitation: InsertGroupInvitation): Promise<SelectGroupInvitation> {
+    const [newInvitation] = await db
+      .insert(groupInvitations)
+      .values({
+        email: invitation.email,
+        role: invitation.role,
+        groupId: invitation.groupId,
+        invitedBy: invitation.invitedBy,
+        expiresAt: invitation.expiresAt,
+        permissions: invitation.permissions,
+        createdAt: new Date()
+      })
+      .returning();
+    return newInvitation;
   }
 
   async getInvitationByToken(token: string): Promise<SelectGroupInvitation | undefined> {
