@@ -16,6 +16,9 @@ import {
   insertVaccinationSchema, insertRegistrySchema, 
   insertRegistryItemSchema, insertContractionSchema,
   insertCravingSchema, insertBabyNameSchema,
+  insertOvulationCycleSchema, insertFertilitySymptomSchema,
+  insertOvulationTestSchema, insertIntimacyTrackingSchema,
+  insertConceptionGoalSchema,
   type Child
 } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
