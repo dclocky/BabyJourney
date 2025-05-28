@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, hashPassword, comparePasswords } from "./auth";
+import { AuthenticatedRequest } from "./types";
 import multer from "multer";
 import { randomBytes } from "crypto";
 import { format } from "date-fns";
@@ -40,16 +41,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Authentication middleware
-  const requireAuth = (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  const requireAuth = (req: AuthenticatedRequest, res: any, next: any) => {
+    if (!req.isAuthenticated() || !req.user) return res.sendStatus(401);
     next();
   };
 
   // === Pregnancy Routes ===
-  app.get("/api/pregnancies", requireAuth, async (req, res, next) => {
+  app.get("/api/pregnancies", requireAuth, async (req: AuthenticatedRequest, res, next) => {
     try {
       // Get all pregnancies for the current user
-      const pregnancies = await storage.getPregnanciesForUser(req.user.id);
+      const pregnancies = await storage.getPregnanciesForUser(req.user!.id);
       res.json(pregnancies);
     } catch (err) {
       next(err);
