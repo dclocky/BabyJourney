@@ -728,6 +728,7 @@ export class MemStorage implements IStorage {
       priority: item.priority ?? "medium",
       imageUrl: item.imageUrl ?? null,
       purchasedBy: null,
+      purchasedByEmail: null,
       reservedBy: null,
       reservedByEmail: null,
       reservedAt: null,
@@ -781,8 +782,8 @@ export class MemStorage implements IStorage {
       updates.reservedAt = now;
       updates.purchasedAt = null;
     } else if (status === "purchased") {
-      updates.reservedBy = personInfo.name || item.reservedBy;
-      updates.reservedByEmail = personInfo.email || item.reservedByEmail;
+      updates.purchasedBy = personInfo.name || item.reservedBy;
+      updates.purchasedByEmail = personInfo.email || item.reservedByEmail;
       updates.purchasedAt = now;
     }
     
@@ -810,9 +811,13 @@ export class MemStorage implements IStorage {
   async createContraction(contraction: InsertContraction): Promise<Contraction> {
     const id = this.contractionIdCounter++;
     const newContraction: Contraction = {
-      ...contraction,
       id,
-      createdAt: new Date()
+      createdAt: new Date(),
+      pregnancyId: contraction.pregnancyId,
+      startTime: contraction.startTime,
+      endTime: contraction.endTime ?? null,
+      duration: contraction.duration ?? null,
+      intensity: contraction.intensity ?? null
     };
     this.contractions.set(id, newContraction);
     return newContraction;
@@ -849,9 +854,15 @@ export class MemStorage implements IStorage {
   async createCraving(craving: InsertCraving): Promise<Craving> {
     const id = this.cravingIdCounter++;
     const newCraving: Craving = {
-      ...craving,
       id,
-      createdAt: new Date()
+      createdAt: new Date(),
+      userId: craving.userId,
+      pregnancyId: craving.pregnancyId,
+      foodName: craving.foodName,
+      date: craving.date || new Date(),
+      notes: craving.notes ?? null,
+      intensity: craving.intensity ?? null,
+      satisfied: craving.satisfied ?? null
     };
     this.cravings.set(id, newCraving);
     return newCraving;
@@ -891,8 +902,8 @@ export class MemStorage implements IStorage {
       if (!a.isFavorite && b.isFavorite) return 1;
       
       // Then sort by rating (highest rating first)
-      if (a.rating !== b.rating) {
-        return b.rating - a.rating;
+      if ((a.rating ?? 0) !== (b.rating ?? 0)) {
+        return (b.rating ?? 0) - (a.rating ?? 0);
       }
       
       // Finally, sort by creation date (newest first)
@@ -907,9 +918,18 @@ export class MemStorage implements IStorage {
   async createBabyName(babyName: InsertBabyName): Promise<BabyName> {
     const id = this.babyNameIdCounter++;
     const newBabyName: BabyName = {
-      ...babyName,
       id,
-      createdAt: new Date()
+      name: babyName.name,
+      createdAt: new Date(),
+      userId: babyName.userId,
+      gender: babyName.gender ?? null,
+      childId: babyName.childId ?? null,
+      notes: babyName.notes ?? null,
+      meaning: babyName.meaning ?? null,
+      origin: babyName.origin ?? null,
+      rating: babyName.rating ?? null,
+      isFavorite: babyName.isFavorite ?? null,
+      suggestedBy: babyName.suggestedBy ?? null
     };
     this.babyNames.set(id, newBabyName);
     return newBabyName;
