@@ -355,9 +355,14 @@ export class MemStorage implements IStorage {
   async createPregnancyJournal(journal: InsertPregnancyJournal): Promise<PregnancyJournal> {
     const id = this.pregnancyJournalIdCounter++;
     const pregnancyJournal: PregnancyJournal = {
-      ...journal,
       id,
-      createdAt: new Date()
+      createdAt: new Date(),
+      childId: journal.childId,
+      userId: journal.userId,
+      week: journal.week,
+      notes: journal.notes ?? null,
+      symptoms: journal.symptoms ?? null,
+      babySize: journal.babySize ?? null
     };
     this.pregnancyJournals.set(id, pregnancyJournal);
     return pregnancyJournal;
@@ -386,9 +391,14 @@ export class MemStorage implements IStorage {
   async createSymptom(symptom: InsertSymptom): Promise<Symptom> {
     const id = this.symptomIdCounter++;
     const newSymptom: Symptom = {
-      ...symptom,
+      date: symptom.date,
       id,
-      createdAt: new Date()
+      name: symptom.name,
+      createdAt: new Date(),
+      childId: symptom.childId,
+      userId: symptom.userId,
+      notes: symptom.notes ?? null,
+      severity: symptom.severity ?? null
     };
     this.symptoms.set(id, newSymptom);
     return newSymptom;
@@ -412,9 +422,16 @@ export class MemStorage implements IStorage {
   async createMilestone(milestone: InsertMilestone): Promise<Milestone> {
     const id = this.milestoneIdCounter++;
     const newMilestone: Milestone = {
-      ...milestone,
+      date: milestone.date,
       id,
-      createdAt: new Date()
+      createdAt: new Date(),
+      childId: milestone.childId,
+      userId: milestone.userId,
+      title: milestone.title,
+      description: milestone.description ?? null,
+      category: milestone.category,
+      imageData: milestone.imageData ?? null,
+      imageType: milestone.imageType ?? null
     };
     this.milestones.set(id, newMilestone);
     return newMilestone;
@@ -447,9 +464,15 @@ export class MemStorage implements IStorage {
   async createGrowthRecord(record: InsertGrowthRecord): Promise<GrowthRecord> {
     const id = this.growthRecordIdCounter++;
     const newRecord: GrowthRecord = {
-      ...record,
+      date: record.date,
       id,
-      createdAt: new Date()
+      createdAt: new Date(),
+      childId: record.childId,
+      userId: record.userId,
+      notes: record.notes ?? null,
+      weight: record.weight ?? null,
+      height: record.height ?? null,
+      headCircumference: record.headCircumference ?? null
     };
     this.growthRecords.set(id, newRecord);
     return newRecord;
@@ -486,9 +509,21 @@ export class MemStorage implements IStorage {
   async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
     const id = this.appointmentIdCounter++;
     const newAppointment: Appointment = {
-      ...appointment,
+      date: appointment.date,
       id,
-      createdAt: new Date()
+      createdAt: new Date(),
+      childId: appointment.childId,
+      userId: appointment.userId,
+      title: appointment.title,
+      notes: appointment.notes ?? null,
+      time: appointment.time ?? null,
+      location: appointment.location ?? null,
+      doctorName: appointment.doctorName ?? null,
+      appointmentType: appointment.appointmentType ?? null,
+      duration: appointment.duration ?? null,
+      reminderTime: appointment.reminderTime ?? null,
+      status: appointment.status ?? null,
+      vitals: appointment.vitals ?? null
     };
     this.appointments.set(id, newAppointment);
     return newAppointment;
@@ -525,9 +560,15 @@ export class MemStorage implements IStorage {
   async createPhoto(photo: InsertPhoto): Promise<Photo> {
     const id = this.photoIdCounter++;
     const newPhoto: Photo = {
-      ...photo,
       id,
-      createdAt: new Date()
+      createdAt: new Date(),
+      childId: photo.childId,
+      userId: photo.userId,
+      title: photo.title,
+      description: photo.description ?? null,
+      filename: photo.filename,
+      takenAt: photo.takenAt ?? null,
+      tags: photo.tags ?? null
     };
     this.photos.set(id, newPhoto);
     return newPhoto;
