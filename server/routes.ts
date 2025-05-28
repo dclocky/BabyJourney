@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, hashPassword, comparePasswords } from "./auth";
 import { AuthenticatedRequest } from "./types";
+import { getAuthenticatedUser, handleError } from "./utils";
 import multer from "multer";
 import { randomBytes } from "crypto";
 import { format } from "date-fns";
@@ -57,15 +58,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/pregnancies", requireAuth, async (req, res, next) => {
+  app.post("/api/pregnancies", requireAuth, async (req: AuthenticatedRequest, res, next) => {
     try {
+      const user = getAuthenticatedUser(req);
       // Process dates properly to avoid toISOString error
       const dueDate = typeof req.body.dueDate === 'string' 
         ? req.body.dueDate
         : (req.body.dueDate instanceof Date ? req.body.dueDate.toISOString() : null);
         
       const pregnancy = await storage.createPregnancy({
-        userId: req.user.id,
+        userId: user.id,
         name: req.body.babyName || "Baby",
         dueDate: dueDate,
         isPregnancy: true

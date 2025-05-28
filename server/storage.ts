@@ -263,9 +263,12 @@ export class MemStorage implements IStorage {
   async createFamilyMember(member: InsertFamilyMember): Promise<FamilyMember> {
     const id = this.familyMemberIdCounter++;
     const familyMember: FamilyMember = {
-      ...member,
       id,
-      createdAt: new Date()
+      fullName: member.fullName,
+      email: member.email ?? null,
+      createdAt: new Date(),
+      userId: member.userId,
+      relationship: member.relationship
     };
     this.familyMembers.set(id, familyMember);
     return familyMember;
