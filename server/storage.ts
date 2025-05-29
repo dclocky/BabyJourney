@@ -22,7 +22,13 @@ import {
   activityComments, type SelectActivityComment, type InsertActivityComment,
   activityLikes, type SelectActivityLike, type InsertActivityLike,
   auditLogs, type SelectAuditLog, type InsertAuditLog,
-  babyPreferences, type SelectBabyPreference, type InsertBabyPreference
+  babyPreferences, type SelectBabyPreference, type InsertBabyPreference,
+  // Conception tracking imports
+  ovulationCycles, type OvulationCycle, type InsertOvulationCycle,
+  fertilitySymptoms, type FertilitySymptom, type InsertFertilitySymptom,
+  ovulationTests, type OvulationTest, type InsertOvulationTest,
+  intimacyTracking, type IntimacyTracking, type InsertIntimacyTracking,
+  conceptionGoals, type ConceptionGoal, type InsertConceptionGoal
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -145,6 +151,16 @@ export interface IStorage {
   createBabyName(babyName: InsertBabyName): Promise<BabyName>;
   updateBabyName(id: number, babyName: Partial<BabyName>): Promise<BabyName | undefined>;
   deleteBabyName(id: number): Promise<boolean>;
+
+  // Conception tracker methods
+  getOvulationCycles(userId: number): Promise<OvulationCycle[]>;
+  createOvulationCycle(cycle: InsertOvulationCycle): Promise<OvulationCycle>;
+  getFertilitySymptoms(userId: number, cycleId?: number): Promise<FertilitySymptom[]>;
+  createFertilitySymptom(symptom: InsertFertilitySymptom): Promise<FertilitySymptom>;
+  getOvulationTests(userId: number): Promise<OvulationTest[]>;
+  createOvulationTest(test: InsertOvulationTest): Promise<OvulationTest>;
+  getConceptionGoals(userId: number): Promise<ConceptionGoal | null>;
+  createOrUpdateConceptionGoals(goals: InsertConceptionGoal): Promise<ConceptionGoal>;
 }
 
 export class MemStorage implements IStorage {
@@ -1987,7 +2003,7 @@ export class DatabaseStorage implements IStorage {
   
   // Conception Tracking Methods
   async getOvulationCycles(userId: number): Promise<OvulationCycle[]> {
-    const result = await this.db.select().from(ovulationCycles)
+    const result = await db.select().from(ovulationCycles)
       .where(eq(ovulationCycles.userId, userId))
       .orderBy(desc(ovulationCycles.cycleStartDate));
     return result;
@@ -1999,7 +2015,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createOvulationCycle(cycle: InsertOvulationCycle): Promise<OvulationCycle> {
-    const [result] = await this.db.insert(ovulationCycles).values(cycle).returning();
+    const [result] = await db.insert(ovulationCycles).values(cycle).returning();
     return result;
   }
 
@@ -2009,69 +2025,47 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(fertilitySymptoms.cycleId, cycleId));
     }
     
-    const result = await this.db.select().from(fertilitySymptoms)
+    const result = await db.select().from(fertilitySymptoms)
       .where(and(...conditions))
       .orderBy(desc(fertilitySymptoms.date));
     return result;
   }
 
   async createFertilitySymptom(symptom: InsertFertilitySymptom): Promise<FertilitySymptom> {
-    const [result] = await this.db.insert(fertilitySymptoms).values(symptom).returning();
+    const [result] = await db.insert(fertilitySymptoms).values(symptom).returning();
     return result;
   }
 
-  async getOvulationTests(userId: number, cycleId?: number): Promise<OvulationTest[]> {
-    const conditions = [eq(ovulationTests.userId, userId)];
-    if (cycleId) {
-      conditions.push(eq(ovulationTests.cycleId, cycleId));
-    }
-    
-    const result = await this.db.select().from(ovulationTests)
-      .where(and(...conditions))
+  async getOvulationTests(userId: number): Promise<OvulationTest[]> {
+    const result = await db.select().from(ovulationTests)
+      .where(eq(ovulationTests.userId, userId))
       .orderBy(desc(ovulationTests.date));
     return result;
   }
 
   async createOvulationTest(test: InsertOvulationTest): Promise<OvulationTest> {
-    const [result] = await this.db.insert(ovulationTests).values(test).returning();
+    const [result] = await db.insert(ovulationTests).values(test).returning();
     return result;
   }
 
-  async getIntimacyTracking(userId: number, cycleId?: number): Promise<IntimacyTracking[]> {
-    const conditions = [eq(intimacyTracking.userId, userId)];
-    if (cycleId) {
-      conditions.push(eq(intimacyTracking.cycleId, cycleId));
-    }
-    
-    const result = await this.db.select().from(intimacyTracking)
-      .where(and(...conditions))
-      .orderBy(desc(intimacyTracking.date));
-    return result;
-  }
-
-  async createIntimacyTracking(tracking: InsertIntimacyTracking): Promise<IntimacyTracking> {
-    const [result] = await this.db.insert(intimacyTracking).values(tracking).returning();
-    return result;
-  }
-
-  async getConceptionGoals(userId: number): Promise<ConceptionGoal | undefined> {
-    const [result] = await this.db.select().from(conceptionGoals)
+  async getConceptionGoals(userId: number): Promise<ConceptionGoal | null> {
+    const [result] = await db.select().from(conceptionGoals)
       .where(eq(conceptionGoals.userId, userId))
       .limit(1);
-    return result;
+    return result || null;
   }
 
   async createOrUpdateConceptionGoals(goals: InsertConceptionGoal): Promise<ConceptionGoal> {
     const existing = await this.getConceptionGoals(goals.userId);
     
     if (existing) {
-      const [updated] = await this.db.update(conceptionGoals)
+      const [updated] = await db.update(conceptionGoals)
         .set({ ...goals, updatedAt: new Date() })
         .where(eq(conceptionGoals.id, existing.id))
         .returning();
       return updated;
     } else {
-      const [created] = await this.db.insert(conceptionGoals).values(goals).returning();
+      const [created] = await db.insert(conceptionGoals).values(goals).returning();
       return created;
     }
   }
