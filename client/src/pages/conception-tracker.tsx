@@ -179,27 +179,35 @@ export default function ConceptionTracker() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Fertility Tracker Banner */}
-      <Card className="border-2 border-rose-200 bg-gradient-to-r from-rose-50 to-pink-50">
-        <CardContent className="p-6 text-center">
-          <div className="flex items-center justify-center mb-4">
-            <Heart className="w-6 h-6 text-rose-600 mr-2" />
-            <Badge variant="secondary" className="bg-rose-100 text-rose-800 text-lg px-4 py-2">
-              Fertility Journey
-            </Badge>
+      {/* Navigation Banner */}
+      <div className="bg-gradient-to-r from-rose-100 to-pink-100 rounded-lg p-4 border border-rose-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-muted-foreground">Extras</span>
+              <span className="text-sm text-muted-foreground">›</span>
+              <span className="text-sm font-medium text-rose-700">Conception Tracker</span>
+            </div>
           </div>
-          <h1 className="text-3xl font-bold text-rose-700 mb-2">Conception Tracker</h1>
-          <p className="text-rose-600 mb-4">
-            Track your fertility journey and maximize conception chances with comprehensive cycle monitoring
-          </p>
-          <div className="flex items-center justify-center gap-2 text-rose-600">
-            <CalendarIcon className="h-5 w-5" />
+          <div className="flex items-center gap-2 text-rose-600">
+            <CalendarIcon className="h-4 w-4" />
             <span className="text-sm font-medium">
               {format(new Date(), "MMMM d, yyyy")}
             </span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      {/* Page Header */}
+      <div className="text-center space-y-2">
+        <div className="flex items-center justify-center mb-2">
+          <Heart className="w-6 h-6 text-rose-600 mr-2" />
+          <h1 className="text-3xl font-bold text-rose-700">Conception Tracker</h1>
+        </div>
+        <p className="text-muted-foreground max-w-2xl mx-auto">
+          Track your fertility journey and maximize conception chances with comprehensive cycle monitoring
+        </p>
+      </div>
 
       {/* Current Cycle Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -210,7 +218,7 @@ export default function ConceptionTracker() {
                 <p className="text-sm font-medium text-muted-foreground">Cycle Day</p>
                 <p className="text-2xl font-bold">{currentCycleDay}</p>
               </div>
-              <Calendar className="h-8 w-8 text-primary" />
+              <CalendarIcon className="h-8 w-8 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -349,7 +357,7 @@ export default function ConceptionTracker() {
                   className="w-full"
                   onClick={() => setActiveTab("cycle")}
                 >
-                  <Calendar className="h-4 w-4 mr-2" />
+                  <CalendarIcon className="h-4 w-4 mr-2" />
                   Start New Cycle
                 </Button>
               </CardContent>
