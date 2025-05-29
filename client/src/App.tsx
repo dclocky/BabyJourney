@@ -53,6 +53,9 @@ function Router() {
       {/* Baby Names routes */}
       <ProtectedRoute path="/baby-names" component={BabyNamesPage} />
       
+      {/* Conception Tracker routes */}
+      <ProtectedRoute path="/conception-tracker" component={ConceptionTracker} />
+      
       {/* Baby tracking features */}
       <ProtectedRoute path="/baby-care" component={BabyCarePage} />
       <ProtectedRoute path="/growth-charts" component={GrowthChartsPage} />

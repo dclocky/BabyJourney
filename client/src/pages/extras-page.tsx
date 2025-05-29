@@ -5,7 +5,7 @@ import { AppHeader } from "@/components/app-header";
 import { AppTabs } from "@/components/app-tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { PackageOpen, Gift, Dices, FileHeart, Users } from "lucide-react";
+import { PackageOpen, Gift, Dices, FileHeart, Users, Target } from "lucide-react";
 
 export default function ExtrasPage() {
   const { user } = useAuth();
@@ -85,6 +85,29 @@ export default function ExtrasPage() {
             <CardFooter>
               <Button onClick={() => navigate("/baby-names")} className="w-full">
                 Explore Names
+              </Button>
+            </CardFooter>
+          </Card>
+          
+          {/* Conception Tracker Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <Target className="h-5 w-5 text-primary" />
+                <CardTitle>Conception Tracker</CardTitle>
+              </div>
+              <CardDescription>
+                Track ovulation and maximize conception chances
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Monitor fertility symptoms, ovulation tests, cycles, and health goals to optimize your conception journey.
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={() => navigate("/conception-tracker")} className="w-full">
+                Start Tracking
               </Button>
             </CardFooter>
           </Card>
