@@ -21,6 +21,7 @@ import SelfCarePage from "@/pages/self-care-page";
 import SettingsPage from "@/pages/settings-page";
 import ProfilePage from "@/pages/profile-page";
 import UpgradePage from "@/pages/upgrade-page";
+import ConceptionTracker from "@/pages/conception-tracker";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
