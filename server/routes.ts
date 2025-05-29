@@ -1949,6 +1949,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Conception Tracker Routes
+  
+  // Get all ovulation cycles for user
+  app.get("/api/conception/cycles", requireAuth, async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const cycles = await storage.getOvulationCycles(req.user.id);
+      res.json(cycles);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Create new ovulation cycle
+  app.post("/api/conception/cycles", requireAuth, async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const validatedData = insertOvulationCycleSchema.parse({
+        ...req.body,
+        userId: req.user.id
+      });
+      const cycle = await storage.createOvulationCycle(validatedData);
+      res.status(201).json(cycle);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Get all fertility symptoms for user
+  app.get("/api/conception/symptoms", requireAuth, async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const symptoms = await storage.getFertilitySymptoms(req.user.id);
+      res.json(symptoms);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Create new fertility symptom
+  app.post("/api/conception/symptoms", requireAuth, async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const validatedData = insertFertilitySymptomSchema.parse({
+        ...req.body,
+        userId: req.user.id
+      });
+      const symptom = await storage.createFertilitySymptom(validatedData);
+      res.status(201).json(symptom);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Get all ovulation tests for user
+  app.get("/api/conception/tests", requireAuth, async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const tests = await storage.getOvulationTests(req.user.id);
+      res.json(tests);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Create new ovulation test
+  app.post("/api/conception/tests", requireAuth, async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const validatedData = insertOvulationTestSchema.parse({
+        ...req.body,
+        userId: req.user.id
+      });
+      const test = await storage.createOvulationTest(validatedData);
+      res.status(201).json(test);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Get conception goals for user
+  app.get("/api/conception/goals", requireAuth, async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const goals = await storage.getConceptionGoals(req.user.id);
+      res.json(goals);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Create or update conception goals
+  app.post("/api/conception/goals", requireAuth, async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const validatedData = insertConceptionGoalSchema.parse({
+        ...req.body,
+        userId: req.user.id
+      });
+      const goals = await storage.createOrUpdateConceptionGoals(validatedData);
+      res.status(201).json(goals);
+    } catch (err) {
+      next(err);
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
