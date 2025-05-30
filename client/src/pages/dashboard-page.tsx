@@ -122,6 +122,7 @@ export default function DashboardPage() {
   const { user } = useAuth() as { user: User | null };
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
+  const { shouldShowTour, completeTour } = useOnboarding();
 
   const { data: children = [], isLoading: isLoadingChildren } = useQuery<Child[]>({
     queryKey: ["/api/children"],

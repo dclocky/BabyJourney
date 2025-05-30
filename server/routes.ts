@@ -585,7 +585,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/children/:id/photos", requireAuth, upload.single('photo'), async (req, res, next) => {
+  app.post("/api/children/:id/photos", requireAuth, async (req, res, next) => {
     try {
       const childId = parseInt(req.params.id);
       const child = await storage.getChild(childId);
@@ -604,38 +604,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Handle both file upload and JSON data
-      let imageData, imageType, description;
+      // Handle JSON upload with base64 data
+      const { imageData, imageType = 'image/png', description = '' } = req.body;
       
-      if (req.file) {
-        // Handle multipart file upload
-        imageData = req.file.buffer.toString('base64');
-        imageType = req.file.mimetype;
-        description = req.body.description || '';
-      } else if (req.body.imageData) {
-        // Handle JSON upload with base64 data
-        imageData = req.body.imageData;
-        imageType = req.body.imageType || 'image/png';
-        description = req.body.description || '';
-      } else {
+      if (!imageData) {
         return res.status(400).json({ message: "No photo data provided" });
       }
 
-      // Generate unique filename (in a real app, this would be stored in cloud storage)
+      // Generate unique filename
       const randomId = randomBytes(8).toString('hex');
-      const fileExtension = req.file.mimetype.split('/')[1];
+      const fileExtension = imageType ? imageType.split('/')[1] : 'png';
       const datePrefix = format(new Date(), 'yyyyMMdd');
       const filename = `${datePrefix}-${randomId}.${fileExtension}`;
 
-      // For this MVP, we're not actually storing the file, just simulating it
+      // Create photo record
       const photo = await storage.createPhoto({
         childId,
         userId: req.user.id,
-        title: req.body.title || req.body.caption || "Untitled",
+        title: description || "Untitled",
         filename,
-        description: req.body.description,
-        takenAt: req.body.takenAt ? new Date(req.body.takenAt) : new Date(),
-        tags: req.body.tags ? JSON.parse(req.body.tags) : []
+        description: description || "",
+        takenAt: new Date(),
+        tags: []
       });
 
       res.status(201).json(photo);
