@@ -139,6 +139,5 @@ export default function ExtrasPage() {
         </div>
       </div>
     </div>
-    </div>
   );
 }

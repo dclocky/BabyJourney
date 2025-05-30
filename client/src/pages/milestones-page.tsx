@@ -4,6 +4,7 @@ import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { AppTabs } from "@/components/app-tabs";
 import { MobileNav } from "@/components/mobile-nav";
+import { NavigationBar } from "@/components/navigation-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -267,6 +268,7 @@ export default function MilestonesPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-secondary-50">
+      <NavigationBar />
       <AppHeader />
       <AppTabs />
 
