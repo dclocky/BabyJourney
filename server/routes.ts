@@ -132,8 +132,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: req.user.id,
         name: req.body.name,
         gender: req.body.gender || null,
-        birthDate: req.body.birthDate || null,
-        dueDate: req.body.dueDate || null,
+        birthDate: req.body.birthDate ? new Date(req.body.birthDate) : null,
+        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : null,
         isPregnancy: req.body.isPregnancy || false
       };
 

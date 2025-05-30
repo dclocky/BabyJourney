@@ -28,7 +28,7 @@ export function AddBabyModal({ open, onClose, onSuccess }: AddBabyModalProps) {
     mutationFn: async (data: typeof formData) => {
       return apiRequest("POST", "/api/children", {
         name: data.name,
-        birthDate: data.birthDate, // Send as string, server will handle conversion
+        birthDate: new Date(data.birthDate).toISOString(), // Convert to proper Date format
         gender: data.gender || null,
         isPregnancy: false,
       });
@@ -63,14 +63,7 @@ export function AddBabyModal({ open, onClose, onSuccess }: AddBabyModalProps) {
       return;
     }
     
-    // Convert birthDate to proper string format for API
-    const submitData = {
-      name: formData.name,
-      birthDate: formData.birthDate, // Already a string from input
-      gender: formData.gender
-    };
-    
-    createBabyMutation.mutate(submitData);
+    createBabyMutation.mutate(formData);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
