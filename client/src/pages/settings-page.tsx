@@ -4,17 +4,22 @@ import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { AppTabs } from "@/components/app-tabs";
 import { MobileNav } from "@/components/mobile-nav";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Settings, User, Bell, Shield, Crown } from "lucide-react";
+import { OnboardingTour, useOnboarding } from "@/components/onboarding-tour";
+import { useToast } from "@/hooks/use-toast";
+import { Settings, User, Bell, Shield, Crown, HelpCircle } from "lucide-react";
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const { resetTour, completeTour } = useOnboarding();
+  const [showTour, setShowTour] = useState(false);
   const [notifications, setNotifications] = useState({
     email: true,
     push: false,
@@ -22,6 +27,20 @@ export default function SettingsPage() {
     appointments: true,
     growth: false
   });
+
+  const handleStartTour = () => {
+    resetTour();
+    setShowTour(true);
+  };
+
+  const handleTourComplete = () => {
+    setShowTour(false);
+    completeTour();
+    toast({
+      title: "Tour Completed",
+      description: "Welcome to BabyJourney! You're all set to start tracking your journey.",
+    });
+  };
 
   if (!user) {
     return null;
@@ -179,7 +198,45 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Help & Support */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <HelpCircle className="w-5 h-5 mr-2" />
+                Help & Support
+              </CardTitle>
+              <CardDescription>
+                Get help and learn how to use BabyJourney
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button 
+                onClick={handleStartTour}
+                className="w-full"
+                variant="outline"
+              >
+                Take App Tour
+              </Button>
+              <Button variant="outline" className="w-full">
+                Help Center
+              </Button>
+              <Button variant="outline" className="w-full">
+                Contact Support
+              </Button>
+              <Button variant="outline" className="w-full">
+                Send Feedback
+              </Button>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Onboarding Tour */}
+        <OnboardingTour
+          isOpen={showTour}
+          onComplete={handleTourComplete}
+          onSkip={handleTourComplete}
+        />
       </main>
 
       <AppFooter />
