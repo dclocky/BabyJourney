@@ -55,6 +55,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<User>): Promise<User | undefined>;
   updateUserPremiumStatus(id: number, isPremium: boolean): Promise<User | undefined>;
+  upgradeToPremium(userId: number): Promise<User | undefined>;
 
   // Family member methods
   getFamilyMembers(userId: number): Promise<FamilyMember[]>;
