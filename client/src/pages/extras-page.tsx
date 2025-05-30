@@ -91,6 +91,29 @@ export default function ExtrasPage() {
             </CardFooter>
           </Card>
           
+          {/* Feeding Scheduler Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <Utensils className="h-5 w-5 text-primary" />
+                <CardTitle>Feeding Scheduler</CardTitle>
+              </div>
+              <CardDescription>
+                Smart feeding schedules and nutrition tracking
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Create personalized feeding schedules and track nutritional goals for optimal baby development.
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={() => navigate("/feeding-scheduler")} className="w-full">
+                Manage Feeding
+              </Button>
+            </CardFooter>
+          </Card>
+
           {/* Conception Tracker Card */}
           <Card>
             <CardHeader>
