@@ -18,6 +18,7 @@ import { AppFooter } from "@/components/app-footer";
 import { AppTabs } from "@/components/app-tabs";
 import { MobileNav } from "@/components/mobile-nav";
 import { PremiumBadge } from "@/components/premium-badge";
+import { NavigationBar } from "@/components/navigation-bar";
 import {
   Heart,
   CalendarCheck,
@@ -157,6 +158,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-secondary-50">
+      <NavigationBar />
       <AppHeader />
       <AppTabs />
 
