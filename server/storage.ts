@@ -2072,6 +2072,60 @@ export class DatabaseStorage implements IStorage {
       return created;
     }
   }
+
+  // Add missing methods that are called in routes but not implemented
+  async linkPartner(userId: number, partnerEmail: string): Promise<User | undefined> {
+    // Implementation for linking partner accounts
+    const partner = await this.getUserByEmail(partnerEmail);
+    if (!partner) {
+      throw new Error('Partner not found');
+    }
+    
+    // Update both users to link them
+    const [updatedUser] = await db
+      .update(users)
+      .set({ partnerId: partner.id })
+      .where(eq(users.id, userId))
+      .returning();
+      
+    await db
+      .update(users)
+      .set({ partnerId: userId })
+      .where(eq(users.id, partner.id));
+    
+    return updatedUser;
+  }
+
+  async unlinkPartner(userId: number): Promise<User | undefined> {
+    // Get current user to find partner
+    const user = await this.getUser(userId);
+    if (!user || !user.partnerId) {
+      throw new Error('No partner to unlink');
+    }
+    
+    // Unlink both users
+    const [updatedUser] = await db
+      .update(users)
+      .set({ partnerId: null })
+      .where(eq(users.id, userId))
+      .returning();
+      
+    await db
+      .update(users)
+      .set({ partnerId: null })
+      .where(eq(users.id, user.partnerId));
+    
+    return updatedUser;
+  }
+
+  async upgradeToPremium(userId: number): Promise<User | undefined> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ isPremium: true })
+      .where(eq(users.id, userId))
+      .returning();
+    return updatedUser;
+  }
 }
 
 // Switch from MemStorage to DatabaseStorage  

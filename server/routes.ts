@@ -12,7 +12,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16",
+  apiVersion: "2024-06-20" as any,
 });
 import { randomBytes } from "crypto";
 import { format } from "date-fns";
@@ -618,9 +618,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const photo = await storage.createPhoto({
         childId,
         userId: req.user.id,
-        url: `/uploads/${filename}`, // Simulated URL
-        caption: req.body.caption || req.body.title || "Untitled",
-        date: req.body.date || new Date().toISOString().split('T')[0]
+        title: req.body.title || req.body.caption || "Untitled",
+        filename,
+        description: req.body.description,
+        takenAt: req.body.takenAt ? new Date(req.body.takenAt) : new Date(),
+        tags: req.body.tags ? JSON.parse(req.body.tags) : []
       });
 
       res.status(201).json(photo);
