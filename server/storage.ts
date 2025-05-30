@@ -333,8 +333,8 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
       userId: insertChild.userId,
       gender: insertChild.gender ?? null,
-      birthDate: insertChild.birthDate ?? null,
-      dueDate: insertChild.dueDate ?? null,
+      birthDate: insertChild.birthDate ? (typeof insertChild.birthDate === 'string' ? new Date(insertChild.birthDate) : insertChild.birthDate) : null,
+      dueDate: insertChild.dueDate ? (typeof insertChild.dueDate === 'string' ? new Date(insertChild.dueDate) : insertChild.dueDate) : null,
       isPregnancy: insertChild.isPregnancy ?? false
     };
     this.children.set(id, child);
@@ -345,9 +345,15 @@ export class MemStorage implements IStorage {
     const child = await this.getChild(id);
     if (!child) return undefined;
     
+    const processedUpdates = {
+      ...updates,
+      birthDate: updates.birthDate ? (typeof updates.birthDate === 'string' ? new Date(updates.birthDate) : updates.birthDate) : child.birthDate,
+      dueDate: updates.dueDate ? (typeof updates.dueDate === 'string' ? new Date(updates.dueDate) : updates.dueDate) : child.dueDate
+    };
+    
     const updatedChild: Child = {
       ...child,
-      ...updates
+      ...processedUpdates
     };
     
     this.children.set(id, updatedChild);
