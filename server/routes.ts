@@ -127,17 +127,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Free accounts are limited to 1 child. Upgrade to premium for more." });
       }
 
-      // Process dates properly to avoid conversion issues
+      // Prepare child data with proper validation
       const childData = {
-        ...req.body,
         userId: req.user.id,
-        // Don't transform dates here, the storage layer will handle it
+        name: req.body.name,
+        gender: req.body.gender || null,
+        birthDate: req.body.birthDate || null,
+        dueDate: req.body.dueDate || null,
+        isPregnancy: req.body.isPregnancy || false
       };
 
-      const child = await storage.createChild(childData);
+      console.log("Creating child with data:", childData);
+      
+      // Validate the data
+      const validatedData = insertChildSchema.parse(childData);
+      
+      const child = await storage.createChild(validatedData);
       res.status(201).json(child);
     } catch (err) {
       console.error("Error creating child:", err);
+      if (err.name === 'ZodError') {
+        return res.status(400).json({ 
+          message: "Invalid child data", 
+          errors: err.errors 
+        });
+      }
       next(err);
     }
   });
@@ -604,11 +618,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const photo = await storage.createPhoto({
         childId,
         userId: req.user.id,
-        title: req.body.title || "Untitled",
-        filename,
-        description: req.body.description,
-        takenAt: req.body.takenAt ? new Date(req.body.takenAt) : new Date(),
-        tags: req.body.tags ? JSON.parse(req.body.tags) : []
+        url: `/uploads/${filename}`, // Simulated URL
+        caption: req.body.caption || req.body.title || "Untitled",
+        date: req.body.date || new Date().toISOString().split('T')[0]
       });
 
       res.status(201).json(photo);

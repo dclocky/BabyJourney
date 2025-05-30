@@ -193,6 +193,9 @@ export const insertFamilyMemberSchema = createInsertSchema(familyMembers).omit({
 export const insertChildSchema = createInsertSchema(children).omit({
   id: true,
   createdAt: true
+}).extend({
+  birthDate: z.string().nullable().optional(),
+  dueDate: z.string().nullable().optional()
 });
 
 export const insertPregnancyJournalSchema = createInsertSchema(pregnancyJournal).omit({
