@@ -122,11 +122,9 @@ export const photos = pgTable("photos", {
   id: serial("id").primaryKey(),
   childId: integer("child_id").references(() => children.id).notNull(),
   userId: integer("user_id").references(() => users.id).notNull(),
-  title: text("title").notNull(),
-  filename: text("filename").notNull(),
-  description: text("description"),
-  takenAt: timestamp("taken_at"),
-  tags: json("tags").default([]),
+  url: text("url").notNull(),
+  caption: text("caption"),
+  date: text("date").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
