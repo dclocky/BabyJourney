@@ -2084,6 +2084,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Partner account linking routes
+  app.post("/api/link-partner", requireAuth, async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const { partnerEmail } = req.body;
+      
+      if (!partnerEmail) {
+        return res.status(400).json({ message: "Partner email is required" });
+      }
+
+      const updatedUser = await storage.linkPartner(req.user!.id, partnerEmail);
+      
+      if (!updatedUser) {
+        return res.status(500).json({ message: "Failed to link partner account" });
+      }
+
+      res.json({ 
+        message: "Partner account linked successfully",
+        user: updatedUser
+      });
+    } catch (error: any) {
+      console.error("Error linking partner:", error);
+      res.status(400).json({ 
+        message: error.message || "Error linking partner account"
+      });
+    }
+  });
+
+  app.post("/api/unlink-partner", requireAuth, async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const updatedUser = await storage.unlinkPartner(req.user!.id);
+      
+      if (!updatedUser) {
+        return res.status(500).json({ message: "Failed to unlink partner account" });
+      }
+
+      res.json({ 
+        message: "Partner account unlinked successfully",
+        user: updatedUser
+      });
+    } catch (error: any) {
+      console.error("Error unlinking partner:", error);
+      res.status(500).json({ 
+        message: "Error unlinking partner account: " + error.message 
+      });
+    }
+  });
+
   // Confirm premium upgrade after successful payment
   app.post("/api/confirm-premium-upgrade", requireAuth, async (req: AuthenticatedRequest, res, next) => {
     try {

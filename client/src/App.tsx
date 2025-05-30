@@ -23,6 +23,9 @@ import ProfilePage from "@/pages/profile-page";
 import UpgradePage from "@/pages/upgrade-page";
 import ConceptionTracker from "@/pages/conception-tracker";
 import FeedingScheduler from "@/pages/feeding-scheduler";
+import CheckoutPage from "@/pages/checkout-page";
+import PartnerLinkPage from "@/pages/partner-link-page";
+import NotFoundPage from "@/pages/not-found-page";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
