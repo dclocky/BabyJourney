@@ -17,6 +17,7 @@ import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { AppTabs } from "@/components/app-tabs";
 import { MobileNav } from "@/components/mobile-nav";
+import { NavigationBar } from "@/components/navigation-bar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -110,6 +111,7 @@ export default function BabyPage() {
   if (isLoadingChildren) {
     return (
       <div className="min-h-screen flex flex-col bg-secondary-50">
+        <NavigationBar />
         <AppHeader />
         <AppTabs />
         <main className="flex-grow container mx-auto px-4 py-6 pb-20 md:pb-6">
@@ -128,6 +130,7 @@ export default function BabyPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-secondary-50">
+      <NavigationBar />
       <AppHeader />
       <AppTabs />
       

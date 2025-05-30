@@ -22,6 +22,7 @@ import SettingsPage from "@/pages/settings-page";
 import ProfilePage from "@/pages/profile-page";
 import UpgradePage from "@/pages/upgrade-page";
 import ConceptionTracker from "@/pages/conception-tracker";
+import FeedingScheduler from "@/pages/feeding-scheduler";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
