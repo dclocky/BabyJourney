@@ -327,14 +327,26 @@ export class MemStorage implements IStorage {
 
   async createChild(insertChild: InsertChild): Promise<Child> {
     const id = this.childIdCounter++;
+    
+    // Properly handle date conversion
+    let birthDate: Date | null = null;
+    if (insertChild.birthDate) {
+      birthDate = typeof insertChild.birthDate === 'string' ? new Date(insertChild.birthDate) : insertChild.birthDate;
+    }
+    
+    let dueDate: Date | null = null;
+    if (insertChild.dueDate) {
+      dueDate = typeof insertChild.dueDate === 'string' ? new Date(insertChild.dueDate) : insertChild.dueDate;
+    }
+    
     const child: Child = {
       id,
       name: insertChild.name,
       createdAt: new Date(),
       userId: insertChild.userId,
       gender: insertChild.gender ?? null,
-      birthDate: insertChild.birthDate ? (typeof insertChild.birthDate === 'string' ? new Date(insertChild.birthDate) : insertChild.birthDate) : null,
-      dueDate: insertChild.dueDate ? (typeof insertChild.dueDate === 'string' ? new Date(insertChild.dueDate) : insertChild.dueDate) : null,
+      birthDate,
+      dueDate,
       isPregnancy: insertChild.isPregnancy ?? false
     };
     this.children.set(id, child);
@@ -345,11 +357,20 @@ export class MemStorage implements IStorage {
     const child = await this.getChild(id);
     if (!child) return undefined;
     
-    const processedUpdates = {
-      ...updates,
-      birthDate: updates.birthDate ? (typeof updates.birthDate === 'string' ? new Date(updates.birthDate) : updates.birthDate) : child.birthDate,
-      dueDate: updates.dueDate ? (typeof updates.dueDate === 'string' ? new Date(updates.dueDate) : updates.dueDate) : child.dueDate
-    };
+    // Handle date conversion properly
+    const processedUpdates: Partial<Child> = { ...updates };
+    
+    if (updates.birthDate !== undefined) {
+      processedUpdates.birthDate = updates.birthDate 
+        ? (typeof updates.birthDate === 'string' ? new Date(updates.birthDate) : updates.birthDate)
+        : null;
+    }
+    
+    if (updates.dueDate !== undefined) {
+      processedUpdates.dueDate = updates.dueDate 
+        ? (typeof updates.dueDate === 'string' ? new Date(updates.dueDate) : updates.dueDate)
+        : null;
+    }
     
     const updatedChild: Child = {
       ...child,
@@ -1136,9 +1157,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateChild(id: number, updates: Partial<Child>): Promise<Child | undefined> {
+    // Process date fields properly
+    const processedUpdates: any = { ...updates };
+    
+    if (updates.birthDate !== undefined) {
+      processedUpdates.birthDate = updates.birthDate 
+        ? (typeof updates.birthDate === 'string' ? new Date(updates.birthDate) : updates.birthDate)
+        : null;
+    }
+    
+    if (updates.dueDate !== undefined) {
+      processedUpdates.dueDate = updates.dueDate 
+        ? (typeof updates.dueDate === 'string' ? new Date(updates.dueDate) : updates.dueDate)
+        : null;
+    }
+
     const [updatedChild] = await db
       .update(children)
-      .set(updates)
+      .set(processedUpdates)
       .where(eq(children.id, id))
       .returning();
     return updatedChild;
