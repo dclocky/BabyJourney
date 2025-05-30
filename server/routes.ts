@@ -604,8 +604,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      if (!req.file) {
-        return res.status(400).json({ message: "No photo uploaded" });
+      // Handle both file upload and JSON data
+      let imageData, imageType, description;
+      
+      if (req.file) {
+        // Handle multipart file upload
+        imageData = req.file.buffer.toString('base64');
+        imageType = req.file.mimetype;
+        description = req.body.description || '';
+      } else if (req.body.imageData) {
+        // Handle JSON upload with base64 data
+        imageData = req.body.imageData;
+        imageType = req.body.imageType || 'image/png';
+        description = req.body.description || '';
+      } else {
+        return res.status(400).json({ message: "No photo data provided" });
       }
 
       // Generate unique filename (in a real app, this would be stored in cloud storage)

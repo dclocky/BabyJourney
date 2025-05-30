@@ -1611,43 +1611,49 @@ function FamilyTimelineCard({ childId }: { childId?: number }) {
     const activities: any[] = [];
 
     // Add recent milestones
-    milestones.slice(0, 3).forEach((milestone: any) => {
-      activities.push({
-        id: `milestone-${milestone.id}`,
-        type: 'milestone',
-        title: milestone.title,
-        description: milestone.description || 'New milestone achieved!',
-        date: milestone.date,
-        icon: Heart,
-        color: 'text-pink-500'
+    if (milestones && Array.isArray(milestones)) {
+      milestones.slice(0, 3).forEach((milestone: any) => {
+        activities.push({
+          id: `milestone-${milestone.id}`,
+          type: 'milestone',
+          title: milestone.title,
+          description: milestone.description || 'New milestone achieved!',
+          date: milestone.date,
+          icon: Heart,
+          color: 'text-pink-500'
+        });
       });
-    });
+    }
 
     // Add recent growth records
-    growthRecords.slice(0, 2).forEach((record: any) => {
-      activities.push({
-        id: `growth-${record.id}`,
-        type: 'growth',
-        title: 'Growth Update',
-        description: `New measurements recorded`,
-        date: record.date,
-        icon: TrendingUp,
-        color: 'text-blue-500'
+    if (growthRecords && Array.isArray(growthRecords)) {
+      growthRecords.slice(0, 2).forEach((record: any) => {
+        activities.push({
+          id: `growth-${record.id}`,
+          type: 'growth',
+          title: 'Growth Update',
+          description: `New measurements recorded`,
+          date: record.date,
+          icon: TrendingUp,
+          color: 'text-blue-500'
+        });
       });
-    });
+    }
 
     // Add recent appointments
-    appointments.slice(0, 2).forEach((appointment: any) => {
-      activities.push({
-        id: `appointment-${appointment.id}`,
-        type: 'appointment',
-        title: appointment.title || 'Medical Appointment',
-        description: appointment.notes || 'Check-up completed',
-        date: appointment.date,
-        icon: CalendarCheck,
-        color: 'text-green-500'
+    if (appointments && Array.isArray(appointments)) {
+      appointments.slice(0, 2).forEach((appointment: any) => {
+        activities.push({
+          id: `appointment-${appointment.id}`,
+          type: 'appointment',
+          title: appointment.title || 'Medical Appointment',
+          description: appointment.notes || 'Check-up completed',
+          date: appointment.date,
+          icon: CalendarCheck,
+          color: 'text-green-500'
+        });
       });
-    });
+    }
 
     return activities
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
