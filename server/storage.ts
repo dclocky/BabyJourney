@@ -56,6 +56,8 @@ export interface IStorage {
   updateUser(id: number, user: Partial<User>): Promise<User | undefined>;
   updateUserPremiumStatus(id: number, isPremium: boolean): Promise<User | undefined>;
   upgradeToPremium(userId: number): Promise<User | undefined>;
+  linkPartner(userId: number, partnerEmail: string): Promise<User | undefined>;
+  unlinkPartner(userId: number): Promise<User | undefined>;
 
   // Family member methods
   getFamilyMembers(userId: number): Promise<FamilyMember[]>;

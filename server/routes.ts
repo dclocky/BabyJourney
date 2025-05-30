@@ -2058,17 +2058,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // === Stripe Payment Routes ===
   
-  // Create payment intent for premium subscription
+  // Create payment intent for premium upgrade
   app.post("/api/create-payment-intent", requireAuth, async (req: AuthenticatedRequest, res, next) => {
     try {
-      const { amount = 999 } = req.body; // Default $9.99 for premium subscription
+      const { amount = 1999 } = req.body; // Default €19.99 for premium upgrade
       
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(amount), // Amount in cents
-        currency: "usd",
+        currency: "eur",
         metadata: {
           userId: req.user!.id.toString(),
-          type: "premium_subscription"
+          type: "premium_upgrade"
         }
       });
 
@@ -2113,7 +2113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json({ 
-        message: "Successfully upgraded to premium",
+        message: "Successfully upgraded to premium for €19.99",
         user: updatedUser
       });
     } catch (error: any) {

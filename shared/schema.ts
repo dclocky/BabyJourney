@@ -11,6 +11,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   role: text("role", { enum: ["admin", "user"] }).default("user").notNull(),
   isPremium: boolean("is_premium").default(false).notNull(),
+  partnerId: integer("partner_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
