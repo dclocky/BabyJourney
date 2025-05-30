@@ -1338,9 +1338,9 @@ function UploadPhotoDialog({ open, onClose, childId }: UploadPhotoDialogProps) {
       if (!data.image) throw new Error("Image is required");
 
       const formData = new FormData();
-      formData.append("image", data.image);
-      formData.append("caption", data.caption);
-      formData.append("date", data.date.toISOString());
+      formData.append("photo", data.image);
+      formData.append("title", data.caption);
+      formData.append("takenAt", data.date.toISOString());
 
       return fetch(`/api/children/${childId}/photos`, {
         method: "POST",

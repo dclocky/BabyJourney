@@ -1,10 +1,19 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import Stripe from "stripe";
 import { storage } from "./storage";
 import { setupAuth, hashPassword, comparePasswords } from "./auth";
 import { AuthenticatedRequest } from "./types";
 import { getAuthenticatedUser, handleError } from "./utils";
 import multer from "multer";
+
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2023-10-16",
+});
 import { randomBytes } from "crypto";
 import { format } from "date-fns";
 import { 
@@ -2044,6 +2053,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(goals);
     } catch (err) {
       next(err);
+    }
+  });
+
+  // === Stripe Payment Routes ===
+  
+  // Create payment intent for premium subscription
+  app.post("/api/create-payment-intent", requireAuth, async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const { amount = 999 } = req.body; // Default $9.99 for premium subscription
+      
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount), // Amount in cents
+        currency: "usd",
+        metadata: {
+          userId: req.user!.id.toString(),
+          type: "premium_subscription"
+        }
+      });
+
+      res.json({ 
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id
+      });
+    } catch (error: any) {
+      console.error("Error creating payment intent:", error);
+      res.status(500).json({ 
+        message: "Error creating payment intent: " + error.message 
+      });
+    }
+  });
+
+  // Confirm premium upgrade after successful payment
+  app.post("/api/confirm-premium-upgrade", requireAuth, async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const { paymentIntentId } = req.body;
+      
+      if (!paymentIntentId) {
+        return res.status(400).json({ message: "Payment intent ID is required" });
+      }
+
+      // Retrieve payment intent to verify it was successful
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      
+      if (paymentIntent.status !== 'succeeded') {
+        return res.status(400).json({ message: "Payment not completed" });
+      }
+
+      // Verify the payment is for this user
+      if (paymentIntent.metadata.userId !== req.user!.id.toString()) {
+        return res.status(403).json({ message: "Payment not authorized for this user" });
+      }
+
+      // Update user to premium
+      const updatedUser = await storage.upgradeToPremium(req.user!.id);
+      
+      if (!updatedUser) {
+        return res.status(500).json({ message: "Failed to upgrade user to premium" });
+      }
+
+      res.json({ 
+        message: "Successfully upgraded to premium",
+        user: updatedUser
+      });
+    } catch (error: any) {
+      console.error("Error confirming premium upgrade:", error);
+      res.status(500).json({ 
+        message: "Error confirming premium upgrade: " + error.message 
+      });
     }
   });
 
