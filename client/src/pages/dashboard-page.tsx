@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { Child, Milestone } from "@shared/schema";
 import { format } from "date-fns";
+import { OnboardingTour, useOnboarding } from "@/components/onboarding-tour";
 import {
   Dialog,
   DialogContent,
@@ -1722,6 +1723,13 @@ function FamilyTimelineCard({ childId }: { childId?: number }) {
           View Full Timeline
         </Button>
       </div>
+
+      {/* Onboarding Tour */}
+      <OnboardingTour
+        isOpen={shouldShowTour}
+        onComplete={completeTour}
+        onSkip={completeTour}
+      />
     </div>
   );
 }
